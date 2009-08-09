@@ -24,6 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+// This code is based on MochiKit.Iter by Bob Ippolito http://mochikit.com/
+
 (function ()
 {
   include('base.js');
