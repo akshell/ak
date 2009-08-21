@@ -278,8 +278,8 @@
       },
 
       testRemove: function () {
-        fs.mkdir('dir');
-        fs.mkdir('dir/subdir');
+        fs.makeDir('dir');
+        fs.makeDir('dir/subdir');
         fs.write('file', 'hello');
         fs.write('dir/subdir/f', 'hi');
         fs.remove('dir');
