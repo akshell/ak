@@ -31,6 +31,8 @@
   }
 
   publish(ak.AK, 'setObjectProp');
+  publish(ak.AK, 'compile');
+  publish(ak.Script, 'run');
   publish(ak.App, 'call');
   publish(ak.Type, 'int');
   publish(ak.Type, 'serial');

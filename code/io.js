@@ -26,8 +26,8 @@
 
 (function ()
 {
-  include('base.js');
-  include('iter.js');
+  ak.include('base.js');
+  ak.include('iter.js');
 
   var base = ak.base;
   var iter = ak.iter;

@@ -26,10 +26,10 @@
 
 (function ()
 {
-  include('base.js');
-  include('iter.js');
-  include('utils.js');
-  include('io.js');
+  ak.include('base.js');
+  ak.include('iter.js');
+  ak.include('utils.js');
+  ak.include('io.js');
 
   var base = ak.base;
   var iter = ak.iter;

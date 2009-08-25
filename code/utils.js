@@ -28,7 +28,7 @@
 
 (function ()
 {
-  include('base.js');
+  ak.include('base.js');
 
   var base = ak.base;
   var $ = base.module('ak.utils');

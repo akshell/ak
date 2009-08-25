@@ -26,11 +26,11 @@
 
 (function ()
 {
-  include('base.js');
-  include('utils.js');
-  include('iter.js');
-  include('io.js');
-  include('unittest.js');
+  ak.include('base.js');
+  ak.include('utils.js');
+  ak.include('iter.js');
+  ak.include('io.js');
+  ak.include('unittest.js');
 
   // with statement is used here in order to make sure all names in
   // ak submodules are unique, this is essential because in applications
