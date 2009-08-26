@@ -30,6 +30,7 @@
   ak.include('utils.js');
   ak.include('iter.js');
   ak.include('io.js');
+  ak.include('debug.js');
   ak.include('unittest.js');
 
   // with statement is used here in order to make sure all names in
@@ -37,10 +38,53 @@
   // ak functions could be placed on global object for convenience.
   with(ak.base.update({},
                       ak, ak.types,
-                      ak.base, ak.unittest, ak.utils, ak.iter, ak.io))
+                      ak.base, ak.utils, ak.iter, ak.io, ak.unittest, ak.debug))
 {
   var $ = module('ak.tests');
 
+  //////////////////////////////////////////////////////////////////////////////
+  // debug tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  debugSuite = loadTests(
+    {
+      name: 'debug',
+
+      testAssertionError: function () {
+        assertSame(new AssertionError('hi') + '',
+                   'ak.debug.AssertionError: hi',
+                   'AssertionError');
+      },
+
+      testAssert: function () {
+        assert(true, 'assert(true)');
+        assertThrow(AssertionError, function () { assert(false); },
+                    'assert(false)');
+      },
+
+      testAssertEqual: function () {
+        assertEqual(null, undefined, 'assertEqual equal');
+        assertThrow(AssertionError, function () { assertEqual(1, 2); },
+                    'assertEqual not equal');
+      },
+
+      testAssertSame: function () {
+        assertEqual(1, 1, 'assertSame same');
+        assertThrow(AssertionError,
+                    function () { assertSame(null, undefined); },
+                    'assertSame not same');
+      },
+
+      testAssertThrow: function () {
+        assertThrow(Number, thrower(1), 'assertThrow');
+        assertThrow(AssertionError,
+                    function () { assertThrow(Error, thrower(1)); },
+                    'assertThrow throw wrong');
+        assertThrow(AssertionError,
+                    function () { assertThrow(Error, function () {}); },
+                    'assertThrow was not thrown');
+      }
+    });
 
   //////////////////////////////////////////////////////////////////////////////
   // unittest tests
@@ -49,12 +93,6 @@
   unittestSuite = loadTests(
     {
       name: 'unittest',
-
-      testAssertionError: function () {
-        assertSame(new AssertionError('hi') + '',
-                   'ak.unittest.AssertionError: hi',
-                   'AssertionError');
-      },
 
       testTestResult: function () {
         var tr = new TestResult();
@@ -220,35 +258,6 @@
         var suite = loadTests({test: function () {}});
         var stream = new Stream();
         assert(main(suite, stream), 'main');;
-      },
-
-      testAssert: function () {
-        assert(true, 'assert(true)');
-        assertThrow(AssertionError, function () { assert(false); },
-                    'assert(false)');
-      },
-
-      testAssertEqual: function () {
-        assertEqual(null, undefined, 'assertEqual equal');
-        assertThrow(AssertionError, function () { assertEqual(1, 2); },
-                    'assertEqual not equal');
-      },
-
-      testAssertSame: function () {
-        assertEqual(1, 1, 'assertSame same');
-        assertThrow(AssertionError,
-                    function () { assertSame(null, undefined); },
-                    'assertSame not same');
-      },
-
-      testAssertThrow: function () {
-        assertThrow(Number, thrower(1), 'assertThrow');
-        assertThrow(AssertionError,
-                    function () { assertThrow(Error, thrower(1)); },
-                    'assertThrow throw wrong');
-        assertThrow(AssertionError,
-                    function () { assertThrow(Error, function () {}); },
-                    'assertThrow was not thrown');
       }
     });
 
@@ -1032,6 +1041,7 @@
   //////////////////////////////////////////////////////////////////////////////
 
   $.suite = new TestSuite([
+                            debugSuite,
                             unittestSuite,
                             mainSuite,
                             baseSuite,

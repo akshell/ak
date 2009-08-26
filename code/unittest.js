@@ -30,20 +30,19 @@
   ak.include('iter.js');
   ak.include('utils.js');
   ak.include('io.js');
+  ak.include('debug.js');
 
   var base = ak.base;
   var iter = ak.iter;
   var utils = ak.utils;
   var io = ak.io;
+  var debug = ak.debug;
 
   var $ = base.module('ak.unittest');
 
   //////////////////////////////////////////////////////////////////////////////
   // Classes
   //////////////////////////////////////////////////////////////////////////////
-
-  $.AssertionError = base.makeErrorClass();
-
 
   $.TestResult = base.makeClass(
     function () {
@@ -101,7 +100,7 @@
             obj[this._methodName]();
             ok = true;
           } catch (err) {
-            if (err instanceof $.AssertionError)
+            if (err instanceof debug.AssertionError)
               result.addFailure(this, err);
             else
               result.addError(this, err);
@@ -250,55 +249,6 @@
   $.main = function (suite, stream/* = ak.io.out */) {
     var runner = new $.TextTestRunner(stream || io.out);
     return runner.run(suite);
-  };
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Assertion functions
-  //////////////////////////////////////////////////////////////////////////////
-
-  $.assert = function (expr, msg) {
-    if (!expr)
-      throw new $.AssertionError('assert failed' +
-                                 (msg ? ': ' + msg : ''));
-  };
-
-
-  $.assertEqual = function (first, second, msg) {
-    if (!base.equal(first, second))
-      throw new $.AssertionError((msg ? msg + ': ' : '') +
-                                 base.repr(first) + ' <> ' +
-                                 base.repr(second));
-  };
-
-
-  $.assertSame = function (first, second, msg) {
-    if (first !== second)
-      throw new $.AssertionError((msg ? msg + ': ' : '') +
-                                 base.repr(first) + ' !== ' +
-                                 base.repr(second));
-  };
-
-
-  $.assertThrow = function (constructor, func /*, ... */) {
-    var args = [];
-    for (var i = 2; i < arguments.length; ++i)
-      args.push(arguments[i]);
-    try {
-      func.apply(base.global, args);
-    } catch (err) {
-      if (typeof(err) != 'object')
-        err = Object(err);
-      if (!(err instanceof constructor)) {
-        var expected = (constructor.name || constructor + '');
-        var got = err.constructor.name || err.constructor;
-        throw new $.AssertionError('Expected ' +
-                                   expected +
-                                   ' exception, got ' +
-                                   got + ' (' + err + ')');
-      }
-      return;
-    }
-    throw new $.AssertionError('Exception was not thrown');
   };
 
   //////////////////////////////////////////////////////////////////////////////
