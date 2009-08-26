@@ -51,7 +51,6 @@
       this.failures = [];
       this.testsRun = 0;
     },
-    undefined,
     {
       get wasSuccessful () {
         return this.errors.length == 0 && this.failures.length == 0;
@@ -82,7 +81,6 @@
       this._proto = proto;
       this._methodName = methodName;
     },
-    undefined,
     {
       count: 1,
 
@@ -140,7 +138,6 @@
     function (tests) {
       this._tests = tests || [];
     },
-    undefined,
     {
       run: function (result) {
         this._tests.map(function (test) { test.run(result); });
@@ -164,12 +161,12 @@
     });
 
 
-  $.TextTestResult = base.makeClass(
+  $.TextTestResult = base.makeSubclass(
+    $.TestResult,
     function (stream) {
       $.TestResult.call(this);
       this._stream = stream;
     },
-    $.TestResult,
     {
       startTest: function (test) {
         this.__proto__.__proto__.startTest.call(this, test);
@@ -197,7 +194,6 @@
     function (stream) {
       this._stream = stream;
     },
-    undefined,
     {
       run: function (test) {
         var result = new $.TextTestResult(this._stream);

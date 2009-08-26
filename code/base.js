@@ -335,18 +335,23 @@
   };
 
 
-  $.makeClass = function (/* optional */constructor,
-                          /* optional */parent,
-                          /* optional */proto) {
-    if (!constructor)
-      constructor = (parent
-                     ? function () { parent.apply(this, arguments); }
-                     : function () {});
-    if (proto)
-      constructor.prototype = proto;
+  $.makeClass = function(/* optional */constructor,
+                         /* optional */prototype) {
+    constructor = constructor || function () {};
+    if (prototype)
+      constructor.prototype = prototype;
     constructor.prototype.constructor = constructor;
-    if (parent)
-      constructor.prototype.__proto__ = parent.prototype;
+    return constructor;
+  };
+
+
+  $.makeSubclass = function(parent,
+                            /* optional */constructor,
+                            /* optional */prototype) {
+    constructor = (constructor ||
+                   function () { parent.apply(this, arguments); });
+    constructor = $.makeClass(constructor, prototype);
+    constructor.prototype.__proto__ = parent.prototype;
     return constructor;
   };
 

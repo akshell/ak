@@ -513,22 +513,26 @@
 
       testMakeClass: function () {
         var C = makeClass(function (x) { this.x = x; },
-                          undefined,
                           {f: function (x) { this.x = x; }});
         var c = new C(42);
         assertSame(c.constructor, C, 'makeClass constructor property');
         assert(c instanceof C, 'makeClass instanceof');
         assert(c instanceof Object, 'makeClass instanceof Object');
         assertSame(c.x, 42, 'makeClass initialization');
-        var D = makeClass(undefined, C, {get y() { return this.x; }});
-        var d = new D(111);
-        assertSame(d.x, 111, 'makeClass derived parent property');
-        assertSame(d.y, 111, 'makeClass derived getter');
-        assert(d instanceof D, 'makeClass derived instanceof');
-        assert(d instanceof C, 'makeClass derived instanceof parent');
-        d.f(15);
-        assertSame(d.x, 15, 'makeClass derived parent method');
         assert(repr(new makeClass()), '{}', 'makeClass()');
+      },
+
+      testMakeSubclass: function () {
+        var C = makeClass(function (x) { this.x = x; },
+                          {f: function (x) { this.x = x; }});
+        var D = makeSubclass(C, null, {get y() { return this.x; }});
+        var d = new D(111);
+        assertSame(d.x, 111, 'makeSubclass parent property');
+        assertSame(d.y, 111, 'makeSubclass getter');
+        assert(d instanceof D, 'makeSubclass instanceof');
+        assert(d instanceof C, 'makeSubclass instanceof parent');
+        d.f(15);
+        assertSame(d.x, 15, 'makeSubclass parent method');
       },
 
       testMakeErrorClass: function () {

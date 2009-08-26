@@ -34,11 +34,11 @@
   var $ = base.module('ak.io');
 
 
-  $.Stream = base.makeClass(
+  $.Stream = base.makeSubclass(
+    iter.Iterator,
     function () {
       this._strs = [];
     },
-    iter.Iterator,
     {
       get valid() {
         return !!this._strs.length;

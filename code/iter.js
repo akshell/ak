@@ -42,7 +42,6 @@
 
   $.Iterator = base.makeClass(
     function () {},
-    undefined,
     {
       __repr__: function () {
         return ('<' + (this.valid ? 'valid' : 'invalid') + ' ' +
@@ -71,7 +70,7 @@
     });
 
 
-  $.InvalidIterator = base.makeClass(undefined, $.Iterator, {valid: false});
+  $.InvalidIterator = base.makeSubclass($.Iterator, null, {valid: false});
 
 
   //////////////////////////////////////////////////////////////////////////////
@@ -190,7 +189,8 @@
   // Utility iterators
   //////////////////////////////////////////////////////////////////////////////
 
-  $.SliceIterator = base.makeClass(
+  $.SliceIterator = base.makeSubclass(
+    $.Iterator,
     function (iterable,
               start/* = 0 */,
               stop /* = Infinity */) {
@@ -200,7 +200,6 @@
       $.advance(this._itr, start);
       this._count = stop - start;
     },
-    $.Iterator,
     {
       get valid() {
         return this._itr.valid && this._count > 0;
@@ -215,11 +214,11 @@
   $.islice = base.factory($.SliceIterator);
 
 
-  $.CountIterator = base.makeClass(
+  $.CountIterator = base.makeSubclass(
+    $.Iterator,
     function (n) {
       this._n = n || 0;
     },
-    $.Iterator,
     {
       __repr__: function () {
         return this.constructor.__name__ + '(' + this._n + ')';
@@ -235,13 +234,13 @@
   $.count = base.factory($.CountIterator);
 
 
-  $.CycleIterator = base.makeClass(
+  $.CycleIterator = base.makeSubclass(
+    $.Iterator,
     function (iterable) {
       this._itr = $.iter(iterable);
       this.valid = this._itr.valid;
       this._saved = [];
     },
-    $.Iterator,
     {
       _next: function () {
         if ('_i' in this || !this._itr.valid) {
@@ -258,12 +257,12 @@
   $.cycle = base.factory($.CycleIterator);
 
 
-  $.RepeatIterator = base.makeClass(
+  $.RepeatIterator = base.makeSubclass(
+    $.Iterator,
     function (obj, n/* = Infinity */) {
       this._obj = obj;
       this._i = n === undefined ? Infinity : n;
     },
-    $.Iterator,
     {
       get valid() {
         return this._i > 0;
@@ -278,11 +277,11 @@
   $.repeat = base.factory($.RepeatIterator);
 
 
-  $.ZipIterator = base.makeClass(
+  $.ZipIterator = base.makeSubclass(
+    $.Iterator,
     function (/* iterables... */) {
       this._itrs = Array.map(arguments, $.iter);
     },
-    $.Iterator,
     {
       get valid() {
         return this._itrs.every(utils.itemGetter('valid'));
@@ -296,14 +295,14 @@
   $.izip = base.factory($.ZipIterator);
 
 
-  $.FilterIterator = base.makeClass(
+  $.FilterIterator = base.makeSubclass(
+    $.Iterator,
     function (iterable, pred) {
       this._pred = pred || base.operators.truth;
       this._itr = $.iter(iterable);
       this.valid = true;
       arguments.callee.prototype._findNextItem.call(this);
     },
-    $.Iterator,
     {
       _findNextItem: function () {
         do {
@@ -325,12 +324,12 @@
   $.ifilter = base.factory($.FilterIterator);
 
 
-  $.MapIterator = base.makeClass(
+  $.MapIterator = base.makeSubclass(
+    $.Iterator,
     function (iterable, func) {
       this._itr = $.iter(iterable);
       this._func = func;
     },
-    $.Iterator,
     {
       get valid() {
         return this._itr.valid;
@@ -344,12 +343,12 @@
   $.imap = base.factory($.MapIterator);
 
 
-  $.ChainIterator = base.makeClass(
+  $.ChainIterator = base.makeSubclass(
+    $.Iterator,
     function (/* iterables... */) {
       this._itrs = Array.map(arguments, $.iter);
       arguments.callee.prototype._findValid.call(this);
     },
-    $.Iterator,
     {
       _findValid: function () {
         while (this._itrs.length && !this._itrs[0].valid)
@@ -370,14 +369,14 @@
   $.chain = base.factory($.ChainIterator);
 
 
-  $.TakeWhileIterator = base.makeClass(
+  $.TakeWhileIterator = base.makeSubclass(
+    $.Iterator,
     function (iterable, pred) {
       this._itr = $.iter(iterable);
       this._pred = pred;
       this.valid = true;
       arguments.callee.prototype._getNextItem.call(this);
     },
-    $.Iterator,
     {
       _getNextItem: function () {
         if (!this._itr.valid) {
@@ -399,7 +398,8 @@
   $.takeWhile = base.factory($.TakeWhileIterator);
 
 
-  $.DropWhileIterator = base.makeClass(
+  $.DropWhileIterator = base.makeSubclass(
+    $.Iterator,
     function (iterable, pred) {
       this._itr = $.iter(iterable);
       while (this._itr.valid) {
@@ -410,7 +410,6 @@
         }
       }
     },
-    $.Iterator,
     {
       get valid() {
         return '_first' in this || this._itr.valid;
@@ -429,13 +428,13 @@
   $.dropWhile = base.factory($.DropWhileIterator);
 
 
-  $.TeeIterator = base.makeClass(
+  $.TeeIterator = base.makeSubclass(
+    $.Iterator,
     function (ident, sync) {
       sync.pos[ident] = -1;
       this._ident = ident;
       this._sync = sync;
     },
-    $.Iterator,
     {
       get valid() {
         return (this._sync.pos[this._ident] != this._sync.max ||
@@ -479,12 +478,12 @@
   };
 
 
-  $.GroupByIterator = base.makeClass(
+  $.GroupByIterator = base.makeSubclass(
+    $.Iterator,
     function (iterable, keyFunc/* = ak.base.operators.identity */) {
       this._itr = $.iter(iterable);
       this._keyFunc = keyFunc || base.operators.identity;
     },
-    $.Iterator,
     {
       get valid() {
         return '_value' in this || this._itr.valid;
@@ -518,12 +517,12 @@
   // ObjectIterator
   //////////////////////////////////////////////////////////////////////////////
 
-  $.ObjectIterator = base.makeClass(
+  $.ObjectIterator = base.makeSubclass(
+    $.Iterator,
     function (obj) {
       this._keyItr = $.iter(base.keys(obj));
       this._obj = obj;
     },
-    $.Iterator,
     {
       get valid() {
         return this._keyItr.valid;
@@ -544,12 +543,12 @@
   // ArrayIterator
   //////////////////////////////////////////////////////////////////////////////
 
-  $.ArrayIterator = base.makeClass(
+  $.ArrayIterator = base.makeSubclass(
+    $.Iterator,
     function (array) {
       this._array = array;
       this._i = 0;
     },
-    $.Iterator,
     {
       get valid() {
         return this._i < this._array.length;
