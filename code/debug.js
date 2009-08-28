@@ -26,9 +26,7 @@
 
 (function ()
 {
-  ak.include('base.js');
-
-  var base = ak.base;
+  var base = ak.include('base.js');
 
   var $ = base.module('ak.debug');
 
@@ -36,30 +34,35 @@
   $.AssertionError = base.makeErrorClass();
 
 
-  $.assert = function (expr, msg) {
+  function prefix(msg) {
+    return msg ? msg + ': ' : '';
+  }
+
+
+  $.assert = function (expr, /* optional */msg) {
     if (!expr)
-      throw new $.AssertionError('assert failed' +
+      throw new $.AssertionError('Assertion failed' +
                                  (msg ? ': ' + msg : ''));
   };
 
 
-  $.assertEqual = function (first, second, msg) {
+  $.assertEqual = function (first, second, /* optional */msg) {
     if (!base.equal(first, second))
-      throw new $.AssertionError((msg ? msg + ': ' : '') +
+      throw new $.AssertionError(prefix(msg) +
                                  base.repr(first) + ' <> ' +
                                  base.repr(second));
   };
 
 
-  $.assertSame = function (first, second, msg) {
+  $.assertSame = function (first, second, /* optional */msg) {
     if (first !== second)
-      throw new $.AssertionError((msg ? msg + ': ' : '') +
+      throw new $.AssertionError(prefix(msg) +
                                  base.repr(first) + ' !== ' +
                                  base.repr(second));
   };
 
 
-  $.assertThrow = function (constructor, func /*, ... */) {
+  $.assertThrow = function (constructor, func, /* optional */msg) {
     var args = [];
     for (var i = 2; i < arguments.length; ++i)
       args.push(arguments[i]);
@@ -69,19 +72,20 @@
       if (typeof(err) != 'object')
         err = Object(err);
       if (!(err instanceof constructor)) {
-        var expected = (constructor.name || constructor + '');
-        var got = err.constructor.name || err.constructor;
-        throw new $.AssertionError('Expected ' +
+        var expected = constructor.__name__ || constructor.name;
+        var got = err.constructor.__name__ || err.constructor.name;
+        throw new $.AssertionError(prefix(msg) +
+                                   'Expected ' +
                                    expected +
                                    ' exception, got ' +
                                    got + ' (' + err + ')');
       }
       return;
     }
-    throw new $.AssertionError('Exception was not thrown');
+    throw new $.AssertionError(prefix(msg) + 'Exception was not thrown');
   };
 
 
   base.nameFunctions($);
-
+  return $;
 })();

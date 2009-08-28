@@ -26,11 +26,9 @@
 
 (function ()
 {
-  ak.include('base.js');
-  ak.include('iter.js');
+  var base = ak.include('base.js');
+  var iter = ak.include('iter.js');
 
-  var base = ak.base;
-  var iter = ak.iter;
   var $ = base.module('ak.io');
 
 
@@ -103,4 +101,5 @@
 
 
   base.nameFunctions($);
+  return $;
 })();

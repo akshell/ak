@@ -28,13 +28,9 @@
 
 (function ()
 {
-  ak.include('base.js');
-  ak.include('utils.js');
+  var base = ak.include('base.js');
 
-  var base = ak.base;
-  var utils = ak.utils;
   var $ = base.module('ak.iter');
-
 
   //////////////////////////////////////////////////////////////////////////////
   // Iterator
@@ -48,24 +44,18 @@
                 this.constructor.__name__ + '>');
       },
 
-      get valid() {
-        if (!('_valid' in this))
-          throw ReferenceError('valid must be set by Iterator subclass');
-        return this._valid;
-      },
-
-      set valid(v) {
-        this._valid = v;
-      },
-
       next: function () {
+        if (!('valid' in this))
+          throw new base.NotImplementedError(
+            'valid must be defined by Iterator subclass');
         if (!this.valid)
-          return undefined;
+          throw new Error('Iteration on invalid iterator');
         return this._next();
       },
 
       _next: function () {
-        throw ReferenceError('_next() must be defined by Iterator subclass');
+        throw new base.NotImplementedError(
+          '_next must be defined by Iterator subclass');
       }
     });
 
@@ -284,11 +274,11 @@
     },
     {
       get valid() {
-        return this._itrs.every(utils.itemGetter('valid'));
+        return this._itrs.every(function (itr) { return itr.valid; });
       },
 
       _next: function () {
-        return this._itrs.map(utils.methodCaller('next'));
+        return this._itrs.map(function (itr) { return itr.next(); });
       }
     });
 
@@ -566,9 +556,9 @@
   ak.Query.prototype.setNonEnumerable('__iterator__', makeArrayIterator);
 
   //////////////////////////////////////////////////////////////////////////////
-  // Name module functions
+  // Epilogue
   //////////////////////////////////////////////////////////////////////////////
 
   base.nameFunctions($);
-
+  return $;
 })();

@@ -26,11 +26,6 @@
 
 (function ()
 {
-  ak.include('base.js');
-  ak.include('utils.js');
-  ak.include('iter.js');
-  ak.include('io.js');
-  ak.include('debug.js');
   ak.include('unittest.js');
 
   // with statement is used here in order to make sure all names in
@@ -63,7 +58,8 @@
       },
 
       testAssertEqual: function () {
-        assertEqual(null, undefined, 'assertEqual equal');
+        assertEqual(42, {__eq__: function (other) { return other === 42; }},
+                    'assertEqual equal');
         assertThrow(AssertionError, function () { assertEqual(1, 2); },
                     'assertEqual not equal');
       },
@@ -227,13 +223,13 @@
                    '1\n' +
                    '=====\n' +
                    'FAIL: testAssert(test)\n' +
-                   'assert failed: msg1\n' +
+                   'Assertion failed: msg1\n' +
                    '=====\n' +
                    'FAIL: testAssertEqual(test)\n' +
                    'msg2: 1 <> 2\n' +
                    '=====\n' +
                    'FAIL: testAssertThrow(test)\n' +
-                   'Expected Error exception, got Number (1)\n' +
+                   'msg3: Expected Error exception, got Number (1)\n' +
                    '-----\n' +
                    'Ran 5 tests\n' +
                    'FAILED (failures=3, errors=1)',
@@ -425,22 +421,33 @@
         assertSame(cmp(Number(1), 1), 0, 'cmp Number');
         assertSame(cmp(String('hi'), 'hi'), 0, 'cmp String');
         assertSame(cmp(true, Boolean(true)), 0, 'cmp Boolean');
-        assertSame(cmp(null, undefined), 0, 'cmp(null, undefined)');
-        assertSame(cmp(null, 1), -1, 'cmp(null, non null)');
-        assertSame(cmp('a', undefined), 1, 'cmp(non null, null)');
         assertSame(cmp(1, 2), -1, 'cmp(1, 2)');
-        assertSame(cmp(true, "0"), 1, 'cmp(true, "0")');
         var o = {__cmp__: function (other) { return 1; }};
         assertSame(cmp(o, 1), 1, 'custom __cmp__ in first arg');
         assertSame(cmp(1, o), -1, 'custom cmp in second arg');
-        assertThrow(TypeError, function () {
-                      cmp({}, 1);
-                    });
+
+        assertThrow(TypeError, function () { cmp(null, undefined); },
+                    'cmp(null, undefined)');
+        assertThrow(TypeError, function () { cmp(null, 1); },
+                    'cmp(null, non null)');
+        assertThrow(TypeError, function () { cmp('a', undefined); },
+                    'cmp(non undefined, undefined)');
+        assertThrow(TypeError, function () { cmp(true, "0"); },
+                    'cmp(true, "0")');
+        assertThrow(TypeError, function () { cmp({}, 1); });
+        assertThrow(TypeError, function () { cmp({__cmp__: 42}, 1); });
       },
 
       testEqual: function () {
-        assertSame(equal(1, 1), true, 'equal');
-        assertSame(equal(1, 2), false, 'not equal');
+        assert(equal(1, 1), 'equal');
+        assert(!equal(1, 2), 'not equal');
+        assert(equal(1, {__eq__: function () { return true; }}),
+               'equal __eq__ true');
+        assert(!equal({__eq__: function () { return false; }}, 1),
+               'equal __eq__ false');
+        assert(equal({__cmp__: function () { return 1; }},
+                     {__eq__: function () { return true; }}),
+               'equal __cmp__ __eq__');
       },
 
       testSetDefault: function () {
@@ -559,6 +566,21 @@
         assertSame((new TE()).name, 'TypeError', 'makeErrorClass default name');
       },
 
+      testAbstract: function () {
+        assertThrow(NotImplementedError, abstract, 'abstract');
+      },
+
+      testIsSubclass: function () {
+        var C = makeClass();
+        var D = makeSubclass(C);
+        var E = makeSubclass(D);
+        assert(isSubclass(E, C), 'isSubclass');
+        assertThrow(TypeError, isSubclass, 'isSubclass bad cls');
+        assertThrow(TypeError, partial(isSubclass, E), 'isSubclass bad base');
+        assert(isSubclass(E, Object), 'isSubclass Object');
+        assert(!isSubclass(E, Error), 'isSubclass false');
+      },
+
       //////////////////////////////////////////////////////////////////////////
       // Object methods tests
       //////////////////////////////////////////////////////////////////////////
@@ -586,7 +608,7 @@
         assertEqual([1, 2, 3], [1, 2, 3], 0, 'equal array cmp');
         assertSame(cmp([1, 2], [1, 2, 3]), -1, 'less len array cmp');
         assertSame(cmp([1, 2], [1]), 1, 'more len array cmp');
-        assertSame(cmp([1, 2, 3], [1, 2, '4']), -1, 'less item array cmp');
+        assertSame(cmp([1, 2, 3], [1, 2, 4]), -1, 'less item array cmp');
 
       },
 
@@ -615,6 +637,15 @@
         assert(equal(a, [2, 3, 2, 3]), 'extend to a non-empty array');
         b.extend(three);
         assert(equal(b, three), 'extend of an empty array');
+      },
+
+      testStartsWith: function () {
+        var str = 'string';
+        assert(str.startsWith('str'), 'startsWith');
+        assert(!str.startsWith('str1'), 'startsWith false');
+        assert(str.startsWith('tr', 1), 'startsWith start');
+        assert(str.startsWith('tr', 1, 3), 'startsWith start end');
+        assert(!str.startsWith('tr', 1, 2), 'startsWith start close end');
       },
 
       testDateCmp: function () {
@@ -758,6 +789,21 @@
                     'thrower TypeError');
         assertThrow(Number, thrower(1),
                     'thrower number');
+      },
+
+      testSmartSplit: function () {
+        assertEqual(smartSplit('This is "a person\'s" test.'),
+                    ['This', 'is', '"a person\'s"', 'test.'],
+                    'smartSplit 1');
+        assertEqual(smartSplit("Another 'person\\'s' test."),
+                    ['Another', "'person's'", 'test.'],
+                    'smartSplit 2');
+        assertEqual(smartSplit('A "\\"funky\\" style" test.'),
+                    ['A', '""funky" style"', 'test.'],
+                    'smartSplit 3');
+        assertEqual(smartSplit('"'),
+                    ['"""'],
+                    'smartSplit 4');
       }
     });
 
@@ -782,9 +828,7 @@
 
       testIterator: function () {
         var itr = new Iterator();
-        assertThrow(ReferenceError, function () { itr.valid; },
-                    'Iterator valid');
-        assertThrow(ReferenceError, bind(itr.next, itr), 'Iterator next');
+        assertThrow(NotImplementedError, bind(itr.next, itr), 'Iterator next');
         itr.valid = true;
         assertSame(repr(itr), '<valid ak.iter.Iterator>');
       },
@@ -1037,7 +1081,7 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // suite and main
+  // Epilogue
   //////////////////////////////////////////////////////////////////////////////
 
   $.suite = new TestSuite([
@@ -1050,8 +1094,10 @@
                             ioSuite
                           ]);
 
+
   $.main = partial(main, $.suite);
 
+  
   nameFunctions($);
-
+  return $;
 }})();

@@ -28,9 +28,9 @@
 
 (function ()
 {
-  ak.include('base.js');
+  var base = ak.include('base.js');
+  var iter = ak.include('iter.js');
 
-  var base = ak.base;
   var $ = base.module('ak.utils');
 
 
@@ -144,6 +144,31 @@
   };
 
 
-  base.nameFunctions($);
+  var smartSplitRegExp = RegExp('"(?:[^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|' +
+                                "'(?:[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'|[^\\s]+",
+                                'g');
 
+  $.smartSplit = function (text) {
+    return text.match(smartSplitRegExp).map(
+      function (bit) {
+        if (bit[0] == '"' && bit[bit.length - 1] == '"')
+          return ('"' +
+                  bit.substring(1, bit.length - 1)
+                  .replace(/\\\"/g, '"')
+                  .replace(/\\\\/, '\\') +
+                  '"');
+        else if (bit[0] == "'" && bit[bit.length - 1] == "'")
+          return ("'" +
+                  bit.substring(1, bit.length - 1)
+                  .replace(/\\\'/g, "'")
+                  .replace(/\\\\/, '\\') +
+                  "'");
+        else
+          return bit;
+      });
+  };
+
+
+  base.nameFunctions($);
+  return $;
 })();

@@ -28,7 +28,7 @@
 
 (function ()
 {
-  ak.include('main.js');
+  ak.include('core.js');
 
   //////////////////////////////////////////////////////////////////////////////
   // Free functions
@@ -150,34 +150,27 @@
   }
 
 
+  function doCmp(a, b) {
+    if (typeof(a.__cmp__) == 'function')
+      return a.__cmp__(b);
+    if (typeof(b.__cmp__) == 'function')
+      return -b.__cmp__(a);
+    if (typeof(a) in  {'boolean': 1, 'string': 1, 'number': 1} &&
+        typeof(b) == typeof(a))
+      return a < b ? -1 : 1;
+    return undefined;
+  }
+
+
   $.cmp = function (a, b) {
     a = removeWrapper(a);
     b = removeWrapper(b);
     if (a === b)
       return 0;
-    var aIsNull = (a === undefined || a === null);
-    var bIsNull = (b === undefined || b === null);
-    if (aIsNull && bIsNull)
-      return 0;
-    else if (aIsNull)
-      return -1;
-    else if (bIsNull)
-      return 1;
-    var primitivesObj = {'boolean': true,
-                         'string': true,
-                         'number': true
-                        };
-    if (typeof(a) in primitivesObj &&
-        typeof(b) in primitivesObj) {
-      if (a < b)
-        return -1;
-      else if (a > b)
-        return 1;
-    } else {
-      if (a.__cmp__)
-        return a.__cmp__(b);
-      else if (b.__cmp__)
-        return -b.__cmp__(a);
+    if (a !== null && a !== undefined && b !== null && b !== undefined) {
+      var c = doCmp(a, b);
+      if (c !== undefined)
+        return c;
     }
     throw new TypeError($.repr(a) + ' and ' + $.repr(b) +
                         ' can not be compared');
@@ -185,7 +178,21 @@
 
 
   $.equal = function (a, b) {
-    return $.cmp(a, b) == 0;
+    a = removeWrapper(a);
+    b = removeWrapper(b);
+    if (a === b)
+      return true;
+    if (a !== null && a !== undefined && b !== null && b !== undefined) {
+      if (typeof(a.__eq__) == 'function')
+        return a.__eq__(b);
+      if (typeof(b.__eq__) == 'function')
+        return b.__eq__(a);
+      var c = doCmp(a, b);
+      if (c !== undefined)
+        return c == 0;
+    }
+    throw new TypeError($.repr(a) + ' and ' + $.repr(b) +
+                        ' can not be compared for equality');
   };
 
 
@@ -371,6 +378,30 @@
     return result;
   };
 
+
+  $.NotImplementedError = $.makeErrorClass();
+
+
+  $.abstract = function () {
+    throw new $.NotImplementedError();
+  };
+
+
+  $.isSubclass = function (cls, base) {
+    if (typeof(cls) != 'function')
+      throw new TypeError('isSubclass first argument must be a function');
+    if (typeof(base) != 'function')
+      throw new TypeError('isSubclass second argument must be a function');
+    if (base === Object)
+      return true;
+    for (var prototype = cls.prototype;
+         prototype !== Object.prototype;
+         prototype = prototype.__proto__)
+      if (prototype === base.prototype)
+        return true;
+    return false;
+  };
+
   //////////////////////////////////////////////////////////////////////////////
   // Object methods
   //////////////////////////////////////////////////////////////////////////////
@@ -448,6 +479,15 @@
         return lenCmp;
       },
 
+      __eq__: function (other) {
+        if (!$.equal(this.length, other.length))
+          return false;
+        for (var i = 0; i < this.length; ++i)
+          if (!$.equal(this[i], other[i]))
+            return false;
+        return true;
+      },
+
       flatten: function () {
         return flattenArray([], this);
       },
@@ -463,6 +503,22 @@
         for (var i = skip || 0; i < lst.length; ++i)
           this.push(lst[i]);
         return this;
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // String methods
+  //////////////////////////////////////////////////////////////////////////////
+
+  $.updateWithMode(
+    String.prototype, ak.DONT_ENUM,
+    {
+      startsWith: function (prefix, /* optional */ start, /* optional */ end) {
+        if (arguments.length < 2)
+          start = 0;
+        else if (arguments.length > 2 && start + prefix.length > end)
+          return false;
+        return this.substr(start, prefix.length) == prefix;
       }
     });
 
@@ -554,9 +610,9 @@
           });
 
   //////////////////////////////////////////////////////////////////////////////
-  // Name module functions
+  // Epilogue
   //////////////////////////////////////////////////////////////////////////////
 
   $.nameFunctions($);
-
+  return $;
 })();

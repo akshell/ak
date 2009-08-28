@@ -26,17 +26,11 @@
 
 (function ()
 {
-  ak.include('base.js');
-  ak.include('iter.js');
-  ak.include('utils.js');
-  ak.include('io.js');
-  ak.include('debug.js');
-
-  var base = ak.base;
-  var iter = ak.iter;
-  var utils = ak.utils;
-  var io = ak.io;
-  var debug = ak.debug;
+  var base = ak.include('base.js');
+  var iter = ak.include('iter.js');
+  var utils = ak.include('utils.js');
+  var io = ak.include('io.js');
+  var debug = ak.include('debug.js');
 
   var $ = base.module('ak.unittest');
 
@@ -252,9 +246,9 @@
   };
 
   //////////////////////////////////////////////////////////////////////////////
-  // Name module functions
+  // Epilogue
   //////////////////////////////////////////////////////////////////////////////
 
   base.nameFunctions($);
-
+  return $;
 })();
