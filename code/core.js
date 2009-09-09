@@ -35,6 +35,7 @@
 
   publish($.AK, 'setObjectProp');
   publish($.AK, 'compile');
+  publish($.AK, 'readCode');
   publish($.Script, 'run');
   publish($.App, 'call');
   publish($.Type, 'int');
