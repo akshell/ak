@@ -837,7 +837,7 @@
       testIter: function () {
         var itr = iter([]);
         assertSame(iter(itr), itr, 'iter from Iterator');
-        assert(iter({__iterator__: 42}) instanceof InvalidIterator,
+        assert(iter({__iter__: 42}) instanceof InvalidIterator,
                'iter from non iterable object');
         assert(iter(undefined)  instanceof InvalidIterator,
                'iter from undefined');
@@ -1330,7 +1330,7 @@
       {},
       '111222333'],
     ['{% for x in y %}{{ x }}{% endfor %}',
-     {y: {__iterator__: function () { return iter([1, 2, 3]);}}},
+     {y: {__iter__: function () { return iter([1, 2, 3]);}}},
      '123'],
     ['{% for n in "123" reversed %}{{ n }}{% endfor %}', {}, '321'],
     ['{% extends "hello" %}', {}, 'hello world'],

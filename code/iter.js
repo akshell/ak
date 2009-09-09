@@ -71,8 +71,8 @@
     return (obj instanceof $.Iterator ?
             obj
             : ((obj !== undefined && obj !== null &&
-                typeof(obj.__iterator__) == 'function')
-               ? obj.__iterator__()
+                typeof(obj.__iter__) == 'function')
+               ? obj.__iter__()
                : new $.InvalidIterator()));
   };
 
@@ -530,7 +530,7 @@
     });
 
 
-  Object.prototype.setNonEnumerable('__iterator__', function () {
+  Object.prototype.setNonEnumerable('__iter__', function () {
                                       return new $.ObjectIterator(this);
                                     });
 
@@ -556,9 +556,9 @@
 
 
   function makeArrayIterator() { return new $.ArrayIterator(this); };
-  Array.prototype.setNonEnumerable('__iterator__', makeArrayIterator);
-  String.prototype.setNonEnumerable('__iterator__', makeArrayIterator);
-  ak.Query.prototype.setNonEnumerable('__iterator__', makeArrayIterator);
+  Array.prototype.setNonEnumerable('__iter__', makeArrayIterator);
+  String.prototype.setNonEnumerable('__iter__', makeArrayIterator);
+  ak.Query.prototype.setNonEnumerable('__iter__', makeArrayIterator);
 
   //////////////////////////////////////////////////////////////////////////////
   // Epilogue
