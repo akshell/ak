@@ -27,13 +27,15 @@
 (function ()
 {
   ak.include('unittest.js');
+  ak.include('template.js');
 
   // with statement is used here in order to make sure all names in
   // ak submodules are unique, this is essential because in applications
   // ak functions could be placed on global object for convenience.
   with(ak.base.update({},
                       ak, ak.types,
-                      ak.base, ak.utils, ak.iter, ak.io, ak.unittest, ak.debug))
+                      ak.base, ak.utils, ak.iter, ak.io, ak.unittest, ak.debug,
+                      ak.template))
 {
   var $ = module('ak.tests');
 
@@ -168,8 +170,8 @@
         run(testBadTearDown);
         assert(tested && setUp && !tearedDown, 'TestCase run testBadTearDown');
 
-        assertEqual(tr.errors.map(itemGetter(1)), [1, 2, 4], 'TestCase errors');
-        assertEqual(tr.failures.map(itemGetter(1)), [assertionError],
+        assertEqual(tr.errors.map(attrGetter(1)), [1, 2, 4], 'TestCase errors');
+        assertEqual(tr.failures.map(attrGetter(1)), [assertionError],
                     'TestCase failures');
         assertSame(started, stopped, 'TestCase started stopped');
         assertSame(started, 5, 'TestCase started');
@@ -212,28 +214,14 @@
         };
         var stream = new Stream();
         (new TextTestRunner(stream)).run(loadTests(test));
-        assertSame(stream.read(),
-                   'testAssert(test) FAIL\n' +
-                   'testAssertEqual(test) FAIL\n' +
-                   'testAssertThrow(test) FAIL\n' +
-                   'testError(test) ERROR\n' +
-                   'testOk(test) ok\n' +
-                   '=====\n' +
-                   'ERROR: testError(test)\n' +
-                   '1\n' +
-                   '=====\n' +
-                   'FAIL: testAssert(test)\n' +
-                   'Assertion failed: msg1\n' +
-                   '=====\n' +
-                   'FAIL: testAssertEqual(test)\n' +
-                   'msg2: 1 <> 2\n' +
-                   '=====\n' +
-                   'FAIL: testAssertThrow(test)\n' +
-                   'msg3: Expected Error exception, got Number (1)\n' +
-                   '-----\n' +
-                   'Ran 5 tests\n' +
-                   'FAILED (failures=3, errors=1)',
-                   'TextTestRunner');
+        assert(stream.read().startsWith(
+                 'testAssert(test) FAIL\n' +
+                 'testAssertEqual(test) FAIL\n' +
+                 'testAssertThrow(test) FAIL\n' +
+                 'testError(test) ERROR\n' +
+                 'testOk(test) ok\n' +
+                 '=====\n'),
+                 'TextTestRunner');
       },
 
       testLoadTests: function () {
@@ -575,8 +563,8 @@
         var D = makeSubclass(C);
         var E = makeSubclass(D);
         assert(isSubclass(E, C), 'isSubclass');
-        assertThrow(TypeError, isSubclass, 'isSubclass bad cls');
-        assertThrow(TypeError, partial(isSubclass, E), 'isSubclass bad base');
+        assert(!isSubclass(), 'isSubclass bad cls');
+        assert(!isSubclass(E), 'isSubclass bad base');
         assert(isSubclass(E, Object), 'isSubclass Object');
         assert(!isSubclass(E, Error), 'isSubclass false');
       },
@@ -648,11 +636,44 @@
         assert(!str.startsWith('tr', 1, 2), 'startsWith start close end');
       },
 
+      testTrim: function () {
+        assertSame(' hi   '.trim(), 'hi', 'trim hi');
+        assertSame('\n \thello\nthere\t'.trim(), 'hello\nthere',
+                   'trim hello there');
+      },
+
+      testTrimLeft: function () {
+        assertSame(' \t\n hi\n '.trimLeft(), 'hi\n ', 'trimLeft');
+      },
+
+      testTrimRight: function () {
+        assertSame(' \t\n yo\n\nwuzzup \t '.trimRight(), ' \t\n yo\n\nwuzzup',
+                   'trimRight');
+      },
+
+      testLJust: function () {
+        assertSame('abc'.ljust(2), 'abc', 'ljust on bigger');
+        assertSame('abc'.ljust(5), 'abc  ', 'ljust on smaller');
+        assertSame('abc'.ljust(5, '\t'), 'abc\t\t', 'ljust with tab character');
+      },
+
+      testRJust: function () {
+        assertSame('abc'.rjust(2), 'abc', 'rjust on bigger');
+        assertSame('abc'.rjust(5), '  abc', 'rjust on smaller');
+        assertSame('abc'.rjust(5, '\t'), '\t\tabc', 'rjust with tab character');
+      },
+
       testDateCmp: function () {
         var str1 = 'Mon, 03 Aug 2009 14:49:29 GMT';
         var str2 = 'Mon, 03 Aug 2009 14:49:30 GMT';
         assertEqual(new Date(str1), new Date(str1), 'Date equal');
         assertSame(cmp(new Date(str1), new Date(str2)), -1, 'Date less');
+      },
+
+      testRegExpEscape: function () {
+        assertSame(RegExp.escape('[].ab?c|de\\('),
+                   '\\[\\]\\.ab\\?c\\|de\\\\\\(',
+                   'RegExp.escape');
       },
 
       testObjectRepr: function () {
@@ -727,6 +748,16 @@
                     'range with step=0');
       },
 
+      testZip: function () {
+        assertEqual(zip(), [], 'zip without arguments');
+        assertEqual(zip([1, 2, 3]), [[1], [2], [3]], 'zip on one array');
+        assertEqual(zip([1, 2, 3], [4, 5]), [[1, 4], [2, 5]], 'zip on two array');
+        assertEqual(zip([1, 2], 'abc'), [[1, 'a'], [2, 'b']],
+                    'zip on array and string');
+        assertEqual(zip([1, 2, 3], [], [4, 5]), [],
+                    'zip on three arrays, one of them empty');
+      },
+
       testCamelize: function () {
         assertSame(camelize('one'), 'one', 'one word');
         assertSame(camelize('one-two'), 'oneTwo', 'two words');
@@ -752,9 +783,12 @@
         assertEqual(flat, expect, 'flattenArguments');
       },
 
-      testItemGetter: function () {
-        var g = itemGetter('a');
-        assertSame(g({a: 1}), 1, 'itemGetter');
+      testGetter: function () {
+        assertSame({x: 42, f: getter('x')}.f(), 42, 'getter');
+      },
+
+      testAttrGetter: function () {
+        assertSame(attrGetter('x')({x: 42}), 42, 'attrGetter');
       },
 
       testTypeMatcher: function () {
@@ -789,21 +823,6 @@
                     'thrower TypeError');
         assertThrow(Number, thrower(1),
                     'thrower number');
-      },
-
-      testSmartSplit: function () {
-        assertEqual(smartSplit('This is "a person\'s" test.'),
-                    ['This', 'is', '"a person\'s"', 'test.'],
-                    'smartSplit 1');
-        assertEqual(smartSplit("Another 'person\\'s' test."),
-                    ['Another', "'person's'", 'test.'],
-                    'smartSplit 2');
-        assertEqual(smartSplit('A "\\"funky\\" style" test.'),
-                    ['A', '""funky" style"', 'test.'],
-                    'smartSplit 3');
-        assertEqual(smartSplit('"'),
-                    ['"""'],
-                    'smartSplit 4');
       }
     });
 
@@ -818,12 +837,18 @@
       testIter: function () {
         var itr = iter([]);
         assertSame(iter(itr), itr, 'iter from Iterator');
+        assert(iter({__iterator__: 42}) instanceof InvalidIterator,
+               'iter from non iterable object');
+        assert(iter(undefined)  instanceof InvalidIterator,
+               'iter from undefined');
+        assert(iter(null)  instanceof InvalidIterator,
+               'iter from null');
       },
 
-      testList: function () {
-        var array = [1, 2, 3];
-        assertEqual(list(iter(array)), array, 'list on iterator');
-        assertEqual(list(array), array, 'list on Array');
+      testArray: function () {
+        var a = [1, 2, 3];
+        assertEqual(array(iter(a)), a, 'array on iterator');
+        assertEqual(array(a), a, 'array on Array');
       },
 
       testIterator: function () {
@@ -914,44 +939,44 @@
 
       testReversed: function () {
         assertEqual(reversed(range(4)), [3, 2, 1, 0], 'reversed iterator');
-        assertEqual(reversed([5, 6, 7]), [7, 6, 5], 'reversed list');
+        assertEqual(reversed([5, 6, 7]), [7, 6, 5], 'reversed array');
       },
 
       testISlice: function () {
-        var array = [1, 2, 3, 4, 5, 6];
-        assertEqual(list(islice(array)), array, 'islice without borders');
-        assertEqual(list(islice(array, 4)), [5, 6],
+        var a = [1, 2, 3, 4, 5, 6];
+        assertEqual(array(islice(a)), a, 'islice without borders');
+        assertEqual(array(islice(a, 4)), [5, 6],
                     'islice with start');
-        assertEqual(list(islice(array, undefined, 3)), [1, 2, 3],
+        assertEqual(array(islice(a, undefined, 3)), [1, 2, 3],
                     'islice with stop');
-        assertEqual(list(islice(array, 2, 4)), [3, 4],
+        assertEqual(array(islice(a, 2, 4)), [3, 4],
                     'islice with start and stop');
-        assertEqual(list(islice(array, 4, 10)), [5, 6],
+        assertEqual(array(islice(a, 4, 10)), [5, 6],
                     'islice with start and big stop');
       },
 
       testCount: function () {
-        assertEqual(list(islice(count(), 0, 3)), [0, 1, 2],
+        assertEqual(array(islice(count(), 0, 3)), [0, 1, 2],
                    'count without argument');
-        assertEqual(list(islice(count(2), 0, 2)), [2, 3],
+        assertEqual(array(islice(count(2), 0, 2)), [2, 3],
                    'count without argument');
       },
 
       testCycle: function () {
-        assertEqual(list(islice(cycle([1, 2, 3]), 0, 8)),
+        assertEqual(array(islice(cycle([1, 2, 3]), 0, 8)),
                     [1, 2, 3, 1, 2, 3, 1, 2],
                     'cycle');
         assert(!cycle([]).valid, 'cycle on empty');
       },
 
       testRepeat: function () {
-        assertEqual(list(repeat(1, 3)), [1, 1, 1], 'repeat');
-        assertEqual(list(islice(repeat(1), 0, 3)), [1, 1, 1],
+        assertEqual(array(repeat(1, 3)), [1, 1, 1], 'repeat');
+        assertEqual(array(islice(repeat(1), 0, 3)), [1, 1, 1],
                     'infinite repeat');
       },
 
       testIZip: function () {
-        assertEqual(list(izip([1, 2, 3], [4, 5], [6, 7, 8])),
+        assertEqual(array(izip([1, 2, 3], [4, 5], [6, 7, 8])),
                     [[1, 4, 6], [2, 5, 7]],
                     'izip');
         assert(!izip([1], []).valid, 'izip on empty');
@@ -959,24 +984,24 @@
 
       testIFilter: function () {
         function isEven(x) { return x % 2 == 0; };
-        assertEqual(list(ifilter([1, 2, 3, 4, 5, 6], isEven)),
+        assertEqual(array(ifilter([1, 2, 3, 4, 5, 6], isEven)),
                     [2, 4, 6],
                     'ifilter');
         assert(!ifilter([1, 3, 5], isEven).valid, 'invalid ifilter');
         assert(!ifilter([], isEven).valid, 'ifilter on empty');
-        assertEqual(list(ifilter([2, 3, 4, 5, 6, 7], isEven)),
+        assertEqual(array(ifilter([2, 3, 4, 5, 6, 7], isEven)),
                     [2, 4, 6],
                     'another ifilter');
       },
 
       testIMap: function () {
         function square(x) { return x * x; }
-        assertEqual(list(imap([1, 2, 3], square)), [1, 4, 9], 'imap');
+        assertEqual(array(imap([1, 2, 3], square)), [1, 4, 9], 'imap');
         assert(!imap([], square).valid, 'imap on empty');
       },
 
       testChain: function () {
-        assertEqual(list(chain([1, 2], [], [3, 4], [], [])), [1, 2, 3, 4],
+        assertEqual(array(chain([1, 2], [], [3, 4], [], [])), [1, 2, 3, 4],
                     'chain');
         assert(!chain([], []).valid, 'chain on empties');
         assert(!chain().valid, 'chain without arguments');
@@ -984,50 +1009,50 @@
 
       testTakeWhile: function () {
         function isPositive(x) { return x > 0; }
-        assertEqual(list(takeWhile([1, 2, 0], isPositive)), [1, 2],
+        assertEqual(array(takeWhile([1, 2, 0], isPositive)), [1, 2],
                     'takeWhile');
-        assertEqual(list(takeWhile([1, 2, 3], isPositive)), [1, 2, 3],
+        assertEqual(array(takeWhile([1, 2, 3], isPositive)), [1, 2, 3],
                     'takeWhile always true');
-        assertEqual(list(takeWhile([-1, 2, 3], isPositive)), [],
+        assertEqual(array(takeWhile([-1, 2, 3], isPositive)), [],
                     'takeWhile false at once');
-        assertEqual(list(takeWhile([], isPositive)), [],
+        assertEqual(array(takeWhile([], isPositive)), [],
                     'takeWhile on empty');
       },
 
       testDropWhile: function () {
         function isPositive(x) { return x > 0; }
-        assertEqual(list(dropWhile([1, 2, 0, 3], isPositive)), [0, 3],
+        assertEqual(array(dropWhile([1, 2, 0, 3], isPositive)), [0, 3],
                     'dropWhile');
-        assertEqual(list(dropWhile([0, 3], isPositive)), [0, 3],
+        assertEqual(array(dropWhile([0, 3], isPositive)), [0, 3],
                     'dropWhile from first');
-        assertEqual(list(dropWhile([3, 0], isPositive)), [0],
+        assertEqual(array(dropWhile([3, 0], isPositive)), [0],
                     'dropWhile from last');
-        assertEqual(list(dropWhile([1, 2, 3], isPositive)), [],
+        assertEqual(array(dropWhile([1, 2, 3], isPositive)), [],
                     'dropWhile always false');
-        assertEqual(list(dropWhile([], isPositive)), [],
+        assertEqual(array(dropWhile([], isPositive)), [],
                     'dropWhile on empty');
       },
 
       testTee: function () {
-        var array = [0, 1, 2, 3, 4];
-        var c = tee(array, 3);
-        assertEqual(list(c[0]), list(c[1]), 'tee(..., 3) p0 == p1');
-        assertEqual(list(c[2]), array, 'tee(..., 3) p2 == fixed');
+        var a = [0, 1, 2, 3, 4];
+        var c = tee(a, 3);
+        assertEqual(array(c[0]), array(c[1]), 'tee(..., 3) p0 == p1');
+        assertEqual(array(c[2]), a, 'tee(..., 3) p2 == fixed');
       },
 
       testGroupBy: function () {
-        assertEqual(list(groupBy([0, 0, 0, 1, 2, 2, 3])),
+        assertEqual(array(groupBy([0, 0, 0, 1, 2, 2, 3])),
                     [[0, [0, 0, 0]], [1, [1]], [2, [2, 2]], [3, [3]]],
                     'groupBy on Array');
-        assertEqual(list(groupBy('aabb')),
+        assertEqual(array(groupBy('aabb')),
                     [['a', ['a', 'a']], ['b', ['b', 'b']]],
                     'groupBy on string');
-        assertEqual(list(groupBy([])), [], 'groupBy on empty');
+        assertEqual(array(groupBy([])), [], 'groupBy on empty');
       },
 
       testObjectIterator: function () {
         var o = {a: 1, b: 2};
-        var lst = list(iter(o));
+        var lst = array(iter(o));
         lst.sort();
         var expect = items(o);
         expect.sort();
@@ -1040,7 +1065,7 @@
         assertSame(itr.valid && itr.next(), 2, 'array iteration second');
         assertSame(repr(itr), '<invalid ak.iter.ArrayIterator>');
         assert(!itr.valid, 'array iteration stop');
-        assertEqual(list(iter('abc')), ['a', 'b', 'c'],
+        assertEqual(array(iter('abc')), ['a', 'b', 'c'],
                     'ArrayIterator for String');
       }
     });
@@ -1076,7 +1101,476 @@
         assertSame(s.readLine(), undefined, 'Stream readLine 4');
         s.writeLine('1\n2');
         s.write(3);
-        assertEqual(list(s), ['1', '2', '3'], 'Stream list');
+        assertEqual(array(s), ['1', '2', '3'], 'Stream array');
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // template tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  var baseTemplates = {
+    hello: 'hello world',
+    foo: '{% block foo %}foo{% endblock %}',
+    parent: ('{% block 1 %}parent1{% endblock%} ' +
+             '{% block 2 %}parent2{% endblock %}'),
+    child: '{% extends "parent" %}{% block 1 %}child1{% endblock %}'
+  };
+
+  var normalEnv = clone(defaultEnv);
+  normalEnv.load = function (name) {
+    var result = baseTemplates[name];
+    if (result === undefined)
+      throw new TemplateDoesNotExist(name);
+    return result;
+  };
+
+
+  var invalidEnv = clone(normalEnv);
+  invalidEnv.invalid = 'INVALID';
+
+
+  var renderingTests = [
+    ['hello world', {}, 'hello world'],
+    ['{{ Infinity }}', {}, 'Infinity'],
+    ['{{ -Infinity }}', {}, '-Infinity'],
+    ['{{ x\t }}', {x: 42}, '42'],
+    ['{{ a }} --- {{ b }}', {a: 1, b: 'hi'}, '1 --- hi'],
+    ['{{ o.f }}', {o: {f: function () { return 42; }}}, '42'],
+    ['{{ o1.o2.f }}', {o1: {o2: {f: function () { return 'hi'; }}}}, 'hi'],
+    ['a {{ moo %} b', {}, 'a {{ moo %} b'],
+    ['{{ moo #}', {}, '{{ moo #}'],
+    ['{{ moo\n }}', {}, '{{ moo\n }}'],
+    ['{{ "fred" }}', {}, 'fred'],
+    ['{{ "\\"fred\\"" }}', {}, '"fred"'],
+    ['{{ x.1 }}', {x: ['first', 'second']}, 'second'],
+    ['{# this is hidden #}hello', {}, 'hello'],
+    ['{# this is hidden #}hello{# foo #}', {}, 'hello'],
+    ['foo{#  {% if %}  #}', {}, 'foo'],
+    ['foo{#  {% endblock %}  #}', {}, 'foo'],
+    ['foo{#  {% somerandomtag %}  #}', {}, 'foo'],
+    ['foo{# {% #}', {}, 'foo'],
+    ['foo{# %} #}', {}, 'foo'],
+    ['foo{# %} #}bar', {}, 'foobar'],
+    ['foo{# {{ #}', {}, 'foo'],
+    ['foo{# }} #}', {}, 'foo'],
+    ['foo{# { #}', {}, 'foo'],
+    ['foo{# } #}', {}, 'foo'],
+    ['{{ x|upper }}', {x: 'Hi'}, 'HI'],
+    ['{{ "hello"|upper }}', {}, 'HELLO'],
+    ['{{ x|upper }}', {x: 15}, '15'],
+    ['{{ x|upper|lower }}', {x: 'Hi'}, 'hi'],
+    ['{{ x|removetags:"b i"|upper|lower }}',
+     {x: '<b><i>Yes</i></b>'},
+     'yes'],
+    ['{{ "<>"|removetags }}', {}, '<>'],
+    ['{{ "<>"|removetags:x }}', {}, '<>'],
+    ['{{ "<>"|removetags:x }}', {x: ' \t'}, '<>'],
+    ['{{ x|safe }}', {x: '<>&"'}, '<>&"'],
+    ['{{ x|default:"<>" }}', {}, '<>'],
+    ['{{ x|default:"hi" }}', {x: '<>'}, '&lt;&gt;'],
+    ['{{ x|default:a.b.c }}', {a: {b: {c: '<>'}}}, '&lt;&gt;'],
+    ['{{ 0|default:.1 }}', {}, '0.1'],
+    ['{{ ""|yesno }}', {}, 'no'],
+    ['{{ ""|yesno:"yes,<>" }}', {}, '<>'],
+    ['{{ ""|yesno:x }}', {x: 'yes,<>'}, '&lt;&gt;'],
+    ['{{ "<>"|yesno:",,," }}', {}, '<>'],
+    ['{{ x|join:"" }}', {x: ['<', '>']}, '&lt;&gt;'],
+    ['{{ x|join }}', {x: ['<', '>']}, '&lt;&gt;'],
+    ['{{ x|safe|join:"<" }}', {x: ['a', 'b']}, 'a<b'],
+    ['{{ x|safe|join:y }}', {x: ['a', 'b'], y: ['<']}, 'a&lt;b'],
+    ['{{ "<>"|join:x }}', {}, '<>'],
+    ['{{ "<>"|escape }}', {}, '&lt;&gt;'],
+    ['{{ "<>"|escape|safe|escape }}', {}, '&lt;&gt;'],
+    ['{{ "<>"|escape|safe }}', {}, '<>'],
+    ['{{ "  hello world "|truncatewords:1 }}', {}, 'hello ...'],
+    ['{{ "hello world"|truncatewords:"asdf" }}', {}, 'hello world'],
+    ['{{ "hello world"|truncatewords }}', {}, 'hello world'],
+    ['{{ "hello world"|truncatewords:2 }}', {}, 'hello world'],
+    ['{{ "hello world"|truncatewords:x }}', {x: null}, '...'],
+    ['{{ "hello world"|truncatewords:0 }}', {x: null}, '...'],
+    ['{{ 1|add:"3" }}', {}, '4'],
+    ['{{ "<>"|add:2 }}', {}, '<>'],
+    ['{{ x|add:2 }}', {x: '<>'}, '&lt;&gt;'],
+    ['{{ 2|add:"yo" }}', {}, '2'],
+    ['{{ x|safe|addslashes }}', {x: '\\\'"\\"\''}, '\\\\\\\'\\"\\\\\\"\\\''],
+    ['{{ "hello"|capfirst }}', {}, 'Hello'],
+    ['{{ ""|capfirst }}', {}, ''],
+    ['{{ 42|capfirst }}', {}, '42'],
+    ['{{ "<hi there>"|cut:"e" }}', {}, '&lt;hi thr&gt;'],
+    ['{{ "<hi there>"|cut:"e"|safe }}', {}, '<hi thr>'],
+    ['{{ "a|b|c"|cut:"|" }}', {}, 'abc'],
+    ['{{ x|default_if_undefined:42 }}', {}, '42'],
+    ['{{ undefined|default_if_undefined:42 }}', {'undefined': 1}, '42'],
+    ['{{ null|default_if_undefined:42 }}', {}, ''],
+    ['{{ null|default_if_null:42 }}', {}, '42'],
+    ['{{ x|default_if_null:42 }}', {}, ''],
+    ['{{ "hi"|default_if_null:42 }}', {}, 'hi'],
+    ['{% for item in items|dictsort:"n" %}{{ item.s }}{% endfor %}',
+     {items: [{n: 4, s: 'a'},
+              {n: 1, s: 'b'},
+              {n: 3, s: 'c'},
+              {n: 2, s: 'd'}]},
+     'bdca'],
+    ['{{ x|dictsort:"f" }}', {x: null}, ''],
+    ['{{ x|dictsort:"f" }}', {}, ''],
+    ['{% for item in items|dictsortreversed:"n" %}{{ item.s }}{% endfor %}',
+     {items: [{n: 4, s: 'a'},
+              {n: 1, s: 'b'},
+              {n: 3, s: 'c'},
+              {n: 2, s: 'd'}]},
+     'acdb'],
+    ['{{ 42|divisibleby:2 }}', {}, 'true'],
+    ['{{ "42"|divisibleby:"2" }}', {}, 'true'],
+    ['{{ "42"|divisibleby:"4" }}', {}, 'false'],
+    ['{{ "yo!"|divisibleby:"4" }}', {}, 'false'],
+    ['{{ a|escapejs }}',
+     {'a': 'testing\r\njavascript \'string" <b>escaping</b>\u2028'},
+     ('testing\\x0d\\x0ajavascript \\x27string\\x22 ' +
+      '\\x3cb\\x3eescaping\\x3c/b\\x3e\\u2028')],
+    ['{{ "foo"|filesizeformat }}', {}, '0 bytes'],
+    ['{{ 1|filesizeformat }}', {}, '1 byte'],
+    ['{{ "42"|filesizeformat }}', {}, '42 bytes'],
+    ['{{ 1500|filesizeformat }}', {}, '1.5 KB'],
+    ['{{ 1500000|filesizeformat }}', {}, '1.4 MB'],
+    ['{{ 1500000000|filesizeformat }}', {}, '1.4 GB'],
+    ['{{ null|first }}', {}, ''],
+    ['{{ undefined|first }}', {}, ''],
+    ['{{ "abc"|first }}', {}, 'a'],
+    ['{{ x|first }}', {x: [1, 2, 3]}, '1'],
+    ['{{ "foo"|floatformat }}', {}, ''],
+    ['{{ "42"|floatformat }}', {}, '42'],
+    ['{{ 42|floatformat:2 }}', {}, '42.00'],
+    ['{{ 42|floatformat:"foo" }}', {}, '42'],
+    ['{{ 42|floatformat:1.4 }}', {}, '42'],
+    ['{{ 42.3|floatformat:-3 }}', {}, '42.300'],
+    ['{{ "<>"|force_escape|safe }}', {}, '&lt;&gt;'],
+    ['{{ 12345|get_digit:4 }}', {}, '2'],
+    ['{{ "<>"|get_digit:1 }}', {}, '<>'],
+    ['{{ x|get_digit:1 }}', {x: '<>'}, '&lt;&gt;'],
+    ['{{ 12345|get_digit:42 }}', {}, '0'],
+    ['{{ 42|get_digit:2.1 }}', {}, '42'],
+    ['{{ 42|get_digit:"foo" }}', {}, '42'],
+    ['{{ "<>;&?;/"|encode_uri }}', {}, '%3C%3E;&amp;?;/'],
+    ['{{ "<>;&?;/"|encode_uri_component }}', {}, '%3C%3E%3B%26%3F%3B%2F'],
+    ['{{ "abc"|last }}', {}, 'c'],
+    ['{{ x|last }}', {x: [1, 2, 3]}, '3'],
+    ['{{ true|last }}', {}, ''],
+    ['{{ 42|last }}', {}, ''],
+    ['{{ x|linebreaks }}', {x: 'x&\ny'}, '<p>x&amp;<br />y</p>'],
+    ['{{ x|safe|linebreaks }}', {x: 'x&\ny'}, '<p>x&<br />y</p>'],
+    ['{{ x|linebreaks }}', {x: '\n\na\nb\n\nc\n'},
+     '<p>a<br />b</p>\n\n<p>c</p>'],
+    ['{{ x|linebreaks }}', {x: '\n \t\n'}, ''],
+    ['{{ x|linebreaksbr }}', {x: '\n\na\nb\n\nc\n'},
+     '<br /><br />a<br />b<br /><br />c<br />'],
+    ['{{ x|linenumbers }}', {x: '\n\na\n\n\nb\n\nc\nd\n\ne\n\nf'},
+     ' 1 \n 2 \n 3 a\n 4 \n 5 \n 6 b\n 7 \n 8 c\n 9 d\n10 \n11 e\n12 \n13 f'],
+    ['{{ "<>"|ljust:5 }}', {}, '<>   '],
+    ['{{ x|ljust:5 }}', {x: '<>'}, '&lt;&gt;   '],
+    ['{{ "<>"|ljust:"foo" }}', {}, '<>'],
+    ['{{ "<>"|rjust:5 }}', {}, '   <>'],
+    ['{{ x|rjust:5 }}', {x: '<>'}, '   &lt;&gt;'],
+    ['{{ "<>"|rjust:"foo" }}', {}, '<>'],
+    ['{{ 1|pluralize }}', {}, ''],
+    ['{{ 2|pluralize }}', {}, 's'],
+    ['{{ 2|pluralize:"a,b,c" }}', {}, ''],
+    ['{{ 2|pluralize:"a,b" }}', {}, 'b'],
+    ['{{ "1"|pluralize:"a,b" }}', {}, 'a'],
+    ['{{ "abcde"|slice:"1,4" }}', {}, 'bcd'],
+    ['{{ "abcde"|slice:"3" }}', {}, 'de'],
+    ['{{ "abcde"|slice }}', {}, 'abcde'],
+    ['{{ 42|slice }}', {}, '42'],
+    ['{{ "abcde"|slice:"x" }}', {}, 'abcde'],
+    ['{{ "abcde"|slice:"1,x" }}', {}, 'abcde'],
+    ['{{ "abcde"|slice:"1,2,3" }}', {}, 'abcde'],
+    ['{{ x|slice:"1,4"|join }}', {x: [1, 2, 3, 4, 5]}, '234'],
+    ['{{ x|slice:3|join }}', {x: [1, 2, 3, 4, 5]}, '45'],
+    ['{{ " \ta b&!-C -- d"|slugify }}', {}, 'a-b-c-d'],
+    ['{{ "<p>a<br />b</p>"|striptags }}', {}, 'ab'],
+    ['{{ "hello world"|title }}', {}, 'Hello World'],
+    ['{{ " everything\'s ok "|title }}', {}, ' Everything\'s Ok '],
+    ['{{ "\thello  world  "|wordcount }}', {}, '2'],
+    ['{{ "\t "|wordcount }}', {}, '0'],
+
+
+    ['{% comment %} hi {% endcomment %}hello', {}, 'hello'],
+    ['{% comment %} hi {% endcomment %}hello' +
+     '{% comment %} yo {% endcomment %}',
+     {}, 'hello'],
+    ['{% comment %} {% if %} {% endcomment %}', {}, ''],
+    ['{% comment %} {% comment %} {% endcomment %}', {}, ''],
+    ['{% if \t  true %}foo{% endif %}', {}, 'foo'],
+    ['{% if undefined == null %}foo{% endif %}', {}, 'foo'],
+    ['{% if 1 !== 1 %}foo{% else %}bar{% endif %}', {}, 'bar'],
+    ['{% if 1 != 2 %}foo{% else %}bar{% endif %}', {}, 'foo'],
+    ['{% if true && 1 %}foo{% endif %}', {}, 'foo'],
+    ['{% if undefined || 42  %}foo{% endif %}', {}, 'foo'],
+    ['{% if true === (1 && true) %}foo{% endif %}', {}, 'foo'],
+    ['{% if 1==1 && 0 || 1 %}foo{% endif %}', {}, 'foo'],
+    ['{% if !(false || null === undefined) %}foo{% endif %}', {}, 'foo'],
+    ['{% if . %}foo{% endif %}', {'': {'': true}}, 'foo'],
+    ['{% if a.b %}foo{% endif %}', {a: {b: true}}, 'foo'],
+    ['{% if x === undefined %}foo{% endif %}', {}, 'foo'],
+    ['{% if x.y.z %}foo{% endif %}', {}, ''],
+    ['{% for x in y %}{{ x }}{% endfor %}', {y: [1, 2, 3]}, '123'],
+    ['{% for x in "" %}{% empty %}empty{% endfor %}', {}, 'empty'],
+    ['{% for x in y %}foo{% endfor %}', {}, ''],
+    ['{% for x in "abc" %}{{ forloop.counter }}{% endfor %}', {}, '123'],
+    ['{% for x in "abc" %}{{ forloop.counter0 }}{% endfor %}', {}, '012'],
+    ['{% for x in "abc" %}{{ forloop.revcounter }}{% endfor %}', {}, '321'],
+    ['{% for x in "abc" %}{{ forloop.revcounter0 }}{% endfor %}', {}, '210'],
+    ['{% for x in "abc" %}{{ forloop.first }} {% endfor %}', {},
+     'true false false '],
+    ['{% for x in "abc" %}{{ forloop.last }} {% endfor %}', {},
+     'false false true '],
+    [('{% for x in "abc" %}' +
+      '{% for y in "123" %}{{ forloop.parentloop.counter }}{% endfor %}' +
+      '{% endfor %}'),
+      {},
+      '111222333'],
+    ['{% for x in y %}{{ x }}{% endfor %}',
+     {y: {__iterator__: function () { return iter([1, 2, 3]);}}},
+     '123'],
+    ['{% for n in "123" reversed %}{{ n }}{% endfor %}', {}, '321'],
+    ['{% extends "hello" %}', {}, 'hello world'],
+    ['{% extends x %}', {x: 'hello'}, 'hello world'],
+    ['say {% extends "hello" %} yo!', {}, 'say hello world'],
+    ['{% extends  "foo" %}', {}, 'foo'],
+    ['{% extends "foo" %}{% block foo %}bar{% endblock %}', {}, 'bar'],
+    ['{% extends "foo" %}{% block foo %}bar{% endblock foo  %}', {}, 'bar'],
+    ['{% extends "child" %}', {}, 'child1 parent2'],
+    ['{% extends "child" %}{% block 2 %}yo!{% endblock %}', {}, 'child1 yo!'],
+    ['{% for i in "12345" %}{% cycle "a" "b" %}{% endfor %}', {}, 'ababa'],
+    ['{% for i in "abcd" %}{% cycle 1 2 3 as x %}{% cycle x %}{% endfor %}', {},
+     '12312312'],
+    ['{% cycle 1 2 as x %}{% cycle "a" "b" as x %}{% cycle x %}', {}, '1ab'],
+    ['{% debug %}', {}, '{}'],
+    ['{% debug %}', {x: 42, a: [1, "yo!"]}, '{a: [1, &quot;yo!&quot;], x: 42}'],
+    ['{% filter escape %}<>{% endfilter %}', {}, '&lt;&gt;'],
+    ['{% filter truncatewords:3 %}foo & bar baz{% endfilter %}', {},
+     'foo & bar ...'],
+    ['{% filter removetags:"i"|escape %}<i>&</i>{% endfilter %}', {},
+     '&amp;'],
+    ['{% firstof "" a "<>" %}', {}, '<>'],
+    ['{% firstof ""|default:"hello world" 42 %}', {}, 'hello world'],
+    ['{% firstof a b c %}', {}, ''],
+    ['{% firstof x %}', {x: '<>'}, '&lt;&gt;'],
+    ['{% for x in "aaabbcdddd" %}' +
+     '{% ifchanged %}{{ x }}{% endifchanged %}' +
+     '{% endfor %}',
+     {},
+     'abcd'],
+    ['{% for x in "aaabbcdddd" %}' +
+     '{% ifchanged %}{{ x }}{% else %}*{% endifchanged %}' +
+     '{% endfor %}',
+     {},
+     'a**b*cd***'],
+    ['{% for x in "aaabbcdddd" %}' +
+     '{% ifchanged x %}!{% else %}*{% endifchanged %}' +
+     '{% endfor %}',
+     {},
+     '!**!*!!***'],
+    ['{% for x in "aaabbcdddd" %}' +
+     '{% for y in "121" %}' +
+     '{% ifchanged x y %}!{% else %}*{% endifchanged %}' +
+     '{% endfor %}' +
+     '{% endfor %}',
+     {},
+     '!!!*!!*!!!!!*!!!!!!!!*!!*!!*!!'],
+    ['{% include "hello" %}', {}, 'hello world'],
+    ['{% include "no_such_template" %}', {}, ''],
+    ['{% for x in "12" %}{% include "hello" %}{% endfor %}', {},
+     'hello worldhello world'],
+    ['{% include x %}', {x: 'hello'}, 'hello world'],
+    [('{% regroup data by bar as grouped %}' +
+      '{% for group in grouped %}' +
+      '{{ group.grouper }}:' +
+      '{% for item in group.list %}' +
+      '{{ item.foo }}' +
+      '{% endfor %},' +
+      '{% endfor %}'),
+     {data: [{foo:'c', bar:1},
+             {foo:'d', bar:1},
+             {foo:'a', bar:2},
+             {foo:'b', bar:2},
+             {foo:'x', bar:3}]},
+     '1:cd,2:ab,3:x,'],
+    [('{% regroup data by bar as grouped %}' +
+      '{% for group in grouped %}' +
+      '{{ group.grouper }}:' +
+      '{% for item in group.list %}' +
+      '{{ item.foo }}' +
+      '{% endfor %},' +
+      '{% endfor %}'),
+     {},
+     ''],
+    ['{% spaceless %}<b> <i> hi  </i>\t </b>\t{% endspaceless %}', {},
+     '<b><i> hi  </i></b>\t'],
+    ['{% templatetag openblock %}', {}, '{%'],
+    ['{% widthratio a b 0 %}', {a: 50, b: 100}, '0'],
+    ['{% widthratio a b 100 %}', {a: 0, b: 0}, ''],
+    ['{% widthratio a b 100 %}', {a: 0, b: 100}, '0'],
+    ['{% widthratio a b 100 %}', {a: 50, b: 100}, '50'],
+    ['{% widthratio a b 100 %}', {a: 100, b: 100}, '100'],
+    ['{% widthratio a b 100 %}', {a: 50, b: 80}, '63'],
+    ['{% widthratio a b 100 %}', {a: 50, b: 70}, '71'],
+    ['{% widthratio a b 100.0 %}', {a: 50, b: 100}, '50'],
+    ['{% widthratio a b c %}', {a: 50, b: 100, c: 100}, '50'],
+    ['{% with "<>" as x %}{{ x }}{% endwith %}', {}, '<>'],
+    ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
+    ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;']
+  ];
+
+
+  var invalidRenderingTests = [
+    ['as{{ missing }}df', {}, 'asdf', 'asINVALIDdf'],
+    ['{{ x.y }}', {x: {}}],
+    ['{{ x.y }}', {x: null}],
+    ['{{ x }}', {x: undefined}],
+    ['{{ x }}', {x: null}],
+    ['{{ x }}', {x: function () { return null; }}],
+    ['{{ x.1 }}', {x: null}],
+    ['{{ x.5 }}', {x: [1, 2, 3]}],
+    ['{{ x|default }}', {}]
+  ];
+
+
+  var errorTests = [
+    '{{ multi word variable }}',
+    '{{   \t }}',
+    '{{ va>r }}',
+    '{{ (var.r) }}',
+    '{{ sp%am }}',
+    '{{ eggs! }}',
+    '{{ moo? }}',
+    '{{ moo #} {{ cow }}',
+    '{{ x|does_not_exist }}',
+    '{{ x|upper(xxx) }}',
+    '{{ x |upper }}',
+    '{{ x| upper }}',
+    '{{ x|default: 1 }}',
+    '{% does_not_exist %}',
+    '{%  %}',
+    '{% if && %}{% endif %}',
+    '{% if > %}{% endif %}',
+    '{% if & %}{% endif %}',
+    '{% if &| %}{% endif %}',
+    '{% if a && %}{% endif %}',
+    '{% if ! %}{% endif %}',
+    '{% if a b %}{% endif %}',
+    '{% if a !b %}{% endif %}',
+    '{% if a &&|| b %}{% endif %}',
+    '{% if a (b) %}{% endif %}',
+    '{% if (a&&) %}{% endif %}',
+    '{% if (a)) %}{% endif %}',
+    '{% if (a %}{% endif %}',
+    '{% if %}{% endif %}',
+    '{{ x }} {% extends "hello" %}',
+    '{% if x %}{% endif %}{% extends "hello" %}',
+    '{% block %}{% endblock %}',
+    '{% block 1 2 %}{% endblock %}',
+    '{% block 1 %}{% endblock %}{% block 1 %}{% endblock %}',
+    '{% cycle %}',
+    '{% cycle x %}',
+    '{% cycle 1 2 as x %}{% cycle y %}',
+    '{% firstof %}',
+    '{% include  %}',
+    '{% regroup %}',
+    '{% regroup a yo! b as c %}',
+    '{% regroup a by b yo! c %}',
+    '{% templatetag fdsa %}',
+    '{% templatetag %}',
+    '{% widthratio %}',
+    '{% with %}{% endwith %}',
+    '{% with 1 1 1 %}{% endwith %}',
+
+
+    '{% for a in b %}',
+    '{% for a in b %}{% empty %}',
+    '{% for %}{% endfor %}',
+    '{% for x y z %}{% endfor %}',
+    '{% for a.b in c %}{% endfor %}'
+  ];
+
+
+  var templateSuite = loadTests(
+    {
+      name: 'template',
+
+      testRendering: function () {
+        renderingTests.forEach(
+          function (test) {
+            assertSame((new Template(test[0],
+                                     test[0],
+                                     normalEnv)).render(test[1]),
+                       test[2],
+                       'Template rendering');
+          });
+      },
+
+      testInvalidRendering: function () {
+        invalidRenderingTests.forEach(
+          function (test) {
+            assertSame((new Template(test[0],
+                                     test[0],
+                                     normalEnv)).render(test[1]),
+                       test[2] || '',
+                       'Template rendering with empty invalid');
+            assertSame((new Template(test[0],
+                                     test[0],
+                                     invalidEnv)).render(test[1]),
+                       test[3] || 'INVALID',
+                       'Template rendering with "INVALID"');
+          });
+      },
+
+      testErrors: function () {
+        errorTests.forEach(
+          function (test) {
+            assertThrow(TemplateSyntaxError,
+                        function () {
+                          new Template(test, test, normalEnv);
+                        },
+                        'TemplateSyntaxError on "' + test + '"');
+          });
+        assertThrow(NotImplementedError,
+                    function () {
+                      new Template('{{ x }}').render({x: abstract});
+                    },
+                    'Exception propagation');
+      },
+
+      testSmartSplit: function () {
+        assertEqual(smartSplit('This is "a person\'s" test.'),
+                    ['This', 'is', '"a person\'s"', 'test.'],
+                    'smartSplit 1');
+        assertEqual(smartSplit("Another 'person\\'s' test."),
+                    ['Another', "'person\\'s'", 'test.'],
+                    'smartSplit 2');
+        assertEqual(smartSplit('A "\\"funky\\" style" test.'),
+                    ['A', '"\\"funky\\" style"', 'test.'],
+                    'smartSplit 3');
+        assertEqual(smartSplit('""|default:"hello world" 42'),
+                    ['""|default:"hello world"', '42'],
+                    'smartSplit 4');
+        assertEqual(smartSplit('"'),
+                    ['"'],
+                    'smartSplit 5');
+        assertEqual(smartSplit('hi'),
+                    ['hi'],
+                    'smartSplit 6');
+        assertEqual(smartSplit(' \t'),
+                    [],
+                    'smartSplit 7');
+      },
+
+      testLoadFromCode: function () {
+        var env = clone(defaultEnv);
+        env.loadDir = '/test_data/templates';
+        assertSame(getTemplate('child.txt', env).render({x: 42}),
+                   '\n42\n\n\n\nfoo\n\n',
+                   'loadFromCode');
       }
     });
 
@@ -1091,13 +1585,14 @@
                             baseSuite,
                             utilsSuite,
                             iterSuite,
-                            ioSuite
+                            ioSuite,
+                            templateSuite
                           ]);
 
 
   $.main = partial(main, $.suite);
 
-  
+
   nameFunctions($);
   return $;
 }})();

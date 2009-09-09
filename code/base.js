@@ -363,12 +363,18 @@
   };
 
 
+  Error.stackTraceLimit = 1000;
+
+
   $.makeErrorClass = function (parent) {
     // Error.apply doesn't work for unknown reasons
     // so using $.makeClass is impossible
     var result = (parent
                   ? function (message) { parent.call(this, message); }
-                  : function (message) { this.message = message + ''; });
+                  : function (message) {
+                    Error.captureStackTrace(this);
+                    this.message = message + '';
+                  });
     result.prototype.__defineGetter__(
       'name',
       function () {
@@ -380,6 +386,7 @@
 
 
   $.NotImplementedError = $.makeErrorClass();
+  $.ValueError = $.makeErrorClass();
 
 
   $.abstract = function () {
@@ -388,10 +395,8 @@
 
 
   $.isSubclass = function (cls, base) {
-    if (typeof(cls) != 'function')
-      throw new TypeError('isSubclass first argument must be a function');
-    if (typeof(base) != 'function')
-      throw new TypeError('isSubclass second argument must be a function');
+    if (typeof(cls) != 'function' || typeof(base) != 'function')
+      return false;
     if (base === Object)
       return true;
     for (var prototype = cls.prototype;
@@ -519,6 +524,35 @@
         else if (arguments.length > 2 && start + prefix.length > end)
           return false;
         return this.substr(start, prefix.length) == prefix;
+      },
+
+      trim: function () {
+        return /^\s*((?:.|\s)*?)\s*$/.exec(this)[1];
+      },
+
+      trimLeft: function () {
+        return /^\s*((?:.|\s)*)$/.exec(this)[1];
+      },
+
+      trimRight: function () {
+        return /^((?:.|\s)*?)\s*$/.exec(this)[1];
+      },
+
+      ljust: function (width, c/* = ' ' */) {
+        c = c || ' ';
+        var parts = [this];
+        for (var i = this.length; i < width; ++i)
+          parts.push(c);
+        return parts.join('');
+      },
+
+      rjust: function (width, c/* = ' ' */) {
+        c = c || ' ';
+        var parts = [];
+        for (var i = this.length; i < width; ++i)
+          parts.push(c);
+        parts.push(this);
+        return parts.join('');
       }
     });
 
@@ -533,6 +567,16 @@
         throw TypeError('Date object could be compared only to Date object');
       return $.cmp(this.getTime(), other.getTime());
     });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // RegExp escaping
+  //////////////////////////////////////////////////////////////////////////////
+
+  var specialsRegExp = new RegExp('[.*+?|()\\[\\]{}\\\\]', 'g');
+
+  RegExp.escape = function (string) {
+    return string.replace(specialsRegExp, '\\$&');
+  };
 
   //////////////////////////////////////////////////////////////////////////////
   // Reprs
@@ -579,7 +623,7 @@
 
 
   setRepr(String, function () {
-            return ('"' + this.replace(RegExp('(["\])', 'g'), '\\$1') + '"'
+            return ('"' + this.replace(/([\"\\])/g, '\\$1') + '"'
               ).replace(/[\f]/g, '\\f'
               ).replace(/[\b]/g, '\\b'
               ).replace(/[\n]/g, '\\n'

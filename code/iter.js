@@ -68,11 +68,16 @@
   //////////////////////////////////////////////////////////////////////////////
 
   $.iter = function (obj) {
-    return obj instanceof $.Iterator ? obj : obj.__iterator__();
+    return (obj instanceof $.Iterator ?
+            obj
+            : ((obj !== undefined && obj !== null &&
+                typeof(obj.__iterator__) == 'function')
+               ? obj.__iterator__()
+               : new $.InvalidIterator()));
   };
 
 
-  $.list = function (iterable) {
+  $.array = function (iterable) {
     var itr = $.iter(iterable);
     var result = [];
     while (itr.valid)
@@ -163,14 +168,14 @@
 
 
   $.sorted = function (iterable, cmp/* = ak.base.cmp */) {
-    var result = $.list(iterable);
+    var result = $.array(iterable);
     result.sort(cmp || base.cmp);
     return result;
   };
 
 
   $.reversed = function (iterable) {
-    var result = $.list(iterable);
+    var result = $.array(iterable);
     result.reverse();
     return result;
   };

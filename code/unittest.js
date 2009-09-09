@@ -141,7 +141,7 @@
       },
 
       get count () {
-        return iter.sum(this._tests.map(utils.itemGetter('count')));
+        return iter.sum(this._tests.map(utils.attrGetter('count')));
       },
 
       toString: function () {
@@ -183,6 +183,13 @@
     });
 
 
+  function getErrorDescription(error) {
+    return (error && error.stack
+            ? error.stack
+            : error);
+  }
+
+
   $.TextTestRunner = base.makeClass(
     function (stream) {
       this._stream = stream;
@@ -194,13 +201,13 @@
         test.run(result);
         result.errors.forEach(
           function (error) {
-            stream.write('=====\nERROR: ' + error[0] + '\n'
-                         + error[1] + '\n');
+            stream.write('=====\nERROR: ' + error[0] + '\n' +
+                         getErrorDescription(error[1]) + '\n');
           });
         result.failures.forEach(
           function (failure) {
             stream.write('=====\nFAIL: ' + failure[0] + '\n' +
-                         failure[1].message + '\n');
+                         getErrorDescription(failure[1]) + '\n');
           });
         stream.write('-----\n' + 'Ran ' + test.count + ' tests\n');
         if (result.wasSuccessful) {

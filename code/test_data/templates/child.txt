@@ -1,0 +1,4 @@
+{% extends "parent.txt" %}
+{% block first %}
+{% include "x.txt" %}
+{% endblock %}

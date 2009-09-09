@@ -57,6 +57,24 @@
   };
 
 
+  $.zip = function (/* arrays */) {
+    if (arguments.length == 0)
+      return [];
+    var length = arguments[0].length;
+    for (var i = 1; i < arguments.length; ++i)
+      if (arguments[i].length < length)
+        length = arguments[i].length;
+    var result = [];
+    for (var k = 0; k < length; ++k) {
+      var item = [];
+      for (var j = 0; j < arguments.length; ++j)
+        item.push(arguments[j][k]);
+      result.push(item);
+    }
+    return result;
+  };
+
+
   $.camelize = function (selector) {
     var arr = selector.split('-');
     for (var i = 1; i < arr.length; ++i)
@@ -88,7 +106,14 @@
   };
 
 
-  $.itemGetter = function (key) {
+  $.getter = function (key) {
+    return function () {
+      return this[key];
+    };
+  };
+
+
+  $.attrGetter = function (key) {
     return function (obj) {
       return obj[key];
     };
@@ -141,31 +166,6 @@
     return function () {
       throw err;
     };
-  };
-
-
-  var smartSplitRegExp = RegExp('"(?:[^"\\\\]*(?:\\\\.[^"\\\\]*)*)"|' +
-                                "'(?:[^'\\\\]*(?:\\\\.[^'\\\\]*)*)'|[^\\s]+",
-                                'g');
-
-  $.smartSplit = function (text) {
-    return text.match(smartSplitRegExp).map(
-      function (bit) {
-        if (bit[0] == '"' && bit[bit.length - 1] == '"')
-          return ('"' +
-                  bit.substring(1, bit.length - 1)
-                  .replace(/\\\"/g, '"')
-                  .replace(/\\\\/, '\\') +
-                  '"');
-        else if (bit[0] == "'" && bit[bit.length - 1] == "'")
-          return ("'" +
-                  bit.substring(1, bit.length - 1)
-                  .replace(/\\\'/g, "'")
-                  .replace(/\\\\/, '\\') +
-                  "'");
-        else
-          return bit;
-      });
   };
 
 

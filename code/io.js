@@ -100,6 +100,15 @@
   $.err = new $.Stream();
 
 
+  $.log = function (/* arguments */) {
+    $.err.writeLine();
+    Array.forEach(arguments,
+                  function (arg) {
+                    $.err.writeLine(base.repr(arg));
+                  });
+  };
+
+
   base.nameFunctions($);
   return $;
 })();
