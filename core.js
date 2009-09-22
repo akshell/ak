@@ -26,55 +26,52 @@
 
 (function ()
 {
-  var $ = ak;
-
-
   function publish(constructor, name) {
     constructor.prototype[name] = constructor.prototype['_' + name];
   }
 
-  publish($.AK, 'setObjectProp');
-  publish($.AK, 'compile');
-  publish($.AK, 'readCode');
-  publish($.AK, 'hash');
-  publish($.Script, 'run');
-  publish($.App, 'call');
-  publish($.Type, 'int');
-  publish($.Type, 'serial');
-  publish($.Type, 'default');
-  publish($.Type, 'unique');
-  publish($.Type, 'foreign');
-  publish($.Type, 'check');
-  publish($.Query, 'perform');
-  publish($.Query, 'only');
-  publish($.Query, 'where');
-  publish($.Query, 'by');
-  publish($.SubRel, 'update');
-  publish($.SubRel, 'del');
-  publish($.Constrs, 'unique');
-  publish($.Constrs, 'foreign');
-  publish($.Constrs, 'check');
-  publish($.DB, 'query');
-  publish($.DB, 'createRel');
-  publish($.DB, 'dropRels');
-  publish($.Rel, 'insert');
-  publish($.Rel, 'drop');
-  publish($.Rel, 'all');
-  publish($.Rel, 'getInts');
-  publish($.Rel, 'getSerials');
-  publish($.Rel, 'getDefaults');
-  publish($.Rel, 'getUniques');
-  publish($.Rel, 'getForeigns');
-  publish($.Data, 'toString');
-  publish($.FS, 'read');
-  publish($.FS, 'list');
-  publish($.FS, 'exists');
-  publish($.FS, 'isDir');
-  publish($.FS, 'isFile');
-  publish($.FS, 'makeDir');
-  publish($.FS, 'write');
-  publish($.FS, 'rename');
-  publish($.FS, 'copyFile');
+  publish(ak.AK, 'setObjectProp');
+  publish(ak.AK, 'compile');
+  publish(ak.AK, 'readCode');
+  publish(ak.AK, 'hash');
+  publish(ak.Script, 'run');
+  publish(ak.App, 'call');
+  publish(ak.Type, 'int');
+  publish(ak.Type, 'serial');
+  publish(ak.Type, 'default');
+  publish(ak.Type, 'unique');
+  publish(ak.Type, 'foreign');
+  publish(ak.Type, 'check');
+  publish(ak.Query, 'perform');
+  publish(ak.Query, 'only');
+  publish(ak.Query, 'where');
+  publish(ak.Query, 'by');
+  publish(ak.SubRel, 'update');
+  publish(ak.SubRel, 'del');
+  publish(ak.Constrs, 'unique');
+  publish(ak.Constrs, 'foreign');
+  publish(ak.Constrs, 'check');
+  publish(ak.DB, 'query');
+  publish(ak.DB, 'createRel');
+  publish(ak.DB, 'dropRels');
+  publish(ak.Rel, 'insert');
+  publish(ak.Rel, 'drop');
+  publish(ak.Rel, 'all');
+  publish(ak.Rel, 'getInts');
+  publish(ak.Rel, 'getSerials');
+  publish(ak.Rel, 'getDefaults');
+  publish(ak.Rel, 'getUniques');
+  publish(ak.Rel, 'getForeigns');
+  publish(ak.Data, 'toString');
+  publish(ak.FS, 'read');
+  publish(ak.FS, 'list');
+  publish(ak.FS, 'exists');
+  publish(ak.FS, 'isDir');
+  publish(ak.FS, 'isFile');
+  publish(ak.FS, 'makeDir');
+  publish(ak.FS, 'write');
+  publish(ak.FS, 'rename');
+  publish(ak.FS, 'copyFile');
 
 
   ak.appName = ak._appName;
@@ -82,32 +79,32 @@
 
   // Property access modes for ak.setObjectProp
   // Could be combined using '|' operator.
-  $.NONE        = 0;
-  $.READ_ONLY   = 1 << 0;
-  $.DONT_ENUM   = 1 << 1;
-  $.DONT_DELETE = 1 << 2;
+  ak.NONE        = 0;
+  ak.READ_ONLY   = 1 << 0;
+  ak.DONT_ENUM   = 1 << 1;
+  ak.DONT_DELETE = 1 << 2;
 
 
   // SubRel is inherited from Query
-  $.SubRel.prototype.__proto__ = $.Query.prototype;
+  ak.SubRel.prototype.__proto__ = ak.Query.prototype;
 
 
   // Dates should be in UTC on the server
   Date.prototype.toString = Date.prototype.toUTCString;
 
 
-  $.fs.remove = function (path) {
-    if ($.fs.isDir(path)) {
-      var children = $.fs.list(path);
+  ak.fs.remove = function (path) {
+    if (ak.fs.isDir(path)) {
+      var children = ak.fs.list(path);
       for (var i = 0; i < children.length; ++i)
         arguments.callee(path + '/' + children[i]);
     }
-    $.fs._remove(path);
+    ak.fs._remove(path);
   };
 
 
-  $.setObjectProp(
-    $.Query.prototype, 'whose', $.DONT_ENUM,
+  ak.setObjectProp(
+    ak.Query.prototype, 'whose', ak.DONT_ENUM,
     function () {
       var query = this.where.apply(this, arguments);
       if (query.length != 1)
@@ -116,8 +113,8 @@
     });
 
 
-  $.setObjectProp(
-    $.Query.prototype, 'field', $.DONT_ENUM,
+  ak.setObjectProp(
+    ak.Query.prototype, 'field', ak.DONT_ENUM,
     function (name) {
       var query = this.only(name);
       var result = [];
@@ -127,8 +124,8 @@
     });
 
 
-  $.setObjectProp(
-    $.SubRel.prototype, 'set', $.DONT_ENUM,
+  ak.setObjectProp(
+    ak.SubRel.prototype, 'set', ak.DONT_ENUM,
     function (obj) {
       var args = [{}];
       var index = 0;
@@ -141,8 +138,8 @@
 
 
   function makeRelDelegation(func_name) {
-    $.Rel.prototype[func_name] = function () {
-      return $.SubRel.prototype[func_name].apply(this.all(), arguments);
+    ak.Rel.prototype[func_name] = function () {
+      return ak.SubRel.prototype[func_name].apply(this.all(), arguments);
     };
   }
 
@@ -156,24 +153,24 @@
   makeRelDelegation('delete');
 
 
-  $.TmpFile.prototype.read = function () {
-    return $.fs.read(this);
+  ak.TmpFile.prototype.read = function () {
+    return ak.fs.read(this);
   };
 
 
-  $.defaultHeaders = {'Content-Type': 'text/html; charser=utf-8'};
+  ak.defaultHeaders = {'Content-Type': 'text/html; charser=utf-8'};
 
 
-  $.Response = function (content/* = '' */,
+  ak.Response = function (content/* = '' */,
                          status/* = 200 */,
-                         headers/* = $.defaultHeaders */) {
+                         headers/* = ak.defaultHeaders */) {
     this.content = content || '';
     this.status = status || 200;
-    this.headers = headers || $.defaultHeaders;
+    this.headers = headers || ak.defaultHeaders;
   };
 
 
-  $._main = function (data) {
+  ak._main = function (data) {
     var request = eval('(' + data + ')');
     request.data = ak._data;
     request.files = {};
@@ -192,7 +189,4 @@
             '\n\n' + response.content);
   };
 
-
-  return $;
 })();
-

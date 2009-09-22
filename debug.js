@@ -26,12 +26,10 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-
-  var $ = base.module('ak.debug');
+  ak.include('base.js');
 
 
-  $.AssertionError = base.makeErrorClass();
+  ak.AssertionError = ak.makeErrorClass();
 
 
   function prefix(msg) {
@@ -39,53 +37,50 @@
   }
 
 
-  $.assert = function (expr, /* optional */msg) {
+  ak.assert = function (expr, /* optional */msg) {
     if (!expr)
-      throw new $.AssertionError('Assertion failed' +
-                                 (msg ? ': ' + msg : ''));
+      throw new ak.AssertionError('Assertion failed' +
+                                  (msg ? ': ' + msg : ''));
   };
 
 
-  $.assertEqual = function (first, second, /* optional */msg) {
-    if (!base.equal(first, second))
-      throw new $.AssertionError(prefix(msg) +
-                                 base.repr(first) + ' <> ' +
-                                 base.repr(second));
+  ak.assertEqual = function (first, second, /* optional */msg) {
+    if (!ak.equal(first, second))
+      throw new ak.AssertionError(prefix(msg) +
+                                  ak.repr(first) + ' <> ' +
+                                  ak.repr(second));
   };
 
 
-  $.assertSame = function (first, second, /* optional */msg) {
+  ak.assertSame = function (first, second, /* optional */msg) {
     if (first !== second)
-      throw new $.AssertionError(prefix(msg) +
-                                 base.repr(first) + ' !== ' +
-                                 base.repr(second));
+      throw new ak.AssertionError(prefix(msg) +
+                                  ak.repr(first) + ' !== ' +
+                                  ak.repr(second));
   };
 
 
-  $.assertThrow = function (constructor, func, /* optional */msg) {
+  ak.assertThrow = function (constructor, func, /* optional */msg) {
     var args = [];
     for (var i = 2; i < arguments.length; ++i)
       args.push(arguments[i]);
     try {
-      func.apply(base.global, args);
+      func.apply(ak.global, args);
     } catch (err) {
       if (typeof(err) != 'object')
         err = Object(err);
       if (!(err instanceof constructor)) {
         var expected = constructor.__name__ || constructor.name;
         var got = err.constructor.__name__ || err.constructor.name;
-        throw new $.AssertionError(prefix(msg) +
-                                   'Expected ' +
-                                   expected +
-                                   ' exception, got ' +
-                                   got + ' (' + err + ')');
+        throw new ak.AssertionError(prefix(msg) +
+                                    'Expected ' +
+                                    expected +
+                                    ' exception, got ' +
+                                    got + ' (' + err + ')');
       }
       return;
     }
-    throw new $.AssertionError(prefix(msg) + 'Exception was not thrown');
+    throw new ak.AssertionError(prefix(msg) + 'Exception was not thrown');
   };
 
-
-  base.nameFunctions($);
-  return $;
 })();

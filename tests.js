@@ -26,20 +26,8 @@
 
 (function ()
 {
-  ak.include('unittest.js');
-  ak.include('template.js');
-  ak.include('rest.js');
-
-  // with statement is used here in order to make sure all names in
-  // ak submodules are unique, this is essential because in applications
-  // ak functions could be placed on global object for convenience.
-  with(ak.base.update({},
-                      ak, ak.types,
-                      ak.base, ak.utils, ak.iter, ak.io, ak.unittest, ak.debug,
-                      ak.template, ak.url, ak.rest, ak.map, ak.http))
+  with (ak.use('ak'))
 {
-  var $ = module('ak.tests');
-
   //////////////////////////////////////////////////////////////////////////////
   // debug tests
   //////////////////////////////////////////////////////////////////////////////
@@ -50,7 +38,7 @@
 
       testAssertionError: function () {
         assertSame(new AssertionError('hi') + '',
-                   'ak.debug.AssertionError: hi',
+                   'ak.AssertionError: hi',
                    'AssertionError');
       },
 
@@ -256,7 +244,7 @@
 
       setUp: function () {
         this._clean();
-        db.createRel('R', {'s': string, 'n': number});
+        db.createRel('R', {'s': types.string, 'n': types.number});
         rels.R.insert({s: 'a', n: 1});
         rels.R.insert({s: 'b', n: 2});
         rels.R.insert({s: 'c', n: 3});
@@ -307,13 +295,13 @@
 
       testModule: function () {
         assertSame(repr(ak), '<ak ' + ak.__version__ + '>', 'ak module');
-        var m = module('TeSt.module');
+        var m = new Module('TeSt.module');
         assert(m instanceof Module, 'module instanceof');
         assertEqual(repr(m), '<TeSt.module>');
         assertSame(m.__name__, 'TeSt.module');
         assertSame(m.__version__, undefined);
         assertSame(m, TeSt.module);
-        var sm = module('TeSt.module.sub.module', '0.1');
+        var sm = new Module('TeSt.module.sub.module', '0.1');
         assertSame(sm.__version__, '0.1');
         assertEqual(repr(sm), '<TeSt.module.sub.module 0.1>');
         assertThrow(Error, function () { module(''); });
@@ -512,8 +500,10 @@
       },
 
       testNameFunctions: function () {
-        assertSame(repr(nameFunctions), 'ak.base.nameFunctions',
+        assertSame(repr(nameFunctions), 'ak.nameFunctions',
                    'nameFunctions');
+        assertSame(repr(template.Filter), 'ak.template.Filter');
+        assertSame(repr(Map.ItemIterator), 'ak.Map.ItemIterator');
       },
 
       testMakeClass: function () {
@@ -864,7 +854,7 @@
         var itr = new Iterator();
         assertThrow(NotImplementedError, bind(itr.next, itr), 'Iterator next');
         itr.valid = true;
-        assertSame(repr(itr), '<valid ak.iter.Iterator>');
+        assertSame(repr(itr), '<valid ak.Iterator>');
       },
 
       testInvalidIterator: function () {
@@ -1072,7 +1062,7 @@
         var itr = iter([1, 2]);
         assertSame(itr.valid && itr.next(), 1, 'array iteration first');
         assertSame(itr.valid && itr.next(), 2, 'array iteration second');
-        assertSame(repr(itr), '<invalid ak.iter.ArrayIterator>');
+        assertSame(repr(itr), '<invalid ak.ArrayIterator>');
         assert(!itr.valid, 'array iteration stop');
         assertEqual(array(iter('abc')), ['a', 'b', 'c'],
                     'ArrayIterator for String');
@@ -1126,7 +1116,7 @@
     child: '{% extends "parent" %}{% block 1 %}child1{% endblock %}'
   };
 
-  var normalEnv = clone(defaultEnv);
+  var normalEnv = clone(template.defaultEnv);
   normalEnv.load = function (name) {
     var result = baseTemplates[name];
     if (result === undefined)
@@ -1139,7 +1129,7 @@
   invalidEnv.invalid = 'INVALID';
 
 
-  $._controller = function () {};
+  ak._testController = function () {};
 
 
   var renderingTests = [
@@ -1432,10 +1422,10 @@
     ['{% with "<>" as x %}{{ x }}{% endwith %}', {}, '<>'],
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
     ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
-    ['{% url ak.tests._controller x y %}', {x: '&', y: '"'},
+    ['{% url ak._testController x y %}', {x: '&', y: '"'},
      '/ak/%3C%3E/&/%22/'],
-    ['{% url ak.tests._controller 1 2 as x %}{{ x }}', {}, '/ak/%3C%3E/1/2/'],
-    ['{% url ak.tests._controller as x %}{{ x }}', {}, '']
+    ['{% url ak._testController 1 2 as x %}{{ x }}', {}, '/ak/%3C%3E/1/2/'],
+    ['{% url ak._testController as x %}{{ x }}', {}, '']
   ];
 
 
@@ -1518,8 +1508,8 @@
       name: 'template',
 
       testRendering: function () {
-        var oldRoot = ak.url.root;
-        defineRoutes('<>/', [[[[ak.tests._controller]]]]);
+        var oldRootRoute = ak.rootRoute;
+        defineRoutes('<>/', [[[[ak._testController]]]]);
         renderingTests.forEach(
           function (test) {
             assertSame((new Template(test[0],
@@ -1528,7 +1518,7 @@
                        test[2],
                        'Template rendering');
           });
-        ak.url.root = oldRoot;
+        ak.rootRoute = oldRootRoute;
       },
 
       testInvalidRendering: function () {
@@ -1564,6 +1554,7 @@
       },
 
       testSmartSplit: function () {
+        var smartSplit = template.smartSplit;
         assertEqual(smartSplit('This is "a person\'s" test.'),
                     ['This', 'is', '"a person\'s"', 'test.'],
                     'smartSplit 1');
@@ -1588,7 +1579,7 @@
       },
 
       testLoadFromCode: function () {
-        var env = clone(defaultEnv);
+        var env = clone(template.defaultEnv);
         env.loadDir = '/test_data/templates';
         assertSame(getTemplate('child.txt', env).render({x: 42}),
                    '\n42\n\n\n\nfoo\n\n',
@@ -1700,7 +1691,7 @@
         assertSame(m.setDefault(o1, 42), 3);
         assertSame(m.setDefault(o2, 4), 4);
         assertSame(m.setDefault(o2, 42), 4);
-        assertSame(repr(m.iterValues()), '<valid ak.map.Map.ValueIterator>');
+        assertSame(repr(m.iterValues()), '<valid ak.Map.ValueIterator>');
 
         ak.hash = oldHash;
       }
@@ -1764,15 +1755,15 @@
       },
 
       testRoot: function () {
-        var oldRoot = ak.url.root;
-        delete ak.url.root;
+        var oldRootRoute = ak.rootRoute;
+        delete ak.rootRoute;
         assertThrow(Error, resolve);
         assertThrow(Error, reverse);
         function f() {};
         defineRoutes('abc', f);
         assertSame(reverse(f), '/ak/abc');
         assertEqual(resolve('abc'), [f, []]);
-        ak.url.root = oldRoot;
+        ak.rootRoute = oldRootRoute;
       }
     });
 
@@ -1818,14 +1809,14 @@
                                ['method', MethodTestController],
                                ['error', controlError]
                              ]);
-        assertSame(defaultServe({path: 'a/b'}, root).status, NOT_FOUND);
+        assertSame(defaultServe({path: 'a/b'}, root).status, http.NOT_FOUND);
         var response = defaultServe({path: 'abc'}, root);
-        assertSame(response.status, MOVED_PERMANENTLY);
+        assertSame(response.status, http.MOVED_PERMANENTLY);
         assertSame(response.headers.Location, '/ak/abc/');
         assertThrow(ResolveError, function () { serve({path: 'abc'}, root); });
         assertSame(serve({path: 'abc/', method: 'get'}, root).content, 'abc');
         assertSame(serve({path: 'abc/', method: 'put'}, root).status,
-                   METHOD_NOT_ALLOWED);
+                   http.METHOD_NOT_ALLOWED);
         assertThrow(Error,
                     function () { defaultServe({path: 'abc/error'}, root); });
         assertSame(serve({path: 'abc/method', method: 'PUT'}, root).content,
@@ -1835,10 +1826,10 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // Epilogue
+  // suite
   //////////////////////////////////////////////////////////////////////////////
 
-  $.suite = new TestSuite([
+  ak.suite = new TestSuite([
                             debugSuite,
                             unittestSuite,
                             coreSuite,
@@ -1852,10 +1843,4 @@
                             restSuite
                           ]);
 
-
-  $.test = partial(test, $.suite);
-
-
-  nameFunctions($);
-  return $;
 }})();

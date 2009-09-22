@@ -26,16 +26,13 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-  var map = ak.include('map.js');
-  var debug = ak.include('debug.js');
-  var http = ak.include('http.js');
-
-  var $ = base.module('ak.url');
+  ak.include('map.js');
+  ak.include('debug.js');
+  ak.include('http.js');
 
 
-  $.ResolveError = base.makeErrorClass(http.NotFoundError);
-  $.ReverseError = base.makeErrorClass();
+  ak.ResolveError = ak.makeErrorClass(ak.NotFoundError);
+  ak.ReverseError = ak.makeErrorClass();
 
 
   function makePutByRegExp(re) {
@@ -53,7 +50,7 @@
   var defaultPattern = /([^\/]*)\//;
 
 
-  $.Route = base.makeClass(
+  ak.Route = ak.makeClass(
     function (/* [pattern,] [controller,] [put,] [children] */) {
       if (typeof(arguments[0]) == 'string' || arguments[0] instanceof RegExp)
         this._pattern = Array.shift(arguments);
@@ -71,14 +68,14 @@
       if (arguments[0] instanceof Array)
         Array.shift(arguments).forEach(this._addChild, this);
       if (arguments.length)
-        throw new Error(base.repr(arguments.callee) +
+        throw new Error(ak.repr(arguments.callee) +
                         ' was called with excess or invalid arguments');
     },
     {
       _addChild: function (child) {
-        if (!(child instanceof $.Route)) {
+        if (!(child instanceof ak.Route)) {
           if (child instanceof Array)
-            child = base.factory($.Route).apply(base.global, child);
+            child = ak.factory(ak.Route).apply(ak.global, child);
           else
             throw new Error('Route child could be either Route or Array');
         }
@@ -121,7 +118,7 @@
       resolve: function (path) {
         var result = this._resolve(path);
         if (!result)
-          throw new $.ResolveError('Can not resolve path "' + path + '"');
+          throw new ak.ResolveError('Can not resolve path "' + path + '"');
         return result;
       },
 
@@ -141,9 +138,9 @@
       _climb: function (root, args, parts) {
         parts.unshift(typeof(this._pattern) == 'string'
                       ? this._pattern
-                      : this._put.call(base.global, args.pop()));
+                      : this._put.call(ak.global, args.pop()));
         if (this == root)
-          debug.assertEqual(args, []);
+          ak.assertEqual(args, []);
         else
           this._parent._climb(root, args, parts);
       },
@@ -152,21 +149,21 @@
       // their regular expressions
       reverse: function (controller/* args... */) {
         if (!this._reverseMap) {
-          this._reverseMap = new map.Map();
+          this._reverseMap = new ak.Map();
           this._populate(this._reverseMap, 0);
         }
         var dict = this._reverseMap.get(controller);
         if (!dict)
-          throw new $.ReverseError(
+          throw new ak.ReverseError(
             'Controller ' + controller + ' is not found');
         var count = arguments.length - 1;
         var route = dict[count];
         if (route === undefined)
-          throw new $.ReverseError(
+          throw new ak.ReverseError(
             'Controller ' + controller + ' does not accept ' +
             count + ' arguments');
         if (route === null)
-          throw new $.ReverseError(
+          throw new ak.ReverseError(
             'Reverse abibuity for controller ' + controller +
             ' with ' + count + ' arguments');
         var parts = [];
@@ -176,34 +173,32 @@
     });
 
 
-  $.defineRoutes = function (/* arguments... */) {
-    $.root = base.factory($.Route).apply(base.global, arguments);
+  ak.defineRoutes = function (/* arguments... */) {
+    ak.rootRoute = ak.factory(ak.Route).apply(ak.global, arguments);
   };
 
 
-  $.getRoot = function () {
-    if (!$.root)
-      throw new Error(base.repr(arguments.callee.caller) +
+  ak.getRootRoute = function () {
+    if (!ak.rootRoute)
+      throw new Error(ak.repr(arguments.callee.caller) +
                       ' requested default routing, please define it using ' +
-                      base.repr($.defineRoutes));
-    return $.root;
+                      ak.repr(ak.defineRoutes));
+    return ak.rootRoute;
   };
 
 
-  $.resolve = function (path) {
-    return $.getRoot().resolve(path);
+  ak.resolve = function (path) {
+    return ak.getRootRoute().resolve(path);
   };
 
 
-  $.prefix = '/' + ak.appName + '/';
+  ak.rootPrefix = '/' + ak.appName + '/';
 
 
-  $.reverse = function (/* arguments... */) {
-    return ($.prefix +
-            encodeURI($.getRoot().reverse.apply($.getRoot(), arguments)));
+  ak.reverse = function (/* arguments... */) {
+    return (ak.rootPrefix +
+            encodeURI(ak.getRootRoute().reverse.apply(ak.rootRoute,
+                                                      arguments)));
   };
 
-
-  base.nameFunctions($);
-  return $;
 })();

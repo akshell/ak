@@ -26,10 +26,7 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-  var iter = ak.include('iter.js');
-
-  var $ = base.module('ak.map');
+  ak.include('iter.js');
 
 
   // actions for Map method _handle
@@ -46,11 +43,11 @@
       return [+pair[0], pair[1]];
     },
 
-    'string': base.operators.identity
+    'string': ak.operators.identity
   };
 
 
-  $.Map = base.makeClass(
+  ak.Map = ak.makeClass(
     function (other) {
       this.clear();
       if (other)
@@ -195,43 +192,43 @@
       },
 
       items: function () {
-        return iter.array(this.iterItems());
+        return ak.array(this.iterItems());
       },
 
       keys: function () {
-        return iter.array(this.iterKeys());
+        return ak.array(this.iterKeys());
       },
 
       values: function () {
-        return iter.array(this.iterValues());
+        return ak.array(this.iterValues());
       },
 
       update: function (other) {
-        iter.forEach(other,
-                     base.bind(function (item) {
-                                 this.set(item[0], item[1]);
-                               },
-                               this));
+        ak.forEach(other,
+                   ak.bind(function (item) {
+                             this.set(item[0], item[1]);
+                           },
+                           this));
       },
 
       __eq__: function (other) {
         if (!(other instanceof this.constructor))
           return false;
         if (('_undefined' in this) != ('_undefined' in other) ||
-            !base.equal(this._undefined, other._undefined))
+            !ak.equal(this._undefined, other._undefined))
           return false;
         for (var type in this._dicts)
-          if (!base.equal(base.items(this._dicts[type]),
-                          base.items(other._dicts[type])))
+          if (!ak.equal(ak.items(this._dicts[type]),
+                        ak.items(other._dicts[type])))
             return false;
-        return base.equal(base.items(this._table), base.items(other._table));
+        return ak.equal(ak.items(this._table), ak.items(other._table));
       },
 
       __repr__: function () {
         return ('{' +
                 this.items().map(
                   function (item) {
-                    return base.repr(item[0]) + ': ' + base.repr(item[1]);
+                    return ak.repr(item[0]) + ': ' + ak.repr(item[1]);
                   }).join(', ') +
                 '}');
       },
@@ -245,8 +242,8 @@
     });
 
 
-  $.Map.ItemIterator = base.makeSubclass(
-    iter.Iterator,
+  ak.Map.ItemIterator = ak.makeSubclass(
+    ak.Iterator,
     function (map) {
       this._map = map;
       this.valid = true;
@@ -259,22 +256,22 @@
         if (!('_nextItem' in this) && '_undefined' in this._map)
           return [undefined, this._map._undefined];
         if (!this._tableItr)
-          this._tableItr = iter.iter(this._map._table);
+          this._tableItr = ak.iter(this._map._table);
         if (this._tableItr.valid &&
             (!this._neighbourItr || !this._neighbourItr.valid))
-          this._neighbourItr = iter.iter(this._tableItr.next()[1]);
+          this._neighbourItr = ak.iter(this._tableItr.next()[1]);
         if (this._neighbourItr && this._neighbourItr.valid)
           return this._neighbourItr.next();
         if (!this._dictItr)
-          this._dictItr = iter.iter(this._map._dicts);
+          this._dictItr = ak.iter(this._map._dicts);
         while (this._dictItr.valid &&
                (!this._pairItr || !this._pairItr.valid)) {
           var typeAndDict = this._dictItr.next();
           this._itemRestorer = itemRestorers[typeAndDict[0]];
-          this._pairItr = iter.iter(typeAndDict[1]);
+          this._pairItr = ak.iter(typeAndDict[1]);
         }
         if (this._pairItr.valid)
-          return this._itemRestorer.call(base.global, this._pairItr.next());
+          return this._itemRestorer.call(ak.global, this._pairItr.next());
         this.valid = false;
         return undefined;
       },
@@ -291,8 +288,8 @@
     });
 
 
-  $.Map.KeyIterator = base.makeSubclass(
-    iter.Iterator,
+  ak.Map.KeyIterator = ak.makeSubclass(
+    ak.Iterator,
     function (map) {
       this._itemItr = new map.constructor.ItemIterator(map);
     },
@@ -307,8 +304,8 @@
     });
 
 
-  $.Map.ValueIterator = base.makeSubclass(
-    iter.Iterator,
+  ak.Map.ValueIterator = ak.makeSubclass(
+    ak.Iterator,
     function (map) {
       this._itemItr = new map.constructor.ItemIterator(map);
     },
@@ -322,8 +319,4 @@
       }
     });
 
-
-  base.nameFunctions($);
-  base.nameFunctions($.Map);
-  return $;
 })();

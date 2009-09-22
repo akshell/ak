@@ -26,16 +26,10 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-  var iter = ak.include('iter.js');
-  var url = ak.include('url.js');
-  var http = ak.include('http.js');
-  var template = ak.include('template.js');
-
-  var $ = base.module('ak.rest');
+  ak.include('template.js');
 
 
-  $.Controller = base.makeClass(
+  ak.Controller = ak.makeClass(
     function (request) {
       this.request = request;
     },
@@ -46,38 +40,39 @@
           return func.call(this);
         if (typeof(this.handle) == 'function')
           return this.handle();
-        return new ak.Response('', http.METHOD_NOT_ALLOWED);
+        return new ak.Response('', ak.http.METHOD_NOT_ALLOWED);
       }
     });
 
 
-  $.serve = function (request, root/* = url.root */) {
-    root = root || url.getRoot();
+  ak.serve = function (request, root/* = ak.rootRoute */) {
+    root = root || ak.getRootRoute();
     var resolveInfo = root.resolve(request.path);
     var controller = resolveInfo[0];
     var args = [request].concat(resolveInfo[1]);
     return (typeof(controller.prototype.respond) == 'function'
-            ? base.factory(controller).apply(base.global, args).respond()
-            : controller.apply(base.global, args));
+            ? ak.factory(controller).apply(ak.global, args).respond()
+            : controller.apply(ak.global, args));
   };
 
 
-  $.middleware = {
+  ak.middleware = {
     appendSlash: function (serve) {
       return function (request, root) {
         try {
           return serve.apply(this, arguments);
         } catch (error) {
-          if (!(error instanceof url.ResolveError))
+          if (!(error instanceof ak.ResolveError))
             throw error;
           try {
-            (root || url.root).resolve(request.path + '/');
+            (root || ak.rootRoute).resolve(request.path + '/');
           } catch (_) {
             throw error;
           }
-          return new ak.Response('',
-                                 http.MOVED_PERMANENTLY,
-                                 {'Location': url.prefix + request.path + '/'});
+          return new ak.Response(
+            '',
+            ak.http.MOVED_PERMANENTLY,
+            {'Location': ak.rootPrefix + request.path + '/'});
         }
       };
     },
@@ -87,27 +82,24 @@
         try {
           return serve.apply(this, arguments);
         } catch (error) {
-          if (!(error instanceof http.NotFoundError))
+          if (!(error instanceof ak.NotFoundError))
             throw error;
-          var t;
+          var template;
           try {
-            t = template.getTemplate('404.html');
+            template = ak.getTemplate('404.html');
           } catch (_) {
-            t = new template.Template('Not found');
+            template = new ak.Template('Not found');
           }
-          return new ak.Response(t.render({error: error}),
-                                 http.NOT_FOUND);
+          return new ak.Response(template.render({error: error}),
+                                 ak.http.NOT_FOUND);
         }
       };
     }
   };
 
 
-  $.defaultServe = $.serve.decorated(
-    $.middleware.notFound,
-    $.middleware.appendSlash);
+  ak.defaultServe = ak.serve.decorated(
+    ak.middleware.notFound,
+    ak.middleware.appendSlash);
 
-
-  base.nameFunctions($);
-  return $;
 })();

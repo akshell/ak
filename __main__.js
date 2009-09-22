@@ -29,37 +29,37 @@ ak.include('tests.js');
 
 function test(stream/* = 'ak.out' */) {
   if (stream == 'both')
-    ak.io.err = ak.io.out;
-  ak.tests.test();
-  return (stream == 'err' ? ak.io.err : ak.io.out).read();
+    ak.err = ak.out;
+  ak.test(ak.suite);
+  return (stream == 'err' ? ak.err : ak.out).read();
 }
 
 
-var HelloController = ak.base.makeSubclass(
-  ak.rest.Controller,
+var HelloController = ak.makeSubclass(
+  ak.Controller,
   function (request, name) {
-    ak.rest.Controller.call(this, request);
+    ak.Controller.call(this, request);
     this._name = name;
   },
   {
     get: function () {
-      return new ak.Response(ak.template.getTemplate('hello.html')
+      return new ak.Response(ak.getTemplate('hello.html')
                              .render({name: this._name}));
     }
   });
 
 
 function controlTest(request) {
-  return new ak.Response(ak.template.getTemplate('test.html')
+  return new ak.Response(ak.getTemplate('test.html')
                          .render({request: request}));
 }
 
 
-ak.url.defineRoutes('',
-                    [
-                      ['hello/', [[HelloController]]],
-                      ['test/', controlTest]
-                    ]);
+ak.defineRoutes('',
+                [
+                  ['hello/', [[HelloController]]],
+                  ['test/', controlTest]
+                ]);
 
 
-__main__ = ak.rest.defaultServe;
+__main__ = ak.defaultServe;

@@ -26,14 +26,11 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-  var iter = ak.include('iter.js');
-
-  var $ = base.module('ak.io');
+  ak.include('iter.js');
 
 
-  $.Stream = base.makeSubclass(
-    iter.Iterator,
+  ak.Stream = ak.makeSubclass(
+    ak.Iterator,
     function () {
       this._strs = [];
     },
@@ -96,19 +93,16 @@
     });
 
 
-  $.out = new $.Stream();
-  $.err = new $.Stream();
+  ak.out = new ak.Stream();
+  ak.err = new ak.Stream();
 
 
-  $.log = function (/* arguments */) {
-    $.err.writeLine();
+  ak.log = function (/* arguments */) {
+    ak.err.writeLine();
     Array.forEach(arguments,
                   function (arg) {
-                    $.err.writeLine(base.repr(arg));
+                    ak.err.writeLine(ak.repr(arg));
                   });
   };
 
-
-  base.nameFunctions($);
-  return $;
 })();

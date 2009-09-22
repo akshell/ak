@@ -34,11 +34,12 @@
   // Free functions
   //////////////////////////////////////////////////////////////////////////////
 
-  var global = this;
+  ak.global = this;
 
-  function Module(name, version) {
+
+  ak.Module = function (name, version) {
     var components = name.split('.');
-    var package = global;
+    var package = ak.global;
     if (components.indexOf('') != -1)
       throw new Error('Empty module name component');
     for (var i = 0; i < components.length - 1; ++i) {
@@ -51,9 +52,9 @@
     this.__name__ = name;
     if (version)
       this.__version__ = version;
-  }
+  };
 
-  Module.prototype = {
+  ak.Module.prototype = {
     __repr__: function () {
       return ('<' + this.__name__ +
               (this.__version__ ? ' ' + this.__version__ : '') +
@@ -66,17 +67,7 @@
   };
 
 
-  var $ = new Module('ak.base');
-
-  $.global = global;
-  $.Module = Module;
-
-  $.module = function (name, version) {
-    return new $.Module(name, version);
-  };
-
-
-  $.updateWithMode = function (self, mode, obj/*, ...  */) {
+  ak.updateWithMode = function (self, mode, obj/*, ...  */) {
     for (var i = 2; i < arguments.length; ++i) {
       var o = arguments[i];
       for (var key in o)
@@ -86,18 +77,18 @@
   };
 
 
-  $.update = function (self, obj/*, ... */) {
+  ak.update = function (self, obj/*, ... */) {
     Array.prototype.splice.call(arguments, 0, 1, self, ak.NONE);
-    return $.updateWithMode.apply(this, arguments);
+    return ak.updateWithMode.apply(this, arguments);
   };
 
 
   ak.__name__ = 'ak';
   ak.__version__ = '0.1';
-  $.update(ak, Module.prototype);
+  ak.update(ak, ak.Module.prototype);
 
 
-  $.updateTree = function (self, obj/*, ...*/) {
+  ak.updateTree = function (self, obj/*, ...*/) {
     for (var i = 1; i < arguments.length; ++i) {
       var o = arguments[i];
       for (var key in o) {
@@ -113,12 +104,12 @@
   };
 
 
-  $.clone = function (obj) {
+  ak.clone = function (obj) {
     return {__proto__: obj};
   };
 
 
-  $.repr = function (x) {
+  ak.repr = function (x) {
     if (x === undefined)
       return 'undefined';
     if (x === null)
@@ -129,7 +120,7 @@
   };
 
 
-  $.items = function (obj) {
+  ak.items = function (obj) {
     var result = [];
     for (var key in obj)
       result.push([key, obj[key]]);
@@ -162,7 +153,7 @@
   }
 
 
-  $.cmp = function (a, b) {
+  ak.cmp = function (a, b) {
     a = removeWrapper(a);
     b = removeWrapper(b);
     if (a === b)
@@ -172,12 +163,12 @@
       if (c !== undefined)
         return c;
     }
-    throw new TypeError($.repr(a) + ' and ' + $.repr(b) +
+    throw new TypeError(ak.repr(a) + ' and ' + ak.repr(b) +
                         ' can not be compared');
   };
 
 
-  $.equal = function (a, b) {
+  ak.equal = function (a, b) {
     a = removeWrapper(a);
     b = removeWrapper(b);
     if (a === b)
@@ -191,12 +182,12 @@
       if (c !== undefined)
         return c == 0;
     }
-    throw new TypeError($.repr(a) + ' and ' + $.repr(b) +
+    throw new TypeError(ak.repr(a) + ' and ' + ak.repr(b) +
                         ' can not be compared for equality');
   };
 
 
-  $.setDefault = function (self, obj/*, ...*/) {
+  ak.setDefault = function (self, obj/*, ...*/) {
     for (var i = 1; i < arguments.length; ++i) {
       var o = arguments[i];
       for (var key in o)
@@ -207,7 +198,7 @@
   };
 
 
-  $.keys = function (obj) {
+  ak.keys = function (obj) {
     var result = [];
     for (var key in obj)
       result.push(key);
@@ -215,7 +206,7 @@
   };
 
 
-  $.values = function (obj) {
+  ak.values = function (obj) {
     var result = [];
     for (var key in obj)
       result.push(obj[key]);
@@ -223,7 +214,7 @@
   };
 
 
-  $.operators = {
+  ak.operators = {
     truth: function (a) { return !!a; },
     not: function (a) { return !a; },
     identity: function (a) { return a; },
@@ -254,12 +245,12 @@
     seq: function (a, b) { return a === b; },
     sne: function (a, b) { return a !== b; },
 
-    ceq: function (a, b) { return $.cmp(a, b) === 0; },
-    cne: function (a, b) { return $.cmp(a, b) !== 0; },
-    cgt: function (a, b) { return $.cmp(a, b) == 1; },
-    cge: function (a, b) { return $.cmp(a, b) != -1; },
-    clt: function (a, b) { return $.cmp(a, b) == -1; },
-    cle: function (a, b) { return $.cmp(a, b) != 1; },
+    ceq: function (a, b) { return ak.cmp(a, b) === 0; },
+    cne: function (a, b) { return ak.cmp(a, b) !== 0; },
+    cgt: function (a, b) { return ak.cmp(a, b) == 1; },
+    cge: function (a, b) { return ak.cmp(a, b) != -1; },
+    clt: function (a, b) { return ak.cmp(a, b) == -1; },
+    cle: function (a, b) { return ak.cmp(a, b) != 1; },
 
     and: function (a, b) { return a && b; },
     or: function (a, b) { return a || b; },
@@ -267,7 +258,7 @@
   };
 
 
-  $.indicators = {
+  ak.indicators = {
     null_: function (a) {
       return a === null;
     },
@@ -290,7 +281,7 @@
   };
 
 
-  $.compose = function (f1, f2/*, f3, ... fN */) {
+  ak.compose = function (f1, f2/*, f3, ... fN */) {
     var funcs = Array.slice(arguments);
     return function () {
       var args = arguments;
@@ -301,14 +292,14 @@
   };
 
 
-  $.bind = function (func, self) {
+  ak.bind = function (func, self) {
     return function () {
       return func.apply(self, arguments);
     };
   };
 
 
-  $.partial = function (func/*, args... */) {
+  ak.partial = function (func/*, args... */) {
     var args = Array.slice(arguments, 1);
     return function () {
       return func.apply(this, args.slice().extend(arguments));
@@ -316,14 +307,14 @@
   };
 
 
-  $.method = function (func) {
+  ak.method = function (func) {
     return function (self/*, args... */) {
       return func.apply(this, [this].extend(arguments));
     };
   };
 
 
-  $.factory = function (constructor) {
+  ak.factory = function (constructor) {
     return function () {
       var result = {};
       result.__proto__ = constructor.prototype;
@@ -333,16 +324,20 @@
   };
 
 
-  $.nameFunctions = function (ns) {
+  ak.nameFunctions = function (ns) {
     for (var key in ns) {
       var x = ns[key];
-      if (typeof(x) == 'function' && x.__name__ === undefined)
+      if (typeof(x) == 'function' && x.__name__ === undefined) {
         x.__name__ = ns.__name__ + '.' + key;
+        arguments.callee(x);
+      } else if (x instanceof ak.Module) {
+        arguments.callee(x);
+      }
     }
   };
 
 
-  $.makeClass = function(/* optional */constructor,
+  ak.makeClass = function(/* optional */constructor,
                          /* optional */prototype) {
     constructor = constructor || function () {};
     if (prototype)
@@ -352,12 +347,12 @@
   };
 
 
-  $.makeSubclass = function(parent,
+  ak.makeSubclass = function(parent,
                             /* optional */constructor,
                             /* optional */prototype) {
     constructor = (constructor ||
                    function () { parent.apply(this, arguments); });
-    constructor = $.makeClass(constructor, prototype);
+    constructor = ak.makeClass(constructor, prototype);
     constructor.prototype.__proto__ = parent.prototype;
     return constructor;
   };
@@ -366,9 +361,9 @@
   Error.stackTraceLimit = 1000;
 
 
-  $.makeErrorClass = function (parent) {
+  ak.makeErrorClass = function (parent) {
     // Error.apply doesn't work for unknown reasons
-    // so using $.makeClass is impossible
+    // so using ak.makeClass is impossible
     var result = (parent
                   ? function (message) { parent.call(this, message); }
                   : function (message) {
@@ -385,16 +380,16 @@
   };
 
 
-  $.NotImplementedError = $.makeErrorClass();
-  $.ValueError = $.makeErrorClass();
+  ak.NotImplementedError = ak.makeErrorClass();
+  ak.ValueError = ak.makeErrorClass();
 
 
-  $.abstract = function () {
-    throw new $.NotImplementedError();
+  ak.abstract = function () {
+    throw new ak.NotImplementedError();
   };
 
 
-  $.isSubclass = function (cls, base) {
+  ak.isSubclass = function (cls, base) {
     if (typeof(cls) != 'function' || typeof(base) != 'function')
       return false;
     if (base === Object)
@@ -455,8 +450,8 @@
             });
 
 
-  $.map = Array.map;
-  $.filter = Array.filter;
+  ak.map = Array.map;
+  ak.filter = Array.filter;
 
 
   function flattenArray(result, lst) {
@@ -470,14 +465,14 @@
     return result;
   }
 
-  $.updateWithMode(
+  ak.updateWithMode(
     Array.prototype, ak.DONT_ENUM,
     {
       __cmp__: function (other) {
-        var lenCmp = $.cmp(this.length, other.length);
+        var lenCmp = ak.cmp(this.length, other.length);
         var count = lenCmp == -1 ? this.length : other.length;
         for (var i = 0; i < count; ++i) {
-          var itemCmp = $.cmp(this[i], other[i]);
+          var itemCmp = ak.cmp(this[i], other[i]);
           if (itemCmp)
             return itemCmp;
         }
@@ -485,10 +480,10 @@
       },
 
       __eq__: function (other) {
-        if (!$.equal(this.length, other.length))
+        if (!ak.equal(this.length, other.length))
           return false;
         for (var i = 0; i < this.length; ++i)
-          if (!$.equal(this[i], other[i]))
+          if (!ak.equal(this[i], other[i]))
             return false;
         return true;
       },
@@ -499,7 +494,7 @@
 
       index: function (value, start/* = 0 */) {
         for (var i = start || 0; i < this.length; ++i)
-          if ($.equal(this[i], value))
+          if (ak.equal(this[i], value))
             return i;
         return -1;
       },
@@ -515,7 +510,7 @@
   // String methods
   //////////////////////////////////////////////////////////////////////////////
 
-  $.updateWithMode(
+  ak.updateWithMode(
     String.prototype, ak.DONT_ENUM,
     {
       startsWith: function (prefix, /* optional */ start, /* optional */ end) {
@@ -565,7 +560,7 @@
     function (other) {
       if (!(other instanceof Date))
         throw TypeError('Date object could be compared only to Date object');
-      return $.cmp(this.getTime(), other.getTime());
+      return ak.cmp(this.getTime(), other.getTime());
     });
 
   //////////////////////////////////////////////////////////////////////////////
@@ -603,11 +598,11 @@
 
 
   setRepr(Object, function () {
-            var keys = $.keys(this);
+            var keys = ak.keys(this);
             keys.sort();
             return ('{' +
                     keys.map(function (key) {
-                               return key + ': ' + $.repr(this[key]);
+                               return key + ': ' + ak.repr(this[key]);
                              },
                              this).join(', ') +
                     '}');
@@ -615,7 +610,7 @@
 
 
   setRepr(Array, function () {
-            return '[' + this.map($.repr).join(', ') + ']';
+            return '[' + this.map(ak.repr).join(', ') + ']';
           });
 
 
@@ -660,7 +655,7 @@
 
   setRepr(Error, function () {
             return (this.name + '(' +
-                    (this.message ? $.repr(this.message) : '') + ')');
+                    (this.message ? ak.repr(this.message) : '') + ')');
           });
 
 
@@ -668,11 +663,4 @@
             return this + '';
           });
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Epilogue
-  //////////////////////////////////////////////////////////////////////////////
-
-  $.nameFunctions(ak);
-  $.nameFunctions($);
-  return $;
 })();

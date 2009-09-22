@@ -28,15 +28,13 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-
-  var $ = base.module('ak.iter');
+  ak.include('base.js');
 
   //////////////////////////////////////////////////////////////////////////////
   // Iterator
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Iterator = base.makeClass(
+  ak.Iterator = ak.makeClass(
     function () {},
     {
       __repr__: function () {
@@ -46,7 +44,7 @@
 
       next: function () {
         if (!('valid' in this))
-          throw new base.NotImplementedError(
+          throw new ak.NotImplementedError(
             'valid must be defined by Iterator subclass');
         if (!this.valid)
           throw new Error('Iteration on invalid iterator');
@@ -54,31 +52,31 @@
       },
 
       _next: function () {
-        throw new base.NotImplementedError(
+        throw new ak.NotImplementedError(
           '_next must be defined by Iterator subclass');
       }
     });
 
 
-  $.InvalidIterator = base.makeSubclass($.Iterator, null, {valid: false});
+  ak.InvalidIterator = ak.makeSubclass(ak.Iterator, null, {valid: false});
 
 
   //////////////////////////////////////////////////////////////////////////////
   // Free functions
   //////////////////////////////////////////////////////////////////////////////
 
-  $.iter = function (obj) {
-    return (obj instanceof $.Iterator ?
+  ak.iter = function (obj) {
+    return (obj instanceof ak.Iterator ?
             obj
             : ((obj !== undefined && obj !== null &&
                 typeof(obj.__iter__) == 'function')
                ? obj.__iter__()
-               : new $.InvalidIterator()));
+               : new ak.InvalidIterator()));
   };
 
 
-  $.array = function (iterable) {
-    var itr = $.iter(iterable);
+  ak.array = function (iterable) {
+    var itr = ak.iter(iterable);
     var result = [];
     while (itr.valid)
       result.push(itr.next());
@@ -86,32 +84,32 @@
   };
 
 
-  $.advance = function (itr, n) {
+  ak.advance = function (itr, n) {
     for (var i = 0; i < n && itr.valid; ++i)
       itr.next();
   };
 
 
   function findMinOrMax(cmpValue, iterable) {
-    var itr = $.iter(iterable);
+    var itr = ak.iter(iterable);
     if (!itr.valid)
       throw Error((cmpValue == 1 ? 'min' : 'max') + ' argument is empty');
     var result = itr.next();
     while (itr.valid) {
       var value = itr.next();
-      if (base.cmp(result, value) == cmpValue)
+      if (ak.cmp(result, value) == cmpValue)
         result = value;
     }
     return result;
   };
 
 
-  $.min = base.partial(findMinOrMax, 1);
-  $.max = base.partial(findMinOrMax, -1);
+  ak.min = ak.partial(findMinOrMax, 1);
+  ak.max = ak.partial(findMinOrMax, -1);
 
 
-  $.reduce = function (func, iterable, /* optional */initial) {
-    var itr = $.iter(iterable);
+  ak.reduce = function (func, iterable, /* optional */initial) {
+    var itr = ak.iter(iterable);
     var result;
     if (arguments.length < 3) {
       if (!itr.valid)
@@ -126,28 +124,28 @@
   };
 
 
-  $.sum = function (iterable, start/* = 0 */) {
-    return $.reduce(base.operators.add, iterable, start || 0);
+  ak.sum = function (iterable, start/* = 0 */) {
+    return ak.reduce(ak.operators.add, iterable, start || 0);
   };
 
 
-  $.exhaust = function (iterable) {
-    $.advance(iterable, Infinity);
+  ak.exhaust = function (iterable) {
+    ak.advance(iterable, Infinity);
   };
 
 
-  $.forEach = function (iterable, func) {
-    var itr = $.iter(iterable);
+  ak.forEach = function (iterable, func) {
+    var itr = ak.iter(iterable);
     while (itr.valid)
       func(itr.next());
   };
 
 
-  $.every = function (iterable, pred) {
+  ak.every = function (iterable, pred) {
     // alternative impl:
-//     var itr = $.ifilter(iterable, base.compose(base.operators.not, pred));
+//     var itr = ak.ifilter(iterable, ak.compose(ak.operators.not, pred));
 //     return !itr.valid;
-    var itr = $.iter(iterable);
+    var itr = ak.iter(iterable);
     while (itr.valid)
       if (!pred(itr.next()))
         return false;
@@ -155,11 +153,11 @@
   };
 
 
-  $.some = function (iterable, pred) {
+  ak.some = function (iterable, pred) {
     // alternative impl:
-//     var itr = $.ifilter(iterable, pred);
+//     var itr = ak.ifilter(iterable, pred);
 //     return itr.valid;
-    var itr = $.iter(iterable);
+    var itr = ak.iter(iterable);
     while (itr.valid)
       if (pred(itr.next()))
         return true;
@@ -167,15 +165,15 @@
   };
 
 
-  $.sorted = function (iterable, cmp/* = ak.base.cmp */) {
-    var result = $.array(iterable);
-    result.sort(cmp || base.cmp);
+  ak.sorted = function (iterable, cmp/* = ak.cmp */) {
+    var result = ak.array(iterable);
+    result.sort(cmp || ak.cmp);
     return result;
   };
 
 
-  $.reversed = function (iterable) {
-    var result = $.array(iterable);
+  ak.reversed = function (iterable) {
+    var result = ak.array(iterable);
     result.reverse();
     return result;
   };
@@ -184,15 +182,15 @@
   // Utility iterators
   //////////////////////////////////////////////////////////////////////////////
 
-  $.SliceIterator = base.makeSubclass(
-    $.Iterator,
+  ak.SliceIterator = ak.makeSubclass(
+    ak.Iterator,
     function (iterable,
               start/* = 0 */,
               stop /* = Infinity */) {
-      this._itr = $.iter(iterable);
+      this._itr = ak.iter(iterable);
       start = start || 0;
       stop = stop || Infinity;
-      $.advance(this._itr, start);
+      ak.advance(this._itr, start);
       this._count = stop - start;
     },
     {
@@ -206,11 +204,11 @@
       }
     });
 
-  $.islice = base.factory($.SliceIterator);
+  ak.islice = ak.factory(ak.SliceIterator);
 
 
-  $.CountIterator = base.makeSubclass(
-    $.Iterator,
+  ak.CountIterator = ak.makeSubclass(
+    ak.Iterator,
     function (n) {
       this._n = n || 0;
     },
@@ -226,13 +224,13 @@
       }
     });
 
-  $.count = base.factory($.CountIterator);
+  ak.count = ak.factory(ak.CountIterator);
 
 
-  $.CycleIterator = base.makeSubclass(
-    $.Iterator,
+  ak.CycleIterator = ak.makeSubclass(
+    ak.Iterator,
     function (iterable) {
-      this._itr = $.iter(iterable);
+      this._itr = ak.iter(iterable);
       this.valid = this._itr.valid;
       this._saved = [];
     },
@@ -249,11 +247,11 @@
       }
     });
 
-  $.cycle = base.factory($.CycleIterator);
+  ak.cycle = ak.factory(ak.CycleIterator);
 
 
-  $.RepeatIterator = base.makeSubclass(
-    $.Iterator,
+  ak.RepeatIterator = ak.makeSubclass(
+    ak.Iterator,
     function (obj, n/* = Infinity */) {
       this._obj = obj;
       this._i = n === undefined ? Infinity : n;
@@ -269,13 +267,13 @@
       }
     });
 
-  $.repeat = base.factory($.RepeatIterator);
+  ak.repeat = ak.factory(ak.RepeatIterator);
 
 
-  $.ZipIterator = base.makeSubclass(
-    $.Iterator,
+  ak.ZipIterator = ak.makeSubclass(
+    ak.Iterator,
     function (/* iterables... */) {
-      this._itrs = Array.map(arguments, $.iter);
+      this._itrs = Array.map(arguments, ak.iter);
     },
     {
       get valid() {
@@ -287,14 +285,14 @@
       }
     });
 
-  $.izip = base.factory($.ZipIterator);
+  ak.izip = ak.factory(ak.ZipIterator);
 
 
-  $.FilterIterator = base.makeSubclass(
-    $.Iterator,
+  ak.FilterIterator = ak.makeSubclass(
+    ak.Iterator,
     function (iterable, pred) {
-      this._pred = pred || base.operators.truth;
-      this._itr = $.iter(iterable);
+      this._pred = pred || ak.operators.truth;
+      this._itr = ak.iter(iterable);
       this.valid = true;
       this._findNextItem();
     },
@@ -316,13 +314,13 @@
       }
     });
 
-  $.ifilter = base.factory($.FilterIterator);
+  ak.ifilter = ak.factory(ak.FilterIterator);
 
 
-  $.MapIterator = base.makeSubclass(
-    $.Iterator,
+  ak.MapIterator = ak.makeSubclass(
+    ak.Iterator,
     function (iterable, func) {
-      this._itr = $.iter(iterable);
+      this._itr = ak.iter(iterable);
       this._func = func;
     },
     {
@@ -335,13 +333,13 @@
       }
     });
 
-  $.imap = base.factory($.MapIterator);
+  ak.imap = ak.factory(ak.MapIterator);
 
 
-  $.ChainIterator = base.makeSubclass(
-    $.Iterator,
+  ak.ChainIterator = ak.makeSubclass(
+    ak.Iterator,
     function (/* iterables... */) {
-      this._itrs = Array.map(arguments, $.iter);
+      this._itrs = Array.map(arguments, ak.iter);
       this._findValid();
     },
     {
@@ -361,13 +359,13 @@
       }
     });
 
-  $.chain = base.factory($.ChainIterator);
+  ak.chain = ak.factory(ak.ChainIterator);
 
 
-  $.TakeWhileIterator = base.makeSubclass(
-    $.Iterator,
+  ak.TakeWhileIterator = ak.makeSubclass(
+    ak.Iterator,
     function (iterable, pred) {
-      this._itr = $.iter(iterable);
+      this._itr = ak.iter(iterable);
       this._pred = pred;
       this.valid = true;
       this._findNextItem();
@@ -390,13 +388,13 @@
       }
     });
 
-  $.takeWhile = base.factory($.TakeWhileIterator);
+  ak.takeWhile = ak.factory(ak.TakeWhileIterator);
 
 
-  $.DropWhileIterator = base.makeSubclass(
-    $.Iterator,
+  ak.DropWhileIterator = ak.makeSubclass(
+    ak.Iterator,
     function (iterable, pred) {
-      this._itr = $.iter(iterable);
+      this._itr = ak.iter(iterable);
       while (this._itr.valid) {
         var item = this._itr.next();
         if (!pred(item)) {
@@ -420,11 +418,11 @@
       }
     });
 
-  $.dropWhile = base.factory($.DropWhileIterator);
+  ak.dropWhile = ak.factory(ak.DropWhileIterator);
 
 
-  $.TeeIterator = base.makeSubclass(
-    $.Iterator,
+  ak.TeeIterator = ak.makeSubclass(
+    ak.Iterator,
     function (ident, sync) {
       sync.pos[ident] = -1;
       this._ident = ident;
@@ -449,7 +447,7 @@
           result = sync.deque[i - sync.min];
         }
         ++sync.pos[ident];
-        if (i == sync.min && $.min(sync.pos) != sync.min) {
+        if (i == sync.min && ak.min(sync.pos) != sync.min) {
           ++sync.min;
           sync.deque.shift();
         }
@@ -458,9 +456,9 @@
     });
 
 
-  $.tee = function (iterable, n/* = 2 */) {
+  ak.tee = function (iterable, n/* = 2 */) {
     var sync = {
-      itr: $.iter(iterable),
+      itr: ak.iter(iterable),
       pos: [],
       deque: [],
       max: -1,
@@ -468,16 +466,16 @@
     };
     var result = [];
     for (var i = 0; i < (n || 2); ++i)
-      result.push(new $.TeeIterator(i, sync));
+      result.push(new ak.TeeIterator(i, sync));
     return result;
   };
 
 
-  $.GroupByIterator = base.makeSubclass(
-    $.Iterator,
-    function (iterable, keyFunc/* = ak.base.operators.identity */) {
-      this._itr = $.iter(iterable);
-      this._keyFunc = keyFunc || base.operators.identity;
+  ak.GroupByIterator = ak.makeSubclass(
+    ak.Iterator,
+    function (iterable, keyFunc/* = ak.operators.identity */) {
+      this._itr = ak.iter(iterable);
+      this._keyFunc = keyFunc || ak.operators.identity;
     },
     {
       get valid() {
@@ -493,7 +491,7 @@
         while (this._itr.valid) {
           var value = this._itr.next();
           var key = this._keyFunc(value);
-          if (base.cmp(key, this._key)) {
+          if (ak.cmp(key, this._key)) {
             var result = [this._key, values];
             this._value = value;
             this._key = key;
@@ -506,16 +504,16 @@
       }
     });
 
-  $.groupBy = base.factory($.GroupByIterator);
+  ak.groupBy = ak.factory(ak.GroupByIterator);
 
   //////////////////////////////////////////////////////////////////////////////
   // ObjectIterator
   //////////////////////////////////////////////////////////////////////////////
 
-  $.ObjectIterator = base.makeSubclass(
-    $.Iterator,
+  ak.ObjectIterator = ak.makeSubclass(
+    ak.Iterator,
     function (obj) {
-      this._keyItr = $.iter(base.keys(obj));
+      this._keyItr = ak.iter(ak.keys(obj));
       this._obj = obj;
     },
     {
@@ -531,15 +529,15 @@
 
 
   Object.prototype.setNonEnumerable('__iter__', function () {
-                                      return new $.ObjectIterator(this);
+                                      return new ak.ObjectIterator(this);
                                     });
 
   //////////////////////////////////////////////////////////////////////////////
   // ArrayIterator
   //////////////////////////////////////////////////////////////////////////////
 
-  $.ArrayIterator = base.makeSubclass(
-    $.Iterator,
+  ak.ArrayIterator = ak.makeSubclass(
+    ak.Iterator,
     function (array) {
       this._array = array;
       this._i = 0;
@@ -555,15 +553,9 @@
     });
 
 
-  function makeArrayIterator() { return new $.ArrayIterator(this); };
+  function makeArrayIterator() { return new ak.ArrayIterator(this); };
   Array.prototype.setNonEnumerable('__iter__', makeArrayIterator);
   String.prototype.setNonEnumerable('__iter__', makeArrayIterator);
   ak.Query.prototype.setNonEnumerable('__iter__', makeArrayIterator);
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Epilogue
-  //////////////////////////////////////////////////////////////////////////////
-
-  base.nameFunctions($);
-  return $;
 })();

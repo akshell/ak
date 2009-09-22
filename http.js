@@ -26,21 +26,18 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-
-  var $ = base.module('ak.http');
+  ak.include('base.js');
 
 
-  $.NotFoundError = base.makeErrorClass();
+  ak.NotFoundError = ak.makeErrorClass();
 
 
   // TODO add all standard error codes
-  $.MOVED_PERMANENTLY = 301;
-  $.NOT_FOUND = 404;
-  $.METHOD_NOT_ALLOWED = 405;
-  $.INTERNAL_SERVER_ERROR = 500;
+  ak.http = {
+    MOVED_PERMANENTLY: 301,
+    NOT_FOUND: 404,
+    METHOD_NOT_ALLOWED: 405,
+    INTERNAL_SERVER_ERROR: 500
+  };
 
-
-  base.nameFunctions($);
-  return $;
 })();

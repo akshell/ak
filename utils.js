@@ -28,12 +28,10 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-
-  var $ = base.module('ak.utils');
+  ak.include('base.js');
 
 
-  $.range = function (/* [start,] stop[, step] */) {
+  ak.range = function (/* [start,] stop[, step] */) {
     var start = 0;
     var stop = 0;
     var step = 1;
@@ -56,7 +54,7 @@
   };
 
 
-  $.zip = function (/* arrays */) {
+  ak.zip = function (/* arrays */) {
     if (arguments.length == 0)
       return [];
     var length = arguments[0].length;
@@ -74,7 +72,7 @@
   };
 
 
-  $.camelize = function (selector) {
+  ak.camelize = function (selector) {
     var arr = selector.split('-');
     for (var i = 1; i < arr.length; ++i)
       arr[i] = arr[i].charAt(0).toUpperCase() + arr[i].substring(1);
@@ -82,7 +80,7 @@
   };
 
 
-  $.counter = function (n/* = 0 */) {
+  ak.counter = function (n/* = 0 */) {
     n = n || 0;
     return function () {
       return n++;
@@ -90,12 +88,12 @@
   };
 
 
-  $.flattenArguments = function (/* ... */) {
+  ak.flattenArguments = function (/* ... */) {
     var result = [];
     var args = Array.slice(arguments);
     while (args.length) {
       var x = args.shift();
-      if (base.indicators.arrayLike(x))
+      if (ak.indicators.arrayLike(x))
         for (var i = x.length - 1; i >= 0; --i)
           args.unshift(x[i]);
       else
@@ -105,21 +103,21 @@
   };
 
 
-  $.getter = function (key) {
+  ak.getter = function (key) {
     return function () {
       return this[key];
     };
   };
 
 
-  $.attrGetter = function (key) {
+  ak.attrGetter = function (key) {
     return function (obj) {
       return obj[key];
     };
   };
 
 
-  $.typeMatcher = function (type/*, ... */) {
+  ak.typeMatcher = function (type/*, ... */) {
     var types = {};
     Array.map(arguments, function (arg) { types[arg] = true; });
     return function () {
@@ -130,7 +128,7 @@
   };
 
 
-  $.methodCaller = function (f/*, args... */) {
+  ak.methodCaller = function (f/*, args... */) {
     var args = Array.slice(arguments, 1);
     return (typeof(f) == 'function'
             ? function (obj) {
@@ -142,17 +140,17 @@
   };
 
 
-  $.keyComparator = function (key/* ... */) {
+  ak.keyComparator = function (key/* ... */) {
     // fast-path for single key comparisons
     if (arguments.length == 1)
       return function (a, b) {
-        return base.cmp(a[key], b[key]);
+        return ak.cmp(a[key], b[key]);
       };
     var keys = Array.slice(arguments);
     return function (a, b) {
       for (var i = 0; i < keys.length; ++i) {
         var key = keys[i];
-        var c = base.cmp(a[key], b[key]);
+        var c = ak.cmp(a[key], b[key]);
         if (c)
           return c;
       }
@@ -161,13 +159,10 @@
   };
 
 
-  $.thrower = function (err) {
+  ak.thrower = function (err) {
     return function () {
       throw err;
     };
   };
 
-
-  base.nameFunctions($);
-  return $;
 })();

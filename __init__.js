@@ -39,5 +39,6 @@
   ak.include('url.js');
   ak.include('utils.js');
 
+  ak.nameFunctions(ak);
   return ak;
 })();

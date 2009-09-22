@@ -29,28 +29,23 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-  var iter = ak.include('iter.js');
-  var utils = ak.include('utils.js');
-  var debug = ak.include('debug.js');
-  var url = ak.include('url.js');
+  ak.include('utils.js');
+  ak.include('url.js');
 
-  var assert = debug.assert;
-
-  var $ = base.module('ak.template');
+  var $ = ak.template = new ak.Module('ak.template', '0.1');
 
   //////////////////////////////////////////////////////////////////////////////
   // Errors
   //////////////////////////////////////////////////////////////////////////////
 
-  $.TemplateSyntaxError = base.makeErrorClass();
-  $.TemplateDoesNotExist = base.makeErrorClass();
+  ak.TemplateSyntaxError = ak.makeErrorClass();
+  ak.TemplateDoesNotExist = ak.makeErrorClass();
 
   //////////////////////////////////////////////////////////////////////////////
   // Wrap
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Wrap = base.makeClass(
+  $.Wrap = ak.makeClass(
     function (raw, safe/* = false */) {
       this.raw = raw;
       this.safe = safe || false;
@@ -81,7 +76,7 @@
   // Filter
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Filter = base.makeClass(
+  $.Filter = ak.makeClass(
     function (func, traits/* = {} */) {
       this._func = func;
       this._traits = traits || {};
@@ -107,14 +102,14 @@
   // Exprs
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Expr = base.makeClass(
+  $.Expr = ak.makeClass(
     null,
     {
-      resolve: base.abstract
+      resolve: ak.abstract
     });
 
 
-  var Variable = base.makeSubclass(
+  var Variable = ak.makeSubclass(
     $.Expr,
     function (lookups) {
       this._lookups = lookups;
@@ -135,17 +130,17 @@
     });
 
 
-  var Constant = base.makeSubclass(
+  var Constant = ak.makeSubclass(
     $.Expr,
     function (value) {
       this._value = new $.Wrap(value, true);
     },
     {
-      resolve: utils.getter('_value')
+      resolve: ak.getter('_value')
     });
 
 
-  var FilterExpr = base.makeSubclass(
+  var FilterExpr = ak.makeSubclass(
     $.Expr,
     function (filter, expr, arg) {
       this._filter = filter;
@@ -191,7 +186,7 @@
     case PRIMARY_VARIABLE:
       return new Variable(string.split('.'));
     default:
-      throw new AssertionError();
+      throw new ak.AssertionError();
     }
   }
 
@@ -212,13 +207,13 @@
       return null;
     var match = re.exec(string);
     if (!match)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         'Could not parse the remainder: "' +
           string.substring(0, doneIndex) + '((' +
           string.substring(doneIndex) + '))"');
     var startIndex = re.lastIndex - match[0].length;
     if (doneIndex != startIndex)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         'Could not parse some characters: "' +
         string.substring(0, doneIndex) + '((' +
         string.substring(doneIndex, startIndex) + '))' +
@@ -248,10 +243,10 @@
   function makeExpr(string, filters) {
     var match = exprStartRegExp.exec(string);
     if (!match)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         'Expr does not start with primary: "' + string + '"');
     var i = findSignificant(match);
-    assert(i != -1);
+    ak.assert(i != -1);
     var result = makePrimaryExpr(match[i], i - 1);
 
     var re = new RegExp(filterRegExp);
@@ -259,7 +254,7 @@
     while ((match = nextMatch(re, string))) {
       var filter = filters[match[1]];
       if (!filter)
-        throw new $.TemplateSyntaxError('Invalid filter: "' + match[1] + '"');
+        throw new ak.TemplateSyntaxError('Invalid filter: "' + match[1] + '"');
       var arg = undefined;
       i = findSignificant(match, 2);
       if (i != -1)
@@ -286,14 +281,14 @@
   // Nodes
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Node = base.makeClass(
+  $.Node = ak.makeClass(
     null,
     {
-      render: base.abstract
+      render: ak.abstract
     });
 
 
-  var GroupNode = base.makeSubclass(
+  var GroupNode = ak.makeSubclass(
     $.Node,
     function (subnodes) {
       this._subnodes = subnodes;
@@ -308,17 +303,17 @@
     });
 
 
-  var TextNode = base.makeSubclass(
+  var TextNode = ak.makeSubclass(
     $.Node,
     function (string) {
       this._string = string;
     },
     {
-      render: utils.getter('_string')
+      render: ak.getter('_string')
     });
 
 
-  var ExprNode = base.makeSubclass(
+  var ExprNode = ak.makeSubclass(
     $.Node,
     function (expr, env) {
       this._expr = expr;
@@ -337,7 +332,7 @@
   // Token
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Token = base.makeClass(
+  $.Token = ak.makeClass(
     function (kind, contents) {
       this.kind = kind;
       this.contents = contents;
@@ -378,8 +373,8 @@
   // Parser
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Parser = base.makeClass(
-    function (string, store, env/* = $.defaultEnv */) {
+  $.Parser = ak.makeClass(
+    function (string, store, env/* = ak.template.defaultEnv */) {
       this._tokens = tokenize(string);
       this.store = store;
       this.env = env || $.defaultEnv;
@@ -403,17 +398,17 @@
               return new GroupNode(nodes);
             var command = this.token.contents.split(/\s/, 1)[0];
             if (!command)
-              throw new $.TemplateSyntaxError('Empty block tag');
+              throw new ak.TemplateSyntaxError('Empty block tag');
             var compile = this.env.tags[command];
             if (!compile)
-              throw new $.TemplateSyntaxError(
+              throw new ak.TemplateSyntaxError(
                 'Invalid block tag: "' + command + '"');
             nodes.push(compile(this));
             this.parsedNonText = true;
           }
         }
         if (until.length)
-          throw new $.TemplateSyntaxError('Unclosed tags: ' + until.join(', '));
+          throw new ak.TemplateSyntaxError('Unclosed tags: ' + until.join(', '));
         return new GroupNode(nodes);
       },
 
@@ -423,7 +418,7 @@
           if (this.token.kind == $.Token.BLOCK && this.token.contents == end)
             return;
         }
-        throw new $.TemplateSyntaxError('Unclosed tag: ' + endTag);
+        throw new ak.TemplateSyntaxError('Unclosed tag: ' + endTag);
       },
 
       makeExpr: function (string) {
@@ -431,7 +426,7 @@
       },
 
       makeExprs: function (strings) {
-        return strings.map(base.bind(this.makeExpr, this));
+        return strings.map(this.makeExpr, this);
       }
     });
 
@@ -439,10 +434,10 @@
   // Template and getTemplate
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Template = base.makeClass(
+  ak.Template = ak.makeClass(
     function (string,
               name/* = '<Unknown Template>' */,
-              env/* = $.defaultEnv */) {
+              env/* = ak.template.defaultEnv */) {
       this.store = {};
       this._root = (new $.Parser(string, this.store, env)).parse();
       this._name = name || '<Unknown Template>';
@@ -454,9 +449,9 @@
     });
 
 
-  $.getTemplate = function (name, env/* = $.defaultEnv */) {
+  ak.getTemplate = function (name, env/* = ak.template.defaultEnv */) {
     env = env || $.defaultEnv;
-    return new $.Template(env.load(name), name, env);
+    return new ak.Template(env.load(name), name, env);
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -464,10 +459,10 @@
   //////////////////////////////////////////////////////////////////////////////
 
   function doDictSort(iterable, key) {
-    return iter.sorted(iterable,
-                       function (a, b) {
-                         return base.cmp(a[key], b[key]);
-                       });
+    return ak.sorted(iterable,
+                     function (a, b) {
+                       return ak.cmp(a[key], b[key]);
+                     });
   }
 
 
@@ -484,7 +479,7 @@
     [/\u2028/g, '\\u2028'],
     [/\u2029/g, '\\u2029']
   ].concat(
-    utils.range(32).map(
+    ak.range(32).map(
       function (i) {
         return [RegExp(String.fromCharCode(i), 'g'),
                 '\\x' + (i < 16 ? '0' : '') + i.toString(16)];
@@ -576,7 +571,7 @@
 
     escapejs: new $.Filter(
       function (value) {
-        return iter.reduce(
+        return ak.reduce(
           function (string, replacement) {
             return string.replace(replacement[0], replacement[1]);
           },
@@ -848,7 +843,7 @@
   $.defaultTags = {};
 
 
-  var CommentNode = base.makeSubclass(
+  var CommentNode = ak.makeSubclass(
     $.Node,
     null,
     {
@@ -863,7 +858,7 @@
   };
 
 
-  var ForNode = base.makeSubclass(
+  var ForNode = ak.makeSubclass(
     $.Node,
     function (name, expr, reversed, bodyNode, emptyNode) {
       this._name = name;
@@ -876,14 +871,14 @@
       render: function (context) {
         var sequence = this._expr.resolve(context).raw;
         if (!(sequence instanceof Array))
-          sequence = iter.array(sequence);
+          sequence = ak.array(sequence);
         if (!sequence.length)
           return this._emptyNode ? this._emptyNode.render(context) : '';
         if (this._reversed)
           sequence.reverse();
         var bits = [];
         for (var i = 0; i < sequence.length; ++i) {
-          var subcontext = base.clone(context);
+          var subcontext = ak.clone(context);
           subcontext[this._name] = sequence[i];
           subcontext.forloop = {
             parentloop: context.forloop,
@@ -904,7 +899,7 @@
     var match = (/^for\s+(\w+)\s+in\s+(.*?)(\s+reversed)?$/
                  .exec(parser.token.contents));
     if (!match)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"for" tag should use the format ' +
           '"for <letters, digits or underscores> in <expr> [reversed]": "' +
           parser.token.contents + '"');
@@ -917,7 +912,7 @@
   };
 
 
-  var ExtendsNode = base.makeSubclass(
+  var ExtendsNode = ak.makeSubclass(
     $.Node,
     function (expr, blocks, env) {
       this._expr = expr;
@@ -928,9 +923,9 @@
       _getTemplate: function (context) {
         if (this._template)
           return this._template;
-        var template = $.getTemplate(this._expr.resolve(context).raw + '',
-                                     this._env);
-        template.store.blocks = base.update(template.store.blocks || {},
+        var template = ak.getTemplate(this._expr.resolve(context).raw + '',
+                                      this._env);
+        template.store.blocks = ak.update(template.store.blocks || {},
                                             this._blocks);
         if (this._expr instanceof Constant)
           this._template = template;
@@ -944,7 +939,7 @@
 
   $.defaultTags.extends = function (parser) {
     if (parser.parsedNonText)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"extend" should be the first tag in the template');
     var expr = parser.makeExpr(parser.token.contents.substr(8).trim());
     parser.store.extends = true;
@@ -953,7 +948,7 @@
   };
 
 
-  var BlockNode = base.makeSubclass(
+  var BlockNode = ak.makeSubclass(
     $.Node,
     function (name, node, store) {
       store.blocks[name] = this;
@@ -976,27 +971,27 @@
   $.defaultTags.block = function (parser) {
     var args = parser.token.contents.split(/\s+/);
     if (args.length != 2)
-      throw new $.TemplateSyntaxError('"block" tag takes one argument');
+      throw new ak.TemplateSyntaxError('"block" tag takes one argument');
     var name = args[1];
     parser.store.blocks = parser.store.blocks || {};
     if (name in parser.store.blocks)
-      throw new $.TemplateSyntaxError('Block with name "' + name +
-                                      '" appears more than once');
+      throw new ak.TemplateSyntaxError('Block with name "' + name +
+                                       '" appears more than once');
     return new BlockNode(name,
                          parser.parse(['endblock', 'endblock ' + name]),
                          parser.store);
   };
 
 
-  var CycleNode = base.makeSubclass(
+  var CycleNode = ak.makeSubclass(
     $.Node,
     function (exprs, env) {
-      this._itr = iter.cycle(exprs);
+      this._itr = ak.cycle(exprs);
       this._env = env;
     },
     {
       render: function (context) {
-        assert(this._itr.valid);
+        ak.assert(this._itr.valid);
         var value = this._itr.next().resolve(context);
         return (value.raw === undefined || value.raw === null
                 ? this._env.invalid
@@ -1007,17 +1002,17 @@
   $.defaultTags.cycle = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length < 2)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"cycle" tag requires at least one argument');
     var name;
     if (args.length == 2) {
       if (!parser.store.cycles)
-        throw new $.TemplateSyntaxError(
+        throw new ak.TemplateSyntaxError(
           'No named cycles defined in template');
       name = args[1];
       var node = parser.store.cycles[name];
       if (!node)
-        throw new $.TemplateSyntaxError(
+        throw new ak.TemplateSyntaxError(
           'Named cycle "' + name + '" is not defined');
       return node;
     }
@@ -1037,12 +1032,12 @@
   };
 
 
-  var DebugNode = base.makeSubclass(
+  var DebugNode = ak.makeSubclass(
     $.Node,
     null,
     {
       render: function (context) {
-        return (new $.Wrap(base.repr(context))) + '';
+        return (new $.Wrap(ak.repr(context))) + '';
       }
     });
 
@@ -1051,7 +1046,7 @@
   };
 
 
-  var FilterNode = base.makeSubclass(
+  var FilterNode = ak.makeSubclass(
     $.Node,
     function (expr, node, env) {
       this._expr = expr;
@@ -1059,7 +1054,7 @@
     },
     {
       render: function (context) {
-        var subcontext = base.clone(context);
+        var subcontext = ak.clone(context);
         subcontext.contents = this._node.render(context);
         return this._expr.resolve(subcontext) + '';
       }
@@ -1072,7 +1067,7 @@
   };
 
 
-  var FirstOfNode = base.makeSubclass(
+  var FirstOfNode = ak.makeSubclass(
     $.Node,
     function (exprs) {
       this._exprs = exprs;
@@ -1091,13 +1086,13 @@
   $.defaultTags.firstof = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length < 2)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"firstof" tag requires at least one argument');
     return new FirstOfNode(parser.makeExprs(args.slice(1)));
   };
 
 
-  var IfChangedNode = base.makeSubclass(
+  var IfChangedNode = ak.makeSubclass(
     $.Node,
     function (exprs, thenNode, elseNode) {
       this._exprs = exprs;
@@ -1114,9 +1109,9 @@
         if ('_prev' in this &&
             (this._exprs
              ? (curr.length == this._prev.length &&
-                utils.zip(curr, this._prev).every(function (pair) {
-                                                    return pair[0] == pair[1];
-                                                  }))
+                ak.zip(curr, this._prev).every(function (pair) {
+                                                 return pair[0] == pair[1];
+                                               }))
              : curr == this._prev))
           return this._elseNode ? this._elseNode.render(context) : '';
         this._prev = curr;
@@ -1137,7 +1132,7 @@
   };
 
 
-  var IncludeNode = base.makeSubclass(
+  var IncludeNode = ak.makeSubclass(
     $.Node,
     function (expr, env) {
       this._expr = expr;
@@ -1150,11 +1145,11 @@
         var name = this._expr.resolve(context).raw;
         var template;
         try {
-          template = $.getTemplate(name, this._env);
+          template = ak.getTemplate(name, this._env);
         } catch (error) {
-          if (this._env.debug && error instanceof $.TemplateSyntaxError)
+          if (this._env.debug && error instanceof ak.TemplateSyntaxError)
             throw error;
-          template = new $.Template('', '', this._env);
+          template = new ak.Template('', '', this._env);
         }
         if (this._expr instanceof Constant)
           this._template = template;
@@ -1172,7 +1167,7 @@
   };
 
 
-  var RegroupNode = base.makeSubclass(
+  var RegroupNode = ak.makeSubclass(
     $.Node,
     function (targetExpr, keyExpr, name) {
       this._targetExpr = targetExpr;
@@ -1182,13 +1177,13 @@
     {
       render: function (context) {
         var target = this._targetExpr.resolve(context).raw;
-        var itr = iter.iter(target);
+        var itr = ak.iter(target);
         var keyExpr = this._keyExpr;
         context[this._name] = (
           itr.valid
-          ? (iter.array(
-               iter.imap(
-                 iter.groupBy(
+          ? (ak.array(
+               ak.imap(
+                 ak.groupBy(
                    itr,
                    function (v) {
                      return keyExpr.resolve(v).raw;
@@ -1204,13 +1199,13 @@
   $.defaultTags.regroup = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length != 6)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"regroup" tag takes five arguments');
     if (args[2] != 'by')
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         'Second argument to "regroup" must be "by"');
     if (args[4] != 'as')
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         'Next to last argument to "regroup" must be "as"');
     return new RegroupNode(parser.makeExpr(args[1]),
                            parser.makeExpr(args[3]),
@@ -1218,7 +1213,7 @@
   };
 
 
-  var SpacelessNode = base.makeSubclass(
+  var SpacelessNode = ak.makeSubclass(
     $.Node,
     function (node) {
       this._node = node;
@@ -1248,18 +1243,18 @@
   $.defaultTags.templatetag = function (parser) {
     var args = parser.token.contents.split(/\s+/);
     if (args.length != 2)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"templatetag" takes one argument');
     var value = templateTagMapping[args[1]];
     if (!value)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         'Invalid "templatetag" argument: "' + args[1] + '". ' +
-        'Must be one of: ' + base.keys(templateTagMapping).join(', '));
+        'Must be one of: ' + ak.keys(templateTagMapping).join(', '));
     return new TextNode(value);
   };
 
 
-  var WidthRatioNode = base.makeSubclass(
+  var WidthRatioNode = ak.makeSubclass(
     $.Node,
     function (currExpr, maxExpr, maxWidthExpr) {
       this._currExpr = currExpr;
@@ -1279,7 +1274,7 @@
   $.defaultTags.widthratio = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length != 4)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"widthratio" tag takes three arguments');
     return new WidthRatioNode(parser.makeExpr(args[1]),
                               parser.makeExpr(args[2]),
@@ -1287,7 +1282,7 @@
   };
 
 
-  var WithNode = base.makeSubclass(
+  var WithNode = ak.makeSubclass(
     $.Node,
     function (expr, name, node) {
       this._expr = expr;
@@ -1296,7 +1291,7 @@
     },
     {
       render: function (context) {
-        var subcontext = base.clone(context);
+        var subcontext = ak.clone(context);
         subcontext[this._name] = this._expr.resolve(context);
         return this._node.render(subcontext);
       }
@@ -1305,10 +1300,10 @@
   $.defaultTags['with'] = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length != 4)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"with" tag takes three arguments');
     if (args[2] != 'as')
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         'Second argument to "with" must be "as"');
     return new WithNode(parser.makeExpr(args[1]),
                         args[3],
@@ -1316,7 +1311,7 @@
   };
 
 
-  var URLNode = base.makeSubclass(
+  var URLNode = ak.makeSubclass(
     $.Node,
     function (controller, argExprs, as) {
       this._controller = controller;
@@ -1327,14 +1322,14 @@
       render: function (context) {
         var path;
         try {
-          path = url.reverse.apply(
-            base.global,
+          path = ak.reverse.apply(
+            ak.global,
             [this._controller].concat(
               this._argExprs.map(function (expr) {
                                    return expr.resolve(context).raw;
                                  })));
         } catch (error) {
-          if (this._as && error instanceof url.ReverseError)
+          if (this._as && error instanceof ak.ReverseError)
             return '';
           throw error;
         }
@@ -1350,7 +1345,7 @@
   $.defaultTags.url = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length < 2)
-      throw new $.TemplateSyntaxError(
+      throw new ak.TemplateSyntaxError(
         '"url" takes at least two arguments');
     var exprStrings;
     var as;
@@ -1361,11 +1356,11 @@
       exprStrings = args.slice(2);
     }
     var bits = args[1].split('.');
-    var object = base.global;
+    var object = ak.global;
     for (var i = 0; i < bits.length; ++i) {
       object = object[bits[i]];
       if (!object)
-        throw new $.TemplateSyntaxError(
+        throw new ak.TemplateSyntaxError(
           'Controller ' + args[1] + ' does not exist');
     }
     return new URLNode(object, parser.makeExprs(exprStrings), as);
@@ -1375,7 +1370,7 @@
   // if tag
   //////////////////////////////////////////////////////////////////////////////
 
-  var ExprToken = base.makeClass(
+  var ExprToken = ak.makeClass(
     function (kind, value, string, pos, /* optional */expr) {
       this.kind = kind;
       this.value = value;
@@ -1386,9 +1381,9 @@
     {
       check: function (cond) {
         if (!cond)
-          throw new $.TemplateSyntaxError('Unexpected token "' + this.value +
-                                          '" in expr "' + this.string +
-                                          '" position ' + this.pos);
+          throw new ak.TemplateSyntaxError('Unexpected token "' + this.value +
+                                           '" in expr "' + this.string +
+                                           '" position ' + this.pos);
       }
     });
 
@@ -1420,7 +1415,7 @@
       } else {
         kind = ExprToken.PRIMARY;
         var i = findSignificant(match, 4);
-        assert(i != -1);
+        ak.assert(i != -1);
         expr = makePrimaryExpr(match[i], i - 4);
       }
       result.push(new ExprToken(kind,
@@ -1433,7 +1428,7 @@
   }
 
 
-  var Binary = base.makeSubclass(
+  var Binary = ak.makeSubclass(
     $.Expr,
     function (left, right, func) {
       this._left = left;
@@ -1448,7 +1443,7 @@
     });
 
 
-  var Unary = base.makeSubclass(
+  var Unary = ak.makeSubclass(
     $.Expr,
     function (arg, func) {
       this._arg = arg;
@@ -1506,7 +1501,7 @@
   function parseExpr(string) {
     function require(cond) {
       if (!cond)
-        throw new $.TemplateSyntaxError(
+        throw new ak.TemplateSyntaxError(
           'Expr "' + string + '" is incomplete');
     }
 
@@ -1538,7 +1533,7 @@
       switch (token.kind) {
       case ExprToken.PRIMARY:
         token.check(!binaryExpected);
-        assert(token.expr);
+        ak.assert(token.expr);
         exprs.push(token.expr);
         binaryExpected = true;
         break;
@@ -1563,9 +1558,9 @@
           token.check(binaryExpected);
           fold();
           if (!ops.length)
-            throw new $.TemplateSyntaxError('Excess close paren in expr "' +
-                                            string + '" position ' + token.pos);
-          assert(ops[ops.length - 1].arity == 0);
+            throw new ak.TemplateSyntaxError('Excess close paren in expr "' +
+                                             string + '" position ' + token.pos);
+          ak.assert(ops[ops.length - 1].arity == 0);
           ops.pop();
         }
         break;
@@ -1573,8 +1568,8 @@
     }
     fold();
     if (ops.length) {
-      assert(ops[ops.length - 1].arity == 0);
-      throw new $.TemplateSyntaxError(
+      ak.assert(ops[ops.length - 1].arity == 0);
+      throw new ak.TemplateSyntaxError(
         'Close paren is missing in expr "' + string + '"');
     }
     require(exprs.length == 1);
@@ -1582,7 +1577,7 @@
   }
 
 
-  var IfNode = base.makeSubclass(
+  var IfNode = ak.makeSubclass(
     $.Node,
     function (expr, thenNode, /* optional */elseNode) {
       this._expr = expr;
@@ -1626,10 +1621,4 @@
     loadDir: '/templates' // loadFromCode specific
   };
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Epilogue
-  //////////////////////////////////////////////////////////////////////////////
-
-  base.nameFunctions($);
-  return $;
 })();

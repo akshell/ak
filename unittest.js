@@ -26,19 +26,15 @@
 
 (function ()
 {
-  var base = ak.include('base.js');
-  var iter = ak.include('iter.js');
-  var utils = ak.include('utils.js');
-  var io = ak.include('io.js');
-  var debug = ak.include('debug.js');
-
-  var $ = base.module('ak.unittest');
+  ak.include('utils.js');
+  ak.include('io.js');
+  ak.include('debug.js');
 
   //////////////////////////////////////////////////////////////////////////////
   // Classes
   //////////////////////////////////////////////////////////////////////////////
 
-  $.TestResult = base.makeClass(
+  ak.TestResult = ak.makeClass(
     function () {
       this.errors = [];
       this.failures = [];
@@ -67,7 +63,7 @@
     });
 
 
-  $.TestCase = base.makeClass(
+  ak.TestCase = ak.makeClass(
     function (proto, methodName) {
       if (!(methodName in proto))
         throw new Error(proto + ' does not have method ' + methodName);
@@ -79,7 +75,7 @@
 
       run: function (result) {
         result.startTest(this);
-        var obj = base.clone(this._proto);
+        var obj = ak.clone(this._proto);
         try {
           if (typeof(this._proto.setUp) == 'function') {
             try {
@@ -94,7 +90,7 @@
             obj[this._methodName]();
             ok = true;
           } catch (err) {
-            if (err instanceof debug.AssertionError)
+            if (err instanceof ak.AssertionError)
               result.addFailure(this, err);
             else
               result.addError(this, err);
@@ -127,7 +123,7 @@
     });
 
 
-  $.TestSuite = base.makeClass(
+  ak.TestSuite = ak.makeClass(
     function (tests) {
       this._tests = tests || [];
     },
@@ -141,7 +137,7 @@
       },
 
       get count () {
-        return iter.sum(this._tests.map(utils.attrGetter('count')));
+        return ak.sum(this._tests.map(ak.attrGetter('count')));
       },
 
       toString: function () {
@@ -149,15 +145,15 @@
       },
 
       __repr__: function () {
-        return 'TestSuite([' + this._tests.map(base.repr).join(', ') + '])';
+        return 'TestSuite([' + this._tests.map(ak.repr).join(', ') + '])';
       }
     });
 
 
-  $.TextTestResult = base.makeSubclass(
-    $.TestResult,
+  ak.TextTestResult = ak.makeSubclass(
+    ak.TestResult,
     function (stream) {
-      $.TestResult.call(this);
+      ak.TestResult.call(this);
       this._stream = stream;
     },
     {
@@ -190,13 +186,13 @@
   }
 
 
-  $.TextTestRunner = base.makeClass(
+  ak.TextTestRunner = ak.makeClass(
     function (stream) {
       this._stream = stream;
     },
     {
       run: function (test) {
-        var result = new $.TextTestResult(this._stream);
+        var result = new ak.TextTestResult(this._stream);
         var stream = this._stream;
         test.run(result);
         result.errors.forEach(
@@ -231,7 +227,7 @@
   // Free functions
   //////////////////////////////////////////////////////////////////////////////
 
-  $.loadTests = function (proto, methodNames) {
+  ak.loadTests = function (proto, methodNames) {
     if (methodNames === undefined) {
       methodNames = [];
       for (var name in proto)
@@ -239,23 +235,17 @@
           methodNames.push(name);
       methodNames.sort();
     }
-    var suite = new $.TestSuite();
+    var suite = new ak.TestSuite();
     methodNames.forEach(function (methodName) {
-                          suite.addTest(new $.TestCase(proto, methodName));
+                          suite.addTest(new ak.TestCase(proto, methodName));
                         });
     return suite;
   };
 
 
-  $.test = function (suite, stream/* = ak.io.out */) {
-    var runner = new $.TextTestRunner(stream || io.out);
+  ak.test = function (suite, stream/* = ak.out */) {
+    var runner = new ak.TextTestRunner(stream || ak.out);
     return runner.run(suite);
   };
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Epilogue
-  //////////////////////////////////////////////////////////////////////////////
-
-  base.nameFunctions($);
-  return $;
 })();
