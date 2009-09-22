@@ -205,10 +205,10 @@
 
       update: function (other) {
         ak.forEach(other,
-                   ak.bind(function (item) {
-                             this.set(item[0], item[1]);
-                           },
-                           this));
+                   function (item) {
+                     this.set(item[0], item[1]);
+                   },
+                   this);
       },
 
       __eq__: function (other) {

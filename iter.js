@@ -134,32 +134,35 @@
   };
 
 
-  ak.forEach = function (iterable, func) {
+  ak.forEach = function (iterable, func, self/* = ak.global */) {
+    self = self || ak.global;
     var itr = ak.iter(iterable);
     while (itr.valid)
-      func(itr.next());
+      func.call(self, itr.next());
   };
 
 
-  ak.every = function (iterable, pred) {
+  ak.every = function (iterable, pred, self/* = ak.global */) {
     // alternative impl:
-//     var itr = ak.ifilter(iterable, ak.compose(ak.operators.not, pred));
+//     var itr = ak.ifilter(iterable, ak.compose(ak.operators.not, pred), self);
 //     return !itr.valid;
+    self = self || ak.global;
     var itr = ak.iter(iterable);
     while (itr.valid)
-      if (!pred(itr.next()))
+      if (!pred.call(self, itr.next()))
         return false;
     return true;
   };
 
 
-  ak.some = function (iterable, pred) {
+  ak.some = function (iterable, pred, self/* = ak.global */) {
     // alternative impl:
-//     var itr = ak.ifilter(iterable, pred);
+//     var itr = ak.ifilter(iterable, pred, self);
 //     return itr.valid;
+    self = self || ak.global;
     var itr = ak.iter(iterable);
     while (itr.valid)
-      if (pred(itr.next()))
+      if (pred.call(self, itr.next()))
         return true;
     return false;
   };
@@ -290,9 +293,10 @@
 
   ak.FilterIterator = ak.makeSubclass(
     ak.Iterator,
-    function (iterable, pred) {
-      this._pred = pred || ak.operators.truth;
+    function (iterable, pred, self/* = ak.global */) {
       this._itr = ak.iter(iterable);
+      this._pred = pred || ak.operators.truth;
+      this._self = self || ak.global;
       this.valid = true;
       this._findNextItem();
     },
@@ -304,7 +308,7 @@
             return;
           }
           this._nextItem = this._itr.next();
-        } while (!this._pred(this._nextItem));
+        } while (!this._pred.call(this._self, this._nextItem));
       },
 
       _next: function () {
@@ -319,9 +323,10 @@
 
   ak.MapIterator = ak.makeSubclass(
     ak.Iterator,
-    function (iterable, func) {
+    function (iterable, func, self/* = ak.global */) {
       this._itr = ak.iter(iterable);
       this._func = func;
+      this._self = self || ak.global;
     },
     {
       get valid() {
@@ -329,7 +334,7 @@
       },
 
       _next: function () {
-        return this._func(this._itr.next());
+        return this._func.call(this._self, this._itr.next());
       }
     });
 

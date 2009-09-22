@@ -913,6 +913,9 @@
         assertSame(s, 6, 'forEach');
         forEach([], f);
         assertSame(s, 6, 'forEach on empty');
+        var object = {s: 0};
+        forEach([1, 2, 3], function (x) { this.s += x; }, object);
+        assertSame(object.s, 6);
       },
 
       testEvery: function () {
@@ -920,6 +923,7 @@
         assert(!every([1, 2, 3, 4, 5, 4], f), 'every false');
         assert(every([1, 2, 3, 4, 4], f), 'every true');
         assert(every([], f), 'every on empty');
+        assert(every([1, 2, 3], function (x) { return x < this.m; }, {m: 5}));
       },
 
       testSome: function () {
@@ -928,6 +932,7 @@
         assert(!some([5, 6, 7, 8, 9], f), 'some false');
         assert(some([5, 6, 7, 8, 4], f), 'some true again');
         assert(!some([], f), 'some on empty');
+        assert(some([1, 2, 3], function (x) { return x % this.d; }, {d: 2}));
       },
 
       testSorted: function () {
@@ -991,12 +996,20 @@
         assertEqual(array(ifilter([2, 3, 4, 5, 6, 7], isEven)),
                     [2, 4, 6],
                     'another ifilter');
+        assertEqual(array(ifilter([1, 3, 6, 7],
+                                  function (x) { return x % this.d; },
+                                  {d: 3})),
+                    [1, 7]);
       },
 
       testIMap: function () {
         function square(x) { return x * x; }
         assertEqual(array(imap([1, 2, 3], square)), [1, 4, 9], 'imap');
         assert(!imap([], square).valid, 'imap on empty');
+        assertEqual(array(imap([1, 2, 3],
+                               function (x) { return x * this.m; },
+                               {m: 2})),
+                    [2, 4, 6]);
       },
 
       testChain: function () {
