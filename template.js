@@ -33,6 +33,7 @@
   var iter = ak.include('iter.js');
   var utils = ak.include('utils.js');
   var debug = ak.include('debug.js');
+  var url = ak.include('url.js');
 
   var assert = debug.assert;
 
@@ -299,7 +300,6 @@
     },
     {
       render: function (context) {
-        var self = this;
         return (this._subnodes.map(
                   function (node) {
                     return node.render(context);
@@ -1313,6 +1313,62 @@
     return new WithNode(parser.makeExpr(args[1]),
                         args[3],
                         parser.parse(['endwith']));
+  };
+
+
+  var URLNode = base.makeSubclass(
+    $.Node,
+    function (controller, argExprs, as) {
+      this._controller = controller;
+      this._argExprs = argExprs;
+      this._as = as;
+    },
+    {
+      render: function (context) {
+        var path;
+        try {
+          path = url.reverse.apply(
+            base.global,
+            [this._controller].concat(
+              this._argExprs.map(function (expr) {
+                                   return expr.resolve(context).raw;
+                                 })));
+        } catch (error) {
+          if (this._as && error instanceof url.ReverseError)
+            return '';
+          throw error;
+        }
+        if (this._as) {
+          context[this._as] = path;
+          return '';
+        } else {
+          return path;
+        }
+      }
+    });
+
+  $.defaultTags.url = function (parser) {
+    var args = $.smartSplit(parser.token.contents);
+    if (args.length < 2)
+      throw new $.TemplateSyntaxError(
+        '"url" takes at least two arguments');
+    var exprStrings;
+    var as;
+    if (args.length > 3 && args[args.length - 2] == 'as') {
+      as = args[args.length - 1];
+      exprStrings = args.slice(2, args.length - 2);
+    } else {
+      exprStrings = args.slice(2);
+    }
+    var bits = args[1].split('.');
+    var object = base.global;
+    for (var i = 0; i < bits.length; ++i) {
+      object = object[bits[i]];
+      if (!object)
+        throw new $.TemplateSyntaxError(
+          'Controller ' + args[1] + ' does not exist');
+    }
+    return new URLNode(object, parser.makeExprs(exprStrings), as);
   };
 
   //////////////////////////////////////////////////////////////////////////////

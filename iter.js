@@ -296,7 +296,7 @@
       this._pred = pred || base.operators.truth;
       this._itr = $.iter(iterable);
       this.valid = true;
-      arguments.callee.prototype._findNextItem.call(this);
+      this._findNextItem();
     },
     {
       _findNextItem: function () {
@@ -342,7 +342,7 @@
     $.Iterator,
     function (/* iterables... */) {
       this._itrs = Array.map(arguments, $.iter);
-      arguments.callee.prototype._findValid.call(this);
+      this._findValid();
     },
     {
       _findValid: function () {
@@ -370,10 +370,10 @@
       this._itr = $.iter(iterable);
       this._pred = pred;
       this.valid = true;
-      arguments.callee.prototype._getNextItem.call(this);
+      this._findNextItem();
     },
     {
-      _getNextItem: function () {
+      _findNextItem: function () {
         if (!this._itr.valid) {
           this.valid = false;
           return;
@@ -385,7 +385,7 @@
 
       _next: function () {
         var result = this._nextItem;
-        this._getNextItem();
+        this._findNextItem();
         return result;
       }
     });

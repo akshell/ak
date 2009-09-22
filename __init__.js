@@ -24,42 +24,20 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-ak.include('tests.js');
+(function ()
+{
+  ak.include('base.js');
+  ak.include('core.js');
+  ak.include('debug.js');
+  ak.include('http.js');
+  ak.include('io.js');
+  ak.include('iter.js');
+  ak.include('map.js');
+  ak.include('rest.js');
+  ak.include('template.js');
+  ak.include('unittest.js');
+  ak.include('url.js');
+  ak.include('utils.js');
 
-
-function test(stream/* = 'ak.out' */) {
-  if (stream == 'both')
-    ak.io.err = ak.io.out;
-  ak.tests.test();
-  return (stream == 'err' ? ak.io.err : ak.io.out).read();
-}
-
-
-var HelloController = ak.base.makeSubclass(
-  ak.rest.Controller,
-  function (request, name) {
-    ak.rest.Controller.call(this, request);
-    this._name = name;
-  },
-  {
-    get: function () {
-      return new ak.Response(ak.template.getTemplate('hello.html')
-                             .render({name: this._name}));
-    }
-  });
-
-
-function controlTest(request) {
-  return new ak.Response(ak.template.getTemplate('test.html')
-                         .render({request: request}));
-}
-
-
-ak.url.defineRoutes('',
-                    [
-                      ['hello/', [[HelloController]]],
-                      ['test/', controlTest]
-                    ]);
-
-
-__main__ = ak.rest.defaultServe;
+  return ak;
+})();

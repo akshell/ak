@@ -247,7 +247,7 @@
   };
 
 
-  $.main = function (suite, stream/* = ak.io.out */) {
+  $.test = function (suite, stream/* = ak.io.out */) {
     var runner = new $.TextTestRunner(stream || io.out);
     return runner.run(suite);
   };

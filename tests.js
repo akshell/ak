@@ -28,6 +28,7 @@
 {
   ak.include('unittest.js');
   ak.include('template.js');
+  ak.include('rest.js');
 
   // with statement is used here in order to make sure all names in
   // ak submodules are unique, this is essential because in applications
@@ -35,7 +36,7 @@
   with(ak.base.update({},
                       ak, ak.types,
                       ak.base, ak.utils, ak.iter, ak.io, ak.unittest, ak.debug,
-                      ak.template))
+                      ak.template, ak.url, ak.rest, ak.map, ak.http))
 {
   var $ = module('ak.tests');
 
@@ -238,20 +239,20 @@
                    'loadTests with methodNames');
       },
 
-      testMain: function () {
+      testTest: function () {
         var suite = loadTests({test: function () {}});
         var stream = new Stream();
-        assert(main(suite, stream), 'main');;
+        assert(test(suite, stream), 'test');;
       }
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // main tests
+  // core tests
   //////////////////////////////////////////////////////////////////////////////
 
-  mainSuite = loadTests(
+  coreSuite = loadTests(
     {
-      name: 'main',
+      name: 'core',
 
       setUp: function () {
         this._clean();
@@ -306,19 +307,19 @@
 
       testModule: function () {
         assertSame(repr(ak), '<ak ' + ak.__version__ + '>', 'ak module');
-        var m = module('test.module');
+        var m = module('TeSt.module');
         assert(m instanceof Module, 'module instanceof');
-        assertEqual(repr(m), '<test.module>');
-        assertSame(m.__name__, 'test.module');
+        assertEqual(repr(m), '<TeSt.module>');
+        assertSame(m.__name__, 'TeSt.module');
         assertSame(m.__version__, undefined);
-        assertSame(m, test.module);
-        var sm = module('test.module.sub.module', '0.1');
+        assertSame(m, TeSt.module);
+        var sm = module('TeSt.module.sub.module', '0.1');
         assertSame(sm.__version__, '0.1');
-        assertEqual(repr(sm), '<test.module.sub.module 0.1>');
+        assertEqual(repr(sm), '<TeSt.module.sub.module 0.1>');
         assertThrow(Error, function () { module(''); });
-        assertThrow(Error, function () { module('test.dont_create..pish'); });
-        assertSame(test.dont_create, undefined);
-        delete test;
+        assertThrow(Error, function () { module('TeSt.dont_create..pish'); });
+        assertSame(TeSt.dont_create, undefined);
+        delete TeSt;
       },
 
       testUpdateWithMode: function () {
@@ -674,6 +675,14 @@
         assertSame(RegExp.escape('[].ab?c|de\\('),
                    '\\[\\]\\.ab\\?c\\|de\\\\\\(',
                    'RegExp.escape');
+      },
+
+      testFunctionDecorated: function () {
+        function f() { return 42; }
+        function g(func) { return function () { return func() + 1; }; }
+        function h(func) { return function () { return func() * 2; }; }
+        assertSame(f.decorated(g, h)(), 85);
+        assertSame(f.decorated()(), 42);
       },
 
       testObjectRepr: function () {
@@ -1130,6 +1139,9 @@
   invalidEnv.invalid = 'INVALID';
 
 
+  $._controller = function () {};
+
+
   var renderingTests = [
     ['hello world', {}, 'hello world'],
     ['{{ Infinity }}', {}, 'Infinity'],
@@ -1419,7 +1431,11 @@
     ['{% widthratio a b c %}', {a: 50, b: 100, c: 100}, '50'],
     ['{% with "<>" as x %}{{ x }}{% endwith %}', {}, '<>'],
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
-    ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;']
+    ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
+    ['{% url ak.tests._controller x y %}', {x: '&', y: '"'},
+     '/ak/%3C%3E/&/%22/'],
+    ['{% url ak.tests._controller 1 2 as x %}{{ x }}', {}, '/ak/%3C%3E/1/2/'],
+    ['{% url ak.tests._controller as x %}{{ x }}', {}, '']
   ];
 
 
@@ -1484,6 +1500,9 @@
     '{% widthratio %}',
     '{% with %}{% endwith %}',
     '{% with 1 1 1 %}{% endwith %}',
+    '{% url %}',
+    '{% url does_not_exist %}',
+    '{% url does_not_exist as x %}',
 
 
     '{% for a in b %}',
@@ -1499,6 +1518,8 @@
       name: 'template',
 
       testRendering: function () {
+        var oldRoot = ak.url.root;
+        defineRoutes('<>/', [[[[ak.tests._controller]]]]);
         renderingTests.forEach(
           function (test) {
             assertSame((new Template(test[0],
@@ -1507,6 +1528,7 @@
                        test[2],
                        'Template rendering');
           });
+        ak.url.root = oldRoot;
       },
 
       testInvalidRendering: function () {
@@ -1575,22 +1597,263 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
+  // map tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  var mapSuite = loadTests(
+    {
+      name: 'map',
+
+      testMap: function () {
+        var oldHash = ak.hash;
+        ak.hash = function (object) {
+          return object ? object.hash || 0 : 0;
+        };
+
+        var m = new Map({1: 'one', 'undefined': 2, 'true': 3, 'null': 4});
+        assertSame(m.get('1'), 'one');
+        assertSame(m.get('undefined'), 2);
+        assertSame(m.get('true'), 3);
+        assertSame(m.get(1), undefined);
+        assertSame(m.get(undefined, 42), 42);
+        assertSame(m.get(true), undefined);
+        assertSame(m.get(null), undefined);
+        assertSame(m.get({}, 42), 42);
+        m.set(undefined, 5);
+        assertSame(m.get(undefined), 5);
+        m.set(null, 6);
+        assertSame(m.get(null), 6);
+        var o1 = {hash: 1};
+        m.set(o1, 6);
+        m.set(o1, 7);
+        assertSame(m.get(o1), 7);
+        assertSame(m.get({}, 42), 42);
+        var o2 = {hash: 1};
+        m.set(o2, 8);
+        assertSame(m.get(o2), 8);
+        assertSame(m.get({hash: 1}), undefined);
+        var o3 = {hash: 2};
+        m.set(o3, 9);
+        assertSame(m.get(o3), 9);
+        m.set(1, 1);
+        assertSame(m.get(1), 1);
+        m.set(true, 1);
+        assertSame(m.get(true), 1);
+        assertSame(repr(m),
+                   ('{undefined: 5, null: 6, {hash: 1}: 7, {hash: 1}: 8, ' +
+                    '{hash: 2}: 9, true: 1, 1: 1, "1": "one", ' +
+                    '"undefined": 2, "true": 3, "null": 4}'));
+        assertSame(m + '',
+                   ('undefined 5,null 6,[object Object] 7,' +
+                    '[object Object] 8,[object Object] 9,true 1,' +
+                    '1 1,1 one,undefined 2,true 3,null 4'));
+        assertEqual(m.items(),
+                    [
+                      [undefined, 5],
+                      [null, 6],
+                      [o1, 7],
+                      [o2, 8],
+                      [o3, 9],
+                      [true, 1],
+                      [1, 1],
+                      ["1", "one"],
+                      ["undefined", 2],
+                      ["true", 3],
+                      ["null", 4]
+                    ]);
+        assertEqual(m.keys(),
+                    [undefined, null, o1, o2, o3,
+                     true, 1, "1", "undefined", "true", "null"]);
+        assertEqual(m.values(), [5, 6, 7, 8, 9, 1, 1, "one", 2, 3, 4]);
+        var m1 = m.copy();
+        var m2 = new Map(m1);
+        assertEqual(m, m2);
+        assertSame(m1.pop(o2), 8);
+        assertSame(m2.pop(o2), 8);
+        assert(!equal(m, m1));
+        assertEqual(m1, m2);
+        assertSame(m1.pop(undefined), 5);
+        assertSame(m1.pop(undefined, 42), 42);
+        assertSame(m1.pop(o3), 9);
+        assertSame(m1.get(o3, 42), 42);
+        m1.update(m2);
+        assertEqual(m1, m2);
+        m.update(m2);
+        assert(!equal(m, m2));
+        assertEqual(m.popItem(), [undefined, 5]);
+        assertEqual(m.popItem(), [null, 6]);
+        assertEqual(m.popItem(), [o1, 7]);
+        assertEqual(m.popItem(), [o2, 8]);
+        assertEqual(m.popItem(), [o3, 9]);
+        assertEqual(m.popItem(), [true, 1]);
+        assertEqual(m.popItem(), [1, 1]);
+        assertEqual(m.popItem(), ['1', 'one']);
+        assertEqual(m.popItem(), ['undefined', 2]);
+        m.clear();
+        assertSame(m.popItem(), undefined);
+        assertEqual(m.items(), []);
+        assertSame(m.setDefault(undefined, 1), 1);
+        assertSame(m.setDefault(undefined, 42), 1);
+        assertSame(m.setDefault(1, 2), 2);
+        assertSame(m.setDefault(1, 42), 2);
+        assertSame(m.setDefault(o1, 3), 3);
+        assertSame(m.setDefault(o1, 42), 3);
+        assertSame(m.setDefault(o2, 4), 4);
+        assertSame(m.setDefault(o2, 42), 4);
+        assertSame(repr(m.iterValues()), '<valid ak.map.Map.ValueIterator>');
+
+        ak.hash = oldHash;
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // url tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  var urlSuite = loadTests(
+    {
+      name: 'url',
+
+      testRoute: function () {
+        function f () {}
+        function g() {}
+        function h() {}
+        function m() {}
+        assertEqual((new Route([new Route([new Route(f)])])).resolve('a/b/c/'),
+                    [f, ['a', 'b', 'c']]);
+        var route = new Route(
+          '',
+          [
+            ['abc/', [[f]]],
+            [/123/, g],
+            [
+              g,
+              [
+                [/a(.)c/, h],
+                [
+                  /./,
+                  m
+                ],
+                [
+                  /(.)(.)/,
+                  f,
+                  function (args) {
+                    return args[0] + '' + args[1];
+                  }
+                ]
+              ]
+            ]
+          ]);
+        assertEqual(route.resolve('abc/xyz/'), [f, ['xyz']]);
+        assertEqual(route.resolve('xyz/'), [g, ['xyz']]);
+        assertThrow(ResolveError, function () { route.resolve(''); });
+        assertThrow(ResolveError, function () { route.resolve('xyz/abd'); });
+        assertThrow(ResolveError, function () { route.resolve('xyz/xabc'); });
+        assertEqual(route.resolve('xyz/abc'), [h, ['xyz', 'b']]);
+        assertEqual(route.resolve('xyz/a'), [m, ['xyz', 'a']]);
+        assertEqual(route.resolve('xyz/ab'), [f, ['xyz', ['a', 'b']]]);
+        assertEqual(route.reverse(h, 'xyz', 0), 'xyz/a0c');
+        assertEqual(route.reverse(f, '123'), 'abc/123/');
+        assertEqual(route.reverse(f, '123', [4, 5]), '123/45');
+        assertThrow(ReverseError,
+                    function () { route.reverse(function () {}); });
+        assertThrow(ReverseError, function () { route.reverse(g, 42); });
+        assertThrow(ReverseError, function () { route.reverse(g, 1, 2, 3); });
+        assertThrow(Error, function () { new Route(42); });
+        assertThrow(Error, function () { new Route([f]); });
+      },
+
+      testRoot: function () {
+        var oldRoot = ak.url.root;
+        delete ak.url.root;
+        assertThrow(Error, resolve);
+        assertThrow(Error, reverse);
+        function f() {};
+        defineRoutes('abc', f);
+        assertSame(reverse(f), '/ak/abc');
+        assertEqual(resolve('abc'), [f, []]);
+        ak.url.root = oldRoot;
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // rest tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  var ArgTestController = makeSubclass(
+    Controller,
+    function (request, string) {
+      Controller.call(this, request);
+      this._string = string;
+    },
+    {
+      get: function () {
+        return new Response(this._string);
+      }
+    });
+
+
+  var MethodTestController = makeSubclass(
+    Controller,
+    null,
+    {
+      handle: function () {
+        return new Response(this.request.method);
+      }
+    });
+
+
+  function controlError(request, string) {
+    throw new Error(string);
+  }
+
+
+  var restSuite = loadTests(
+    {
+      name: 'rest',
+
+      testServe: function () {
+        var root = new Route(ArgTestController,
+                             [
+                               ['method', MethodTestController],
+                               ['error', controlError]
+                             ]);
+        assertSame(defaultServe({path: 'a/b'}, root).status, NOT_FOUND);
+        var response = defaultServe({path: 'abc'}, root);
+        assertSame(response.status, MOVED_PERMANENTLY);
+        assertSame(response.headers.Location, '/ak/abc/');
+        assertThrow(ResolveError, function () { serve({path: 'abc'}, root); });
+        assertSame(serve({path: 'abc/', method: 'get'}, root).content, 'abc');
+        assertSame(serve({path: 'abc/', method: 'put'}, root).status,
+                   METHOD_NOT_ALLOWED);
+        assertThrow(Error,
+                    function () { defaultServe({path: 'abc/error'}, root); });
+        assertSame(serve({path: 'abc/method', method: 'PUT'}, root).content,
+                   'PUT');
+      }
+
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
   // Epilogue
   //////////////////////////////////////////////////////////////////////////////
 
   $.suite = new TestSuite([
                             debugSuite,
                             unittestSuite,
-                            mainSuite,
+                            coreSuite,
                             baseSuite,
                             utilsSuite,
                             iterSuite,
                             ioSuite,
-                            templateSuite
+                            templateSuite,
+                            mapSuite,
+                            urlSuite,
+                            restSuite
                           ]);
 
 
-  $.main = partial(main, $.suite);
+  $.test = partial(test, $.suite);
 
 
   nameFunctions($);

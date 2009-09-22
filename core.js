@@ -36,6 +36,7 @@
   publish($.AK, 'setObjectProp');
   publish($.AK, 'compile');
   publish($.AK, 'readCode');
+  publish($.AK, 'hash');
   publish($.Script, 'run');
   publish($.App, 'call');
   publish($.Type, 'int');
@@ -74,6 +75,9 @@
   publish($.FS, 'write');
   publish($.FS, 'rename');
   publish($.FS, 'copyFile');
+
+
+  ak.appName = ak._appName;
 
 
   // Property access modes for ak.setObjectProp
@@ -150,6 +154,43 @@
   makeRelDelegation('update');
   makeRelDelegation('updateByValues');
   makeRelDelegation('delete');
+
+
+  $.TmpFile.prototype.read = function () {
+    return $.fs.read(this);
+  };
+
+
+  $.defaultHeaders = {'Content-Type': 'text/html; charser=utf-8'};
+
+
+  $.Response = function (content/* = '' */,
+                         status/* = 200 */,
+                         headers/* = $.defaultHeaders */) {
+    this.content = content || '';
+    this.status = status || 200;
+    this.headers = headers || $.defaultHeaders;
+  };
+
+
+  $._main = function (data) {
+    var request = eval('(' + data + ')');
+    request.data = ak._data;
+    request.files = {};
+    // request.fileNames.length and ak._files.length are guaranteed to be equal
+    for (var i = 0; i < ak._files.length; ++i)
+      request.files[request.fileNames[i]] = ak._files[i];
+    delete request.fileNames;
+    request.requester = ak._requesterAppName;
+
+    var response = __main__(request);
+    var headerLines = [];
+    for (var name in response.headers)
+      headerLines.push(name + ': ' + response.headers[name]);
+    return (response.status + '\n' +
+            headerLines.join('\n') +
+            '\n\n' + response.content);
+  };
 
 
   return $;

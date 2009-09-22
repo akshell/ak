@@ -326,8 +326,8 @@
   $.factory = function (constructor) {
     return function () {
       var result = {};
-      constructor.apply(result, arguments);
       result.__proto__ = constructor.prototype;
+      constructor.apply(result, arguments);
       return result;
     };
   };
@@ -579,6 +579,21 @@
   };
 
   //////////////////////////////////////////////////////////////////////////////
+  // Function decorating
+  //////////////////////////////////////////////////////////////////////////////
+
+  Function.prototype.setNonEnumerable(
+    'decorated',
+    function (/* decorators... */) {
+      var result = this;
+      for (var i = arguments.length - 1; i >= 0; --i) {
+        var decorator = arguments[i];
+        result = decorator(result);
+      }
+      return result;
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
   // Reprs
   //////////////////////////////////////////////////////////////////////////////
 
@@ -590,11 +605,11 @@
   setRepr(Object, function () {
             var keys = $.keys(this);
             keys.sort();
-            var self = this;
             return ('{' +
                     keys.map(function (key) {
-                               return key + ': ' + $.repr(self[key]);
-                             }).join(', ') +
+                               return key + ': ' + $.repr(this[key]);
+                             },
+                             this).join(', ') +
                     '}');
           });
 
@@ -657,6 +672,7 @@
   // Epilogue
   //////////////////////////////////////////////////////////////////////////////
 
+  $.nameFunctions(ak);
   $.nameFunctions($);
   return $;
 })();

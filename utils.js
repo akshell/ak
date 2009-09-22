@@ -29,7 +29,6 @@
 (function ()
 {
   var base = ak.include('base.js');
-  var iter = ak.include('iter.js');
 
   var $ = base.module('ak.utils');
 
