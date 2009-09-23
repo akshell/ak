@@ -32,7 +32,7 @@
   ak.include('http.js');
   ak.include('io.js');
   ak.include('iter.js');
-  ak.include('map.js');
+  ak.include('dict.js');
   ak.include('rest.js');
   ak.include('template.js');
   ak.include('unittest.js');

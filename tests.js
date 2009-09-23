@@ -503,7 +503,7 @@
         assertSame(repr(nameFunctions), 'ak.nameFunctions',
                    'nameFunctions');
         assertSame(repr(template.Filter), 'ak.template.Filter');
-        assertSame(repr(Map.ItemIterator), 'ak.Map.ItemIterator');
+        assertSame(repr(Dict.ItemIterator), 'ak.Dict.ItemIterator');
       },
 
       testMakeClass: function () {
@@ -986,29 +986,29 @@
         assert(!izip([1], []).valid, 'izip on empty');
       },
 
-      testIFilter: function () {
+      testFilter: function () {
         function isEven(x) { return x % 2 == 0; };
-        assertEqual(array(ifilter([1, 2, 3, 4, 5, 6], isEven)),
+        assertEqual(array(filter([1, 2, 3, 4, 5, 6], isEven)),
                     [2, 4, 6],
-                    'ifilter');
-        assert(!ifilter([1, 3, 5], isEven).valid, 'invalid ifilter');
-        assert(!ifilter([], isEven).valid, 'ifilter on empty');
-        assertEqual(array(ifilter([2, 3, 4, 5, 6, 7], isEven)),
+                    'filter');
+        assert(!filter([1, 3, 5], isEven).valid, 'invalid filter');
+        assert(!filter([], isEven).valid, 'filter on empty');
+        assertEqual(array(filter([2, 3, 4, 5, 6, 7], isEven)),
                     [2, 4, 6],
-                    'another ifilter');
-        assertEqual(array(ifilter([1, 3, 6, 7],
-                                  function (x) { return x % this.d; },
-                                  {d: 3})),
+                    'another filter');
+        assertEqual(array(filter([1, 3, 6, 7],
+                                 function (x) { return x % this.d; },
+                                 {d: 3})),
                     [1, 7]);
       },
 
-      testIMap: function () {
+      testMap: function () {
         function square(x) { return x * x; }
-        assertEqual(array(imap([1, 2, 3], square)), [1, 4, 9], 'imap');
-        assert(!imap([], square).valid, 'imap on empty');
-        assertEqual(array(imap([1, 2, 3],
-                               function (x) { return x * this.m; },
-                               {m: 2})),
+        assertEqual(array(map([1, 2, 3], square)), [1, 4, 9], 'map');
+        assert(!map([], square).valid, 'map on empty');
+        assertEqual(array(map([1, 2, 3],
+                              function (x) { return x * this.m; },
+                              {m: 2})),
                     [2, 4, 6]);
       },
 
@@ -1601,20 +1601,20 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // map tests
+  // dict tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var mapSuite = loadTests(
+  var dictSuite = loadTests(
     {
-      name: 'map',
+      name: 'dict',
 
-      testMap: function () {
+      testDict: function () {
         var oldHash = ak.hash;
         ak.hash = function (object) {
           return object ? object.hash || 0 : 0;
         };
 
-        var m = new Map({1: 'one', 'undefined': 2, 'true': 3, 'null': 4});
+        var m = new Dict({1: 'one', 'undefined': 2, 'true': 3, 'null': 4});
         assertSame(m.get('1'), 'one');
         assertSame(m.get('undefined'), 2);
         assertSame(m.get('true'), 3);
@@ -1670,7 +1670,7 @@
                      true, 1, "1", "undefined", "true", "null"]);
         assertEqual(m.values(), [5, 6, 7, 8, 9, 1, 1, "one", 2, 3, 4]);
         var m1 = m.copy();
-        var m2 = new Map(m1);
+        var m2 = new Dict(m1);
         assertEqual(m, m2);
         assertSame(m1.pop(o2), 8);
         assertSame(m2.pop(o2), 8);
@@ -1704,7 +1704,7 @@
         assertSame(m.setDefault(o1, 42), 3);
         assertSame(m.setDefault(o2, 4), 4);
         assertSame(m.setDefault(o2, 42), 4);
-        assertSame(repr(m.iterValues()), '<valid ak.Map.ValueIterator>');
+        assertSame(repr(m.iterValues()), '<valid ak.Dict.ValueIterator>');
 
         ak.hash = oldHash;
       }
@@ -1851,7 +1851,7 @@
                             iterSuite,
                             ioSuite,
                             templateSuite,
-                            mapSuite,
+                            dictSuite,
                             urlSuite,
                             restSuite
                           ]);

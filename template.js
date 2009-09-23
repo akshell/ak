@@ -1182,7 +1182,7 @@
         context[this._name] = (
           itr.valid
           ? (ak.array(
-               ak.imap(
+               ak.map(
                  ak.groupBy(
                    itr,
                    function (v) {

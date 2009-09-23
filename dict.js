@@ -29,7 +29,7 @@
   ak.include('iter.js');
 
 
-  // actions for Map method _handle
+  // actions for Dict method _handle
   var DELETE = 1;
   var SET = 2;
 
@@ -47,7 +47,7 @@
   };
 
 
-  ak.Map = ak.makeClass(
+  ak.Dict = ak.makeClass(
     function (other) {
       this.clear();
       if (other)
@@ -56,7 +56,7 @@
     {
       clear: function () {
         delete this._undefined;
-        this._dicts = {
+        this._primitives = {
           'boolean': {},
           'number': {},
           'string': {}
@@ -71,8 +71,8 @@
       set: function (key, value) {
         if (key === undefined) {
           this._undefined = value;
-        } else if (typeof(key) in this._dicts) {
-          this._dicts[typeof(key)][key] = value;
+        } else if (typeof(key) in this._primitives) {
+          this._primitives[typeof(key)][key] = value;
         } else {
           var hash = ak.hash(key);
           var neighbours = this._table[hash];
@@ -99,13 +99,13 @@
             delete this._undefined;
           else if (action == SET && !result[0])
             this._undefined = default_;
-        } else if (typeof(key) in this._dicts) {
-          var dict = this._dicts[typeof(key)];
-          result = [key in dict, dict[key]];
+        } else if (typeof(key) in this._primitives) {
+          var object = this._primitives[typeof(key)];
+          result = [key in object, object[key]];
           if (action == DELETE)
-            delete dict[key];
+            delete object[key];
           else if (action == SET && !result[0])
-            dict[key] = default_;
+            object[key] = default_;
         } else {
           var hash = ak.hash(key);
           var neighbours = this._table[hash];
@@ -164,11 +164,11 @@
             delete this._table[hash];
           return result;
         }
-        for (var type in this._dicts) {
-          var dict = this._dicts[type];
-          for (var key in dict) {
-            result = itemRestorers[type]([key, dict[key]]);
-            delete dict[key];
+        for (var type in this._primitives) {
+          var object = this._primitives[type];
+          for (var key in object) {
+            result = itemRestorers[type]([key, object[key]]);
+            delete object[key];
             return result;
           }
         }
@@ -217,9 +217,9 @@
         if (('_undefined' in this) != ('_undefined' in other) ||
             !ak.equal(this._undefined, other._undefined))
           return false;
-        for (var type in this._dicts)
-          if (!ak.equal(ak.items(this._dicts[type]),
-                        ak.items(other._dicts[type])))
+        for (var type in this._primitives)
+          if (!ak.equal(ak.items(this._primitives[type]),
+                        ak.items(other._primitives[type])))
             return false;
         return ak.equal(ak.items(this._table), ak.items(other._table));
       },
@@ -242,36 +242,36 @@
     });
 
 
-  ak.Map.ItemIterator = ak.makeSubclass(
+  ak.Dict.ItemIterator = ak.makeSubclass(
     ak.Iterator,
-    function (map) {
-      this._map = map;
+    function (dict) {
+      this._dict = dict;
       this.valid = true;
       this._findNextItem();
     },
     {
       _getNextItem: function () {
         // With "yield" this code could much prettier
-        // Object are iterated at first because they are the main Map use case
-        if (!('_nextItem' in this) && '_undefined' in this._map)
-          return [undefined, this._map._undefined];
+        // Object are iterated at first because they are the main Dict use case
+        if (!('_nextItem' in this) && '_undefined' in this._dict)
+          return [undefined, this._dict._undefined];
         if (!this._tableItr)
-          this._tableItr = ak.iter(this._map._table);
+          this._tableItr = ak.iter(this._dict._table);
         if (this._tableItr.valid &&
-            (!this._neighbourItr || !this._neighbourItr.valid))
-          this._neighbourItr = ak.iter(this._tableItr.next()[1]);
-        if (this._neighbourItr && this._neighbourItr.valid)
-          return this._neighbourItr.next();
-        if (!this._dictItr)
-          this._dictItr = ak.iter(this._map._dicts);
-        while (this._dictItr.valid &&
-               (!this._pairItr || !this._pairItr.valid)) {
-          var typeAndDict = this._dictItr.next();
+            (!this._neighboursItr || !this._neighboursItr.valid))
+          this._neighboursItr = ak.iter(this._tableItr.next()[1]);
+        if (this._neighboursItr && this._neighboursItr.valid)
+          return this._neighboursItr.next();
+        if (!this._primitivesItr)
+          this._primitivesItr = ak.iter(this._dict._primitives);
+        while (this._primitivesItr.valid &&
+               (!this._objectItr || !this._objectItr.valid)) {
+          var typeAndDict = this._primitivesItr.next();
           this._itemRestorer = itemRestorers[typeAndDict[0]];
-          this._pairItr = ak.iter(typeAndDict[1]);
+          this._objectItr = ak.iter(typeAndDict[1]);
         }
-        if (this._pairItr.valid)
-          return this._itemRestorer.call(ak.global, this._pairItr.next());
+        if (this._objectItr.valid)
+          return this._itemRestorer.call(ak.global, this._objectItr.next());
         this.valid = false;
         return undefined;
       },
@@ -288,10 +288,10 @@
     });
 
 
-  ak.Map.KeyIterator = ak.makeSubclass(
+  ak.Dict.KeyIterator = ak.makeSubclass(
     ak.Iterator,
-    function (map) {
-      this._itemItr = new map.constructor.ItemIterator(map);
+    function (dict) {
+      this._itemItr = new dict.constructor.ItemIterator(dict);
     },
     {
       get valid() {
@@ -304,10 +304,10 @@
     });
 
 
-  ak.Map.ValueIterator = ak.makeSubclass(
+  ak.Dict.ValueIterator = ak.makeSubclass(
     ak.Iterator,
-    function (map) {
-      this._itemItr = new map.constructor.ItemIterator(map);
+    function (dict) {
+      this._itemItr = new dict.constructor.ItemIterator(dict);
     },
     {
       get valid() {

@@ -318,7 +318,7 @@
       }
     });
 
-  ak.ifilter = ak.factory(ak.FilterIterator);
+  ak.filter = ak.factory(ak.FilterIterator);
 
 
   ak.MapIterator = ak.makeSubclass(
@@ -338,7 +338,7 @@
       }
     });
 
-  ak.imap = ak.factory(ak.MapIterator);
+  ak.map = ak.factory(ak.MapIterator);
 
 
   ak.ChainIterator = ak.makeSubclass(

@@ -26,7 +26,7 @@
 
 (function ()
 {
-  ak.include('map.js');
+  ak.include('dict.js');
   ak.include('debug.js');
   ak.include('http.js');
 
@@ -122,16 +122,16 @@
         return result;
       },
 
-      _populate: function (map, count) {
+      _populate: function (dict, count) {
         if (typeof(this._pattern) != 'string')
           ++count;
         if (this._controller) {
-          var dict = map.setDefault(this._controller, {});
-          dict[count] = count in dict ? null : this;
+          var object = dict.setDefault(this._controller, {});
+          object[count] = count in object ? null : this;
         }
         this._children.forEach(
           function (child) {
-            child._populate(map, count);
+            child._populate(dict, count);
           });
       },
 
@@ -148,11 +148,11 @@
       // NB this function DOES NOT CHECK path parts to correspond
       // their regular expressions
       reverse: function (controller/* args... */) {
-        if (!this._reverseMap) {
-          this._reverseMap = new ak.Map();
-          this._populate(this._reverseMap, 0);
+        if (!this._reverseDict) {
+          this._reverseDict = new ak.Dict();
+          this._populate(this._reverseDict, 0);
         }
-        var dict = this._reverseMap.get(controller);
+        var dict = this._reverseDict.get(controller);
         if (!dict)
           throw new ak.ReverseError(
             'Controller ' + controller + ' is not found');
