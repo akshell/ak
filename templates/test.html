@@ -13,6 +13,8 @@
       <dd>{{ request.method }}</dd>
       <dt>path</dt>
       <dd>{{ request.path }}</dd>
+      <dt>session</dt>
+      <dd>{{ request.session }}</dd>
       <dt>get</dt>
       <dd>
         {% for item in request.get %}
@@ -31,6 +33,15 @@
           <p>{{ item.0 }}</p>
           <textarea rows=20 cols=80>{{ item.1.data }}</textarea>
         {% endfor %}
+      </dd>
+      <dt>headers</dt>
+      <dd>
+        <dl>
+          {% for header in request.headers %}
+            <dt>{{ header.0 }}</dt>
+            <dd>{{ header.1 }}</dd>
+          {% endfor %}
+        </dl>
       </dd>
     </dl>
     <h2>Get form</h2>
