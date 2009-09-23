@@ -153,7 +153,7 @@
   makeRelDelegation('delete');
 
 
-  ak.TmpFile.prototype.read = function () {
+  ak.TempFile.prototype.read = function () {
     return ak.fs.read(this);
   };
 
