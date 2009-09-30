@@ -26,8 +26,23 @@
 
 (function ()
 {
-  function publish(constructor, name) {
-    constructor.prototype[name] = constructor.prototype['_' + name];
+  // Property access modes for ak._setObjectProp
+  // Could be combined using '|' operator.
+  ak.NONE        = 0;
+  ak.READ_ONLY   = 1 << 0;
+  ak.DONT_ENUM   = 1 << 1;
+  ak.DONT_DELETE = 1 << 2;
+
+
+  // SubRel is inherited from Query
+  ak.SubRel.prototype.__proto__ = ak.Query.prototype;
+
+
+  function publish(constructor, name, mode/* = ak.NONE */) {
+    ak._setObjectProp(constructor.prototype,
+                      name,
+                      mode || ak.NONE,
+                      constructor.prototype['_' + name]);
   }
 
   publish(ak.AK, 'setObjectProp');
@@ -42,12 +57,11 @@
   publish(ak.Type, 'unique');
   publish(ak.Type, 'foreign');
   publish(ak.Type, 'check');
-  publish(ak.Query, 'perform');
-  publish(ak.Query, 'only');
-  publish(ak.Query, 'where');
-  publish(ak.Query, 'by');
-  publish(ak.SubRel, 'update');
-  publish(ak.SubRel, 'del');
+  publish(ak.Query, 'perform', ak.DONT_ENUM);
+  publish(ak.Query, 'only', ak.DONT_ENUM);
+  publish(ak.Query, 'by', ak.DONT_ENUM);
+  publish(ak.SubRel, 'update', ak.DONT_ENUM);
+  publish(ak.SubRel, 'del', ak.DONT_ENUM);
   publish(ak.Constrs, 'unique');
   publish(ak.Constrs, 'foreign');
   publish(ak.Constrs, 'check');
@@ -77,18 +91,6 @@
   ak.appName = ak._appName;
 
 
-  // Property access modes for ak.setObjectProp
-  // Could be combined using '|' operator.
-  ak.NONE        = 0;
-  ak.READ_ONLY   = 1 << 0;
-  ak.DONT_ENUM   = 1 << 1;
-  ak.DONT_DELETE = 1 << 2;
-
-
-  // SubRel is inherited from Query
-  ak.SubRel.prototype.__proto__ = ak.Query.prototype;
-
-
   // Dates should be in UTC on the server
   Date.prototype.toString = Date.prototype.toUTCString;
 
@@ -104,12 +106,19 @@
 
 
   ak.setObjectProp(
-    ak.Query.prototype, 'whose', ak.DONT_ENUM,
-    function () {
-      var query = this.where.apply(this, arguments);
-      if (query.length != 1)
-        throw Error('whose() query got ' + query.length + ' tuples');
-      return query[0];
+    ak.Query.prototype, 'where', ak.DONT_ENUM,
+    function (/* arguments... */) {
+      if (typeof(arguments[0]) != 'object')
+        return this._where.apply(this, arguments);
+      var obj = arguments[0];
+      var index = 0;
+      var params = [];
+      var parts = [];
+      for (var field in obj) {
+        parts.push(field + '==$' + (++index));
+        params.push(obj[field]);
+      }
+      return this._where.apply(this, [parts.join('&&')].concat(params));
     });
 
 
@@ -138,19 +147,18 @@
 
 
   function makeRelDelegation(func_name) {
-    ak.Rel.prototype[func_name] = function () {
+    ak.Rel.prototype[func_name] = function (/* arguments... */) {
       return ak.SubRel.prototype[func_name].apply(this.all(), arguments);
     };
   }
 
-  makeRelDelegation('where');
-  makeRelDelegation('whose');
   makeRelDelegation('only');
   makeRelDelegation('by');
-  makeRelDelegation('field');
   makeRelDelegation('update');
-  makeRelDelegation('updateByValues');
-  makeRelDelegation('delete');
+  makeRelDelegation('del');
+  makeRelDelegation('where');
+  makeRelDelegation('field');
+  makeRelDelegation('set');
 
 
   ak.TempFile.prototype.read = function () {
@@ -162,8 +170,8 @@
 
 
   ak.Response = function (content/* = '' */,
-                         status/* = 200 */,
-                         headers/* = ak.defaultHeaders */) {
+                          status/* = 200 */,
+                          headers/* = ak.defaultHeaders */) {
     this.content = content || '';
     this.status = status || 200;
     this.headers = headers || ak.defaultHeaders;

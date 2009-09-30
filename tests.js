@@ -269,10 +269,15 @@
         assertEqual(fs.list(''), [], 'fs.remove');
       },
 
-      testWhose: function () {
-        assertSame(rels.R.whose('s == "a"').s, 'a', 'Query whose ok');
-        assertThrow(Error, function () { rels.R.whose('true'); },
-                    'Query whose 3 tuples');
+      testWhere: function () {
+        var q = rels.R.where('n % 2 == 1').by('n');
+        assertEqual(q, [{s: 'a', n: 1}, {n: 3, s: 'c'}]);
+        assertEqual(q, q);
+        assert(!equal(q, [null, 42]));
+        assert(!equal(q, [{s: 'a', n: 1}, {n: 4, s: 'c'}]));
+        assert(!equal(q, [{s: 'a', n: 1}]));
+        assertEqual(rels.R.where({n: 2}), [{s: 'b', n: 2}]);
+        assertSame(rels.R.where({n: 1, s: 'a'})[0].n, 1);
       },
 
       testField: function () {
@@ -583,12 +588,20 @@
       //////////////////////////////////////////////////////////////////////////
 
       testArrayCmp: function () {
-        assertEqual([], [], 'empty array cmp');
-        assertEqual([1, 2, 3], [1, 2, 3], 0, 'equal array cmp');
+        assertSame(cmp([], []), 0, 'empty array cmp');
+        assertSame(cmp([1, 2, 3], [1, 2, 3]), 0, 'equal array cmp');
         assertSame(cmp([1, 2], [1, 2, 3]), -1, 'less len array cmp');
         assertSame(cmp([1, 2], [1]), 1, 'more len array cmp');
         assertSame(cmp([1, 2, 3], [1, 2, 4]), -1, 'less item array cmp');
+      },
 
+      testArrayEq: function () {
+        assertEqual([], []);
+        assertEqual([1, 2, 3], [1, 2, 3]);
+        assert(!equal([1, 2, 3], [1, 2]));
+        assert(!equal([1, 2, 3], [1, 2, 4]));
+        assertThrow(TypeError, function () { equal([], null); });
+        assertThrow(TypeError, function () { equal([], undefined); });
       },
 
       testFlatten: function () {

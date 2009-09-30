@@ -480,7 +480,7 @@
       },
 
       __eq__: function (other) {
-        if (!ak.equal(this.length, other.length))
+        if (this.length != other.length)
           return false;
         for (var i = 0; i < this.length; ++i)
           if (!ak.equal(this[i], other[i]))
@@ -586,6 +586,21 @@
         result = decorator(result);
       }
       return result;
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Query comparison for equality
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.Query.prototype.setNonEnumerable(
+    '__eq__',
+    function (other) {
+      if (!ak.equal(this.length, other.length))
+        return false;
+      for (var i = 0; i < this.length; ++i)
+        if (!ak.equal(ak.items(this[i]).sort(), ak.items(other[i]).sort()))
+          return false;
+      return true;
     });
 
   //////////////////////////////////////////////////////////////////////////////
