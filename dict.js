@@ -47,7 +47,7 @@
   };
 
 
-  ak.Dict = ak.makeClass(
+  ak.Dict = Object.subclass(
     function (other) {
       this.clear();
       if (other)
@@ -242,8 +242,7 @@
     });
 
 
-  ak.Dict.ItemIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.Dict.ItemIterator = ak.Iterator.subclass(
     function (dict) {
       this._dict = dict;
       this.valid = true;
@@ -288,8 +287,7 @@
     });
 
 
-  ak.Dict.KeyIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.Dict.KeyIterator = ak.Iterator.subclass(
     function (dict) {
       this._itemItr = new dict.constructor.ItemIterator(dict);
     },
@@ -304,8 +302,7 @@
     });
 
 
-  ak.Dict.ValueIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.Dict.ValueIterator = ak.Iterator.subclass(
     function (dict) {
       this._itemItr = new dict.constructor.ItemIterator(dict);
     },

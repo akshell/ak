@@ -24,42 +24,50 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-ak.include('tests.js');
+
+var suite = ak.include('tests.js');
 
 
-function test(stream/* = 'ak.out' */) {
+function main(stream/* = 'ak.out' */) {
   if (stream == 'both')
-    ak.err = ak.out;
-  ak.test(ak.suite);
-  return (stream == 'err' ? ak.err : ak.out).read();
+    ak.err = out;
+  test(suite);
+  return (stream == 'err' ? err : out).read();
 }
 
 
-var HelloController = ak.makeSubclass(
-  ak.Controller,
+var HelloController = Controller.subclass(
   function (request, name) {
-    ak.Controller.call(this, request);
     this._name = name;
   },
   {
     get: function () {
-      return new ak.Response(ak.getTemplate('hello.html')
-                             .render({name: this._name}));
+      return renderToResponse('hello.html', {name: this._name});
     }
   });
 
 
-function controlTest(request) {
-  return new ak.Response(ak.getTemplate('test.html')
-                         .render({request: request}));
-}
+var MainController = Controller.subclass(
+  {
+    handleTest: function () {
+      return renderToResponse('test.html', {request: this.request});
+    },
+
+    getError: function () {
+      throw Error('Test error');
+    }
+  });
 
 
-ak.defineRoutes('',
-                [
-                  ['hello/', [[HelloController]]],
-                  ['test/', controlTest]
-                ]);
+defineRoutes('',
+             [
+               ['hello/', [[HelloController]]],
+               ['test/', MainController.page('Test')],
+               ['error/', MainController.page('Error')]
+             ]);
 
 
-__main__ = ak.defaultServe;
+__main__ = defaultServe;
+
+
+nameFunctions(this);

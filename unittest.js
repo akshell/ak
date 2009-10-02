@@ -34,7 +34,7 @@
   // Classes
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.TestResult = ak.makeClass(
+  ak.TestResult = Object.subclass(
     function () {
       this.errors = [];
       this.failures = [];
@@ -63,7 +63,7 @@
     });
 
 
-  ak.TestCase = ak.makeClass(
+  ak.TestCase = Object.subclass(
     function (proto, methodName) {
       if (!(methodName in proto))
         throw new Error(proto + ' does not have method ' + methodName);
@@ -123,7 +123,7 @@
     });
 
 
-  ak.TestSuite = ak.makeClass(
+  ak.TestSuite = Object.subclass(
     function (tests) {
       this._tests = tests || [];
     },
@@ -150,30 +150,29 @@
     });
 
 
-  ak.TextTestResult = ak.makeSubclass(
-    ak.TestResult,
+  ak.TextTestResult = ak.TestResult.subclass(
     function (stream) {
       ak.TestResult.call(this);
       this._stream = stream;
     },
     {
       startTest: function (test) {
-        this.__proto__.__proto__.startTest.call(this, test);
+        ak.TestResult.prototype.startTest.call(this, test);
         this._stream.write(test);
       },
 
       addError: function (test, err) {
-        this.__proto__.__proto__.addError.call(this, test, err);
+        ak.TestResult.prototype.addError.call(this, test, err);
         this._stream.writeLine(' ERROR');
       },
 
       addFailure: function (test, err) {
-        this.__proto__.__proto__.addFailure.call(this, test, err);
+        ak.TestResult.prototype.addFailure.call(this, test, err);
         this._stream.writeLine(' FAIL');
       },
 
       addSuccess: function (test) {
-        this.__proto__.__proto__.addSuccess.call(this, test);
+        ak.TestResult.prototype.addSuccess.call(this, test);
         this._stream.writeLine(' ok');
       }
     });
@@ -186,7 +185,7 @@
   }
 
 
-  ak.TextTestRunner = ak.makeClass(
+  ak.TextTestRunner = Object.subclass(
     function (stream) {
       this._stream = stream;
     },

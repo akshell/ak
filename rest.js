@@ -29,20 +29,69 @@
   ak.include('template.js');
 
 
-  ak.Controller = ak.makeClass(
-    function (request) {
-      this.request = request;
-    },
+  ak.renderToResponse = function (name,
+                                  context,
+                                  status/* = 200 */,
+                                  headers/* = ak.defaultHeaders */) {
+    return new ak.Response(ak.getTemplate(name).render(context),
+                           status,
+                           headers);
+  };
+
+
+  ak.Controller = Object.subclass(
     {
-      respond: function () {
-        var func = this[this.request.method.toLowerCase()];
-        if (typeof(func) == 'function')
-          return func.call(this);
-        if (typeof(this.handle) == 'function')
-          return this.handle();
-        return new ak.Response('', ak.http.METHOD_NOT_ALLOWED);
+      respond: function (pageName/* = '' */) {
+        pageName = pageName || '';
+        var methodProp = this.request.method.toLowerCase() + pageName;
+        if (this.__proto__.hasOwnProperty(methodProp))
+          return this[methodProp].call(this);
+        var handleProp = 'handle' + pageName;
+        if (this.__proto__.hasOwnProperty(handleProp))
+          return this[handleProp]();
+        throw new ak.HttpError(
+          'Method ' + this.request.method + ' is not allowed',
+          ak.http.METHOD_NOT_ALLOWED);
       }
     });
+
+
+  ak.Controller.instances(
+    ak.ControllerMeta = Function.subclass(
+      {
+        page: function (name) {
+          if (!name)
+            return this;
+          this._pages = this._pages || {};
+          if (name in this._pages)
+            return this._pages[name];
+          var controller = this;
+          var result = function (/* arguments... */) {
+            return ak.factory(controller).apply(ak.global, arguments).respond(name);
+          };
+          result.__defineGetter__(
+            '__name__',
+            function () {
+              return controller.__name__ + '#' + name;
+            });
+          this._pages[name] = result;
+          return result;
+        },
+
+        subclass: function (/* arguments... */) {
+          var constructor = Function.prototype.subclass.apply(this, arguments);
+          return function (request /* ... */) {
+            if (this instanceof arguments.callee) {
+              this.request = request;
+              return constructor.apply(this, arguments);
+            } else {
+              var instance = {__proto__: arguments.callee.prototype};
+              arguments.callee.apply(instance, arguments);
+              return instance.respond();
+            }
+          }.wraps(constructor);
+        }
+      }));
 
 
   ak.serve = function (request, root/* = ak.rootRoute */) {
@@ -50,9 +99,7 @@
     var resolveInfo = root.resolve(request.path);
     var controller = resolveInfo[0];
     var args = [request].concat(resolveInfo[1]);
-    return (typeof(controller.prototype.respond) == 'function'
-            ? ak.factory(controller).apply(ak.global, args).respond()
-            : controller.apply(ak.global, args));
+    return controller.apply(ak.global, args);
   };
 
 
@@ -69,37 +116,36 @@
           } catch (_) {
             throw error;
           }
-          return new ak.Response(
-            '',
-            ak.http.MOVED_PERMANENTLY,
-            {'Location': ak.rootPrefix + request.path + '/'});
+          return new ak.ResponsePermanentRedirect(
+            ak.rootPrefix + request.path + '/');
         }
       };
     },
 
-    notFound: function (serve) {
+    error: function (serve) {
       return function (/* arguments... */) {
         try {
           return serve.apply(this, arguments);
         } catch (error) {
-          if (!(error instanceof ak.NotFoundError))
+          if (!(error instanceof ak.HttpError))
             throw error;
           var template;
           try {
-            template = ak.getTemplate('404.html');
+            template = ak.getTemplate('error.html');
           } catch (_) {
-            template = new ak.Template('Not found');
+            template = new ak.Template('{{ error.message }}');
           }
           return new ak.Response(template.render({error: error}),
-                                 ak.http.NOT_FOUND);
+                                 error.status);
         }
       };
     }
   };
 
 
-  ak.defaultServe = ak.serve.decorated(
-    ak.middleware.notFound,
-    ak.middleware.appendSlash);
+  ak.defaultServe = ak.serve.decorate(
+    ak.middleware.error,
+    ak.middleware.appendSlash
+  );
 
 })();

@@ -34,7 +34,7 @@
   // Iterator
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.Iterator = ak.makeClass(
+  ak.Iterator = Object.subclass(
     function () {},
     {
       __repr__: function () {
@@ -58,7 +58,7 @@
     });
 
 
-  ak.InvalidIterator = ak.makeSubclass(ak.Iterator, null, {valid: false});
+  ak.InvalidIterator = ak.Iterator.subclass({valid: false});
 
 
   //////////////////////////////////////////////////////////////////////////////
@@ -185,8 +185,7 @@
   // Utility iterators
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.SliceIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.SliceIterator = ak.Iterator.subclass(
     function (iterable,
               start/* = 0 */,
               stop /* = Infinity */) {
@@ -210,8 +209,7 @@
   ak.islice = ak.factory(ak.SliceIterator);
 
 
-  ak.CountIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.CountIterator = ak.Iterator.subclass(
     function (n) {
       this._n = n || 0;
     },
@@ -230,8 +228,7 @@
   ak.count = ak.factory(ak.CountIterator);
 
 
-  ak.CycleIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.CycleIterator = ak.Iterator.subclass(
     function (iterable) {
       this._itr = ak.iter(iterable);
       this.valid = this._itr.valid;
@@ -253,8 +250,7 @@
   ak.cycle = ak.factory(ak.CycleIterator);
 
 
-  ak.RepeatIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.RepeatIterator = ak.Iterator.subclass(
     function (obj, n/* = Infinity */) {
       this._obj = obj;
       this._i = n === undefined ? Infinity : n;
@@ -273,8 +269,7 @@
   ak.repeat = ak.factory(ak.RepeatIterator);
 
 
-  ak.ZipIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.ZipIterator = ak.Iterator.subclass(
     function (/* iterables... */) {
       this._itrs = Array.map(arguments, ak.iter);
     },
@@ -291,8 +286,7 @@
   ak.izip = ak.factory(ak.ZipIterator);
 
 
-  ak.FilterIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.FilterIterator = ak.Iterator.subclass(
     function (iterable, pred, self/* = ak.global */) {
       this._itr = ak.iter(iterable);
       this._pred = pred || ak.operators.truth;
@@ -321,8 +315,7 @@
   ak.filter = ak.factory(ak.FilterIterator);
 
 
-  ak.MapIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.MapIterator = ak.Iterator.subclass(
     function (iterable, func, self/* = ak.global */) {
       this._itr = ak.iter(iterable);
       this._func = func;
@@ -341,8 +334,7 @@
   ak.map = ak.factory(ak.MapIterator);
 
 
-  ak.ChainIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.ChainIterator = ak.Iterator.subclass(
     function (/* iterables... */) {
       this._itrs = Array.map(arguments, ak.iter);
       this._findValid();
@@ -367,8 +359,7 @@
   ak.chain = ak.factory(ak.ChainIterator);
 
 
-  ak.TakeWhileIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.TakeWhileIterator = ak.Iterator.subclass(
     function (iterable, pred) {
       this._itr = ak.iter(iterable);
       this._pred = pred;
@@ -396,8 +387,7 @@
   ak.takeWhile = ak.factory(ak.TakeWhileIterator);
 
 
-  ak.DropWhileIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.DropWhileIterator = ak.Iterator.subclass(
     function (iterable, pred) {
       this._itr = ak.iter(iterable);
       while (this._itr.valid) {
@@ -426,8 +416,7 @@
   ak.dropWhile = ak.factory(ak.DropWhileIterator);
 
 
-  ak.TeeIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.TeeIterator = ak.Iterator.subclass(
     function (ident, sync) {
       sync.pos[ident] = -1;
       this._ident = ident;
@@ -476,8 +465,7 @@
   };
 
 
-  ak.GroupByIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.GroupByIterator = ak.Iterator.subclass(
     function (iterable, keyFunc/* = ak.operators.identity */) {
       this._itr = ak.iter(iterable);
       this._keyFunc = keyFunc || ak.operators.identity;
@@ -515,8 +503,7 @@
   // ObjectIterator
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.ObjectIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.ObjectIterator = ak.Iterator.subclass(
     function (obj) {
       this._keyItr = ak.iter(ak.keys(obj));
       this._obj = obj;
@@ -541,8 +528,7 @@
   // ArrayIterator
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.ArrayIterator = ak.makeSubclass(
-    ak.Iterator,
+  ak.ArrayIterator = ak.Iterator.subclass(
     function (array) {
       this._array = array;
       this._i = 0;

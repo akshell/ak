@@ -5,7 +5,8 @@
   </head>
   <body>
     <h1>ak test page</h1>
-    <a href="{% url controlTest %}">home</a>
+    <a href="{% url MainController#Test %}">test</a>
+    <a href="{% url MainController#Error %}">error</a>
     <a href="{% url HelloController "world" %}">hello world</a>
     <h2>Request</h2>
     <dl>
@@ -13,6 +14,8 @@
       <dd>{{ request.method }}</dd>
       <dt>path</dt>
       <dd>{{ request.path }}</dd>
+      <dt>fullPath</dt>
+      <dd>{{ request.fullPath }}</dd>
       <dt>session</dt>
       <dd>{{ request.session }}</dd>
       <dt>get</dt>

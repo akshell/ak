@@ -26,8 +26,9 @@
 
 (function ()
 {
-  with (ak.use('ak'))
-{
+  ak.use('ak');
+  ak.update(ak.global, ak);
+
   //////////////////////////////////////////////////////////////////////////////
   // debug tests
   //////////////////////////////////////////////////////////////////////////////
@@ -298,6 +299,32 @@
     {
       name: 'base',
 
+      //////////////////////////////////////////////////////////////////////////
+      // Object methods tests
+      //////////////////////////////////////////////////////////////////////////
+
+      testObjectSetProp: function () {
+        var o = {};
+        o.setProp('x', ak.DONT_DELETE, 42);
+        delete o.x;
+        assertSame(o.x, 42, 'setProp');
+      },
+
+      testObjectSetNonEnumerable: function () {
+        var o = {};
+        o.setNonEnumerable('a', 42);
+        assertSame(o.a, 42, 'setNonEnumerable set');
+        assertEqual(items(o), [], 'setNonEnumerable non enumerable');
+      },
+
+      testObjectInstances: function () {
+        assertSame({}.instances(Object.subclass({x: 42})).x, 42);
+      },
+
+      //////////////////////////////////////////////////////////////////////////
+      // Free functions tests
+      //////////////////////////////////////////////////////////////////////////
+
       testModule: function () {
         assertSame(repr(ak), '<ak ' + ak.__version__ + '>', 'ak module');
         var m = new Module('TeSt.module');
@@ -498,7 +525,7 @@
       },
 
       testFactory: function () {
-        var C = makeClass(function (x) { this.x = x; });
+        var C = Object.subclass(function (x) { this.x = x; });
         var c = factory(C)(1);
         assert(c instanceof C, 'factory instanceof');
         assertSame(c.x, 1, 'factory property');
@@ -511,76 +538,67 @@
         assertSame(repr(Dict.ItemIterator), 'ak.Dict.ItemIterator');
       },
 
-      testMakeClass: function () {
-        var C = makeClass(function (x) { this.x = x; },
-                          {f: function (x) { this.x = x; }});
-        var c = new C(42);
-        assertSame(c.constructor, C, 'makeClass constructor property');
-        assert(c instanceof C, 'makeClass instanceof');
-        assert(c instanceof Object, 'makeClass instanceof Object');
-        assertSame(c.x, 42, 'makeClass initialization');
-        assert(repr(new makeClass()), '{}', 'makeClass()');
+      //////////////////////////////////////////////////////////////////////////
+      // Function methods tests
+      //////////////////////////////////////////////////////////////////////////
+
+      testFunctionDecorate: function () {
+        function f() { return 42; }
+        function g(func) { return function () { return func() + 1; }; }
+        function h(func) { return function () { return func() * 2; }; }
+        assertSame(f.decorate(g, h)(), 85);
+        assertSame(f.decorate()(), 42);
       },
 
-      testMakeSubclass: function () {
-        var C = makeClass(function (x) { this.x = x; },
-                          {f: function (x) { this.x = x; }});
-        var D = makeSubclass(C, null, {get y() { return this.x; }});
-        var d = new D(111);
-        assertSame(d.x, 111, 'makeSubclass parent property');
-        assertSame(d.y, 111, 'makeSubclass getter');
-        assert(d instanceof D, 'makeSubclass instanceof');
-        assert(d instanceof C, 'makeSubclass instanceof parent');
-        d.f(15);
-        assertSame(d.x, 15, 'makeSubclass parent method');
+      testFunctionWraps: function () {
+        var e = Error.subclass();
+        var f = function () {}.wraps(e);
+        assertSame(f.prototype, e.prototype);
+        assertSame(f.prototype.constructor, f);
+        assertSame(f.__proto__, e.__proto__);
+        assert(!('__name__' in f));
+        f.__name__ = 'f';
+        assertSame(function () {}.wraps(f).__name__, 'f');
       },
 
-      testMakeErrorClass: function () {
-        var E = makeErrorClass();
+      testFunctionSubclass: function () {
+        var C = function () {};
+        var p = {};
+        Object.subclass(C, p);
+        assertSame(C.prototype, p);
+        assertSame(p.constructor, C);
+        assertSame(p.__proto__, Object.prototype);
+        assertSame(C.__proto__, Function.prototype);
+        var P = Function.subclass();
+        C.instances(P);
+        var D = C.subclass();
+        assertSame(D.__proto__, P.prototype);
+      },
+
+      testFunctionSubclassOf: function () {
+        assert(Array.subclassOf(Object));
+        assert(!Object.subclassOf(Array));
+        assert(!Array.subclassOf(42));
+        assert(TypeError.subclass().subclassOf(Error));
+      },
+
+      //////////////////////////////////////////////////////////////////////////
+      // Error definitions tests
+      //////////////////////////////////////////////////////////////////////////
+
+      testErrorMeta: function () {
+        var E = TypeError.subclass(function () { this.x = 42; }, {y: 15});
+        var e = new E(1);
+        assertSame(e.message, '1');
+        assertSame(e.x, 42);
+        assertSame(e.y, 15);
+        assertSame(e.name, 'TypeError');
         E.__name__ = 'E';
-        var e = new E('yo');
-        assert(e instanceof Error, 'makeErrorClass instanceof Error');
-        assertSame(e.name, 'E', 'makeErrorClass name');
-        var D = makeErrorClass(E);
-        var d = new D(['hello', 'world']);
-        assert(d instanceof E, 'makeErrorClass derived instanceof parent');
-        assertSame(d.message, 'hello,world', 'makeErrorClass message');
-        assertSame(d.name, 'E', 'makeErorClass derived name');
-        var TE = makeErrorClass(TypeError);
-        assertSame((new TE()).name, 'TypeError', 'makeErrorClass default name');
+        assertSame(e.name, 'E');
       },
 
       testAbstract: function () {
         assertThrow(NotImplementedError, abstract, 'abstract');
-      },
-
-      testIsSubclass: function () {
-        var C = makeClass();
-        var D = makeSubclass(C);
-        var E = makeSubclass(D);
-        assert(isSubclass(E, C), 'isSubclass');
-        assert(!isSubclass(), 'isSubclass bad cls');
-        assert(!isSubclass(E), 'isSubclass bad base');
-        assert(isSubclass(E, Object), 'isSubclass Object');
-        assert(!isSubclass(E, Error), 'isSubclass false');
-      },
-
-      //////////////////////////////////////////////////////////////////////////
-      // Object methods tests
-      //////////////////////////////////////////////////////////////////////////
-
-      testSetProp: function () {
-        var o = {};
-        o.setProp('x', ak.DONT_DELETE, 42);
-        delete o.x;
-        assertSame(o.x, 42, 'setProp');
-      },
-
-      testSetNonEnumerable: function () {
-        var o = {};
-        o.setNonEnumerable('a', 42);
-        assertSame(o.a, 42, 'setNonEnumerable set');
-        assertEqual(items(o), [], 'setNonEnumerable non enumerable');
       },
 
       //////////////////////////////////////////////////////////////////////////
@@ -604,13 +622,13 @@
         assertThrow(TypeError, function () { equal([], undefined); });
       },
 
-      testFlatten: function () {
+      testArrayFlatten: function () {
         var flat = [1, '2', 3, [4, [5, [6, 7], 8, [], 9]]].flatten();
         var expect = [1, '2', 3, 4, 5, 6, 7, 8, 9];
         assertEqual(flat, expect, 'flatten');
       },
 
-      testIndex: function () {
+      testArrayIndex: function () {
         assertSame([1, 2, 3].index(4), -1, 'index returns -1 on not found');
         assertSame([1, 2, 3].index(1), 0, 'index returns correct index');
         assertSame([1, 2, 3].index(1, 1), -1, 'index honors start');
@@ -618,20 +636,11 @@
                    'index with custom __cmp__');
       },
 
-      testExtend: function () {
-        var a = [];
-        var b = [];
-        var three = [1, 2, 3];
+      ////////////////////////////////////////////////////////////////////////////
+      // String methods tests
+      ////////////////////////////////////////////////////////////////////////////
 
-        a.extend(three, 1);
-        assert(equal(a, [2, 3]), 'extend to an empty array');
-        a.extend(three, 1);
-        assert(equal(a, [2, 3, 2, 3]), 'extend to a non-empty array');
-        b.extend(three);
-        assert(equal(b, three), 'extend of an empty array');
-      },
-
-      testStartsWith: function () {
+      testStringStartsWith: function () {
         var str = 'string';
         assert(str.startsWith('str'), 'startsWith');
         assert(!str.startsWith('str1'), 'startsWith false');
@@ -640,32 +649,36 @@
         assert(!str.startsWith('tr', 1, 2), 'startsWith start close end');
       },
 
-      testTrim: function () {
+      testStringTrim: function () {
         assertSame(' hi   '.trim(), 'hi', 'trim hi');
         assertSame('\n \thello\nthere\t'.trim(), 'hello\nthere',
                    'trim hello there');
       },
 
-      testTrimLeft: function () {
+      testStringTrimLeft: function () {
         assertSame(' \t\n hi\n '.trimLeft(), 'hi\n ', 'trimLeft');
       },
 
-      testTrimRight: function () {
+      testStringTrimRight: function () {
         assertSame(' \t\n yo\n\nwuzzup \t '.trimRight(), ' \t\n yo\n\nwuzzup',
                    'trimRight');
       },
 
-      testLJust: function () {
+      testStringLJust: function () {
         assertSame('abc'.ljust(2), 'abc', 'ljust on bigger');
         assertSame('abc'.ljust(5), 'abc  ', 'ljust on smaller');
         assertSame('abc'.ljust(5, '\t'), 'abc\t\t', 'ljust with tab character');
       },
 
-      testRJust: function () {
+      testStringRJust: function () {
         assertSame('abc'.rjust(2), 'abc', 'rjust on bigger');
         assertSame('abc'.rjust(5), '  abc', 'rjust on smaller');
         assertSame('abc'.rjust(5, '\t'), '\t\tabc', 'rjust with tab character');
       },
+
+      ////////////////////////////////////////////////////////////////////////////
+      // Other tests
+      ////////////////////////////////////////////////////////////////////////////
 
       testDateCmp: function () {
         var str1 = 'Mon, 03 Aug 2009 14:49:29 GMT';
@@ -678,14 +691,6 @@
         assertSame(RegExp.escape('[].ab?c|de\\('),
                    '\\[\\]\\.ab\\?c\\|de\\\\\\(',
                    'RegExp.escape');
-      },
-
-      testFunctionDecorated: function () {
-        function f() { return 42; }
-        function g(func) { return function () { return func() + 1; }; }
-        function h(func) { return function () { return func() * 2; }; }
-        assertSame(f.decorated(g, h)(), 85);
-        assertSame(f.decorated()(), 42);
       },
 
       testObjectRepr: function () {
@@ -1155,7 +1160,7 @@
   invalidEnv.invalid = 'INVALID';
 
 
-  ak._testController = function () {};
+  ak._TestController = Controller.subclass();
 
 
   var renderingTests = [
@@ -1448,10 +1453,11 @@
     ['{% with "<>" as x %}{{ x }}{% endwith %}', {}, '<>'],
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
     ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
-    ['{% url ak._testController x y %}', {x: '&', y: '"'},
+    ['{% url ak._TestController x y %}', {x: '&', y: '"'},
      '/ak/%3C%3E/&/%22/'],
-    ['{% url ak._testController 1 2 as x %}{{ x }}', {}, '/ak/%3C%3E/1/2/'],
-    ['{% url ak._testController as x %}{{ x }}', {}, '']
+    ['{% url ak._TestController 1 2 as x %}{{ x }}', {}, '/ak/%3C%3E/1/2/'],
+    ['{% url ak._TestController as x %}{{ x }}', {}, ''],
+    ['{% url ak._TestController#page "a" "b" %}', {}, '/ak/%3C%3E/a/b/page/']
   ];
 
 
@@ -1535,7 +1541,9 @@
 
       testRendering: function () {
         var oldRootRoute = ak.rootRoute;
-        defineRoutes('<>/', [[[[ak._testController]]]]);
+        defineRoutes('<>/', [[[[ak._TestController,
+                                [['page/', ak._TestController.page('page')]]
+                               ]]]]);
         renderingTests.forEach(
           function (test) {
             assertSame((new Template(test[0],
@@ -1724,6 +1732,29 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
+  // http tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  var httpSuite = loadTests(
+    {
+      name: 'http',
+
+      testErrors: function () {
+        assertSame((new HttpError()).status, http.BAD_REQUEST);
+        assertSame((new NotFoundError()).message, 'Not found');
+      },
+
+      testResponses: function () {
+        var r = new ResponseRedirect('abc');
+        assertSame(r.content, '');
+        assertSame(r.status, http.FOUND);
+        assertSame(r.headers.Location, 'abc');
+        r = new ResponsePermanentRedirect('abc');
+        assertSame(r.status, http.MOVED_PERMANENTLY);
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
   // url tests
   //////////////////////////////////////////////////////////////////////////////
 
@@ -1797,25 +1828,29 @@
   // rest tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var ArgTestController = makeSubclass(
-    Controller,
+  var TestController = Controller.subclass(
     function (request, string) {
-      Controller.call(this, request);
       this._string = string;
     },
     {
       get: function () {
         return new Response(this._string);
+      },
+
+      getUpper: function () {
+        return new Response(this._string.toUpperCase());
+      },
+
+      handleMethod: function () {
+        return new Response(this.request.method);
       }
     });
 
 
-  var MethodTestController = makeSubclass(
-    Controller,
-    null,
+  var LengthController = TestController.subclass(
     {
-      handle: function () {
-        return new Response(this.request.method);
+      put: function () {
+        return new Response(this._string.length);
       }
     });
 
@@ -1829,11 +1864,33 @@
     {
       name: 'rest',
 
+      testRenderToResponse: function () {
+        ak.template.defaultEnv = clone(ak.template.defaultEnv);
+        ak.template.defaultEnv.load = function (name) {
+          return '{{' + name + '}}';
+        };
+        var headers = {};
+        var response = renderToResponse('x', {x: 42}, 1, headers);
+        assertSame(response.content, '42');
+        assertSame(response.status, 1);
+        assertSame(response.headers, headers);
+        ak.template.defaultEnv = ak.template.defaultEnv.__proto__;
+      },
+
+      testController: function () {
+        var C = Controller.subclass();
+        var P = C.page('Page');
+        C.__name__ = 'C';
+        assertSame(P.__name__, 'C#Page');
+      },
+
       testServe: function () {
-        var root = new Route(ArgTestController,
+        var root = new Route(TestController.page(''),
                              [
-                               ['method', MethodTestController],
-                               ['error', controlError]
+                               ['method', TestController.page('Method')],
+                               ['upper', TestController.page('Upper')],
+                               ['error', controlError],
+                               ['length', LengthController]
                              ]);
         assertSame(defaultServe({path: 'a/b'}, root).status, http.NOT_FOUND);
         var response = defaultServe({path: 'abc'}, root);
@@ -1841,32 +1898,39 @@
         assertSame(response.headers.Location, '/ak/abc/');
         assertThrow(ResolveError, function () { serve({path: 'abc'}, root); });
         assertSame(serve({path: 'abc/', method: 'get'}, root).content, 'abc');
-        assertSame(serve({path: 'abc/', method: 'put'}, root).status,
+        assertSame(defaultServe({path: 'abc/', method: 'put'}, root).status,
                    http.METHOD_NOT_ALLOWED);
         assertThrow(Error,
                     function () { defaultServe({path: 'abc/error'}, root); });
         assertSame(serve({path: 'abc/method', method: 'PUT'}, root).content,
                    'PUT');
+        assertSame(serve({path: 'abc/upper', method: 'get'}, root).content,
+                   'ABC');
+        assertSame(serve({path: 'abc/length', method: 'put'}, root).content,
+                   3);
+        assertSame(defaultServe({path: 'a/length', method: 'get'}, root).status,
+                   http.METHOD_NOT_ALLOWED);
       }
-
     });
 
   //////////////////////////////////////////////////////////////////////////////
   // suite
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.suite = new TestSuite([
-                            debugSuite,
-                            unittestSuite,
-                            coreSuite,
-                            baseSuite,
-                            utilsSuite,
-                            iterSuite,
-                            ioSuite,
-                            templateSuite,
-                            dictSuite,
-                            urlSuite,
-                            restSuite
-                          ]);
+  return new TestSuite(
+    [
+      debugSuite,
+      unittestSuite,
+      coreSuite,
+      baseSuite,
+      utilsSuite,
+      iterSuite,
+      ioSuite,
+      templateSuite,
+      dictSuite,
+      httpSuite,
+      urlSuite,
+      restSuite
+    ]);
 
-}})();
+})();

@@ -29,8 +29,7 @@
   ak.include('iter.js');
 
 
-  ak.Stream = ak.makeSubclass(
-    ak.Iterator,
+  ak.Stream = ak.Iterator.subclass(
     function () {
       this._strs = [];
     },

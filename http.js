@@ -29,15 +29,42 @@
   ak.include('base.js');
 
 
-  ak.NotFoundError = ak.makeErrorClass();
+  ak.HttpError = Error.subclass(
+    function (message, status/* = 400 */) {
+      this.status = status || ak.http.BAD_REQUEST;
+    });
+
+
+  ak.NotFoundError = ak.HttpError.subclass(
+    function (message/* = 'Not found' */) {
+      ak.HttpError.call(this, message, ak.http.NOT_FOUND);
+      this.message = message || 'Not found';
+    }
+  );
 
 
   // TODO add all standard error codes
   ak.http = {
     MOVED_PERMANENTLY: 301,
+    FOUND: 302,
+    BAD_REQUEST: 400,
     NOT_FOUND: 404,
     METHOD_NOT_ALLOWED: 405,
     INTERNAL_SERVER_ERROR: 500
   };
+
+
+  ak.ResponseRedirect = ak.Response.subclass(
+    function (location) {
+      ak.Response.call(this,
+                       '', ak.http.FOUND, {Location: location});
+    });
+
+
+  ak.ResponsePermanentRedirect = ak.Response.subclass(
+    function (location) {
+      ak.Response.call(this,
+                       '', ak.http.MOVED_PERMANENTLY, {Location: location});
+    });
 
 })();

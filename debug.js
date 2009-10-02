@@ -29,7 +29,7 @@
   ak.include('base.js');
 
 
-  ak.AssertionError = ak.makeErrorClass();
+  ak.AssertionError = Error.subclass();
 
 
   function prefix(msg) {

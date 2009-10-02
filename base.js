@@ -31,8 +31,43 @@
   ak.include('core.js');
 
   //////////////////////////////////////////////////////////////////////////////
+  // Object methods
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.setObjectProp(
+    Object.prototype, 'setProp', ak.DONT_ENUM,
+    function (name, attrs, value) {
+      return ak.setObjectProp(this, name, attrs, value);
+    });
+
+
+  Object.prototype.setProp(
+    'setNonEnumerable', ak.DONT_ENUM,
+    function (name, value) {
+      this.setProp(name, ak.DONT_ENUM, value);
+    });
+
+
+  Object.prototype.setNonEnumerable(
+    'instances',
+    function (constructor) {
+      this.__proto__ = constructor.prototype;
+      return this;
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
   // Free functions
   //////////////////////////////////////////////////////////////////////////////
+
+  ak.updateWithMode = function (self, mode, obj/*, ...  */) {
+    for (var i = 2; i < arguments.length; ++i) {
+      var o = arguments[i];
+      for (var key in o)
+        ak.setObjectProp(self, key, mode, o[key]);
+    }
+    return self;
+  };
+
 
   ak.global = this;
 
@@ -49,43 +84,41 @@
       package = package[component];
     }
     package[components[components.length - 1]] = this;
-    this.__name__ = name;
+    this.setNonEnumerable('__name__', name);
     if (version)
-      this.__version__ = version;
-  };
-
-  ak.Module.prototype = {
-    __repr__: function () {
-      return ('<' + this.__name__ +
-              (this.__version__ ? ' ' + this.__version__ : '') +
-              '>');
-    },
-
-    toString: function () {
-      return this.__repr__();
-    }
+      this.setNonEnumerable('__version__', version);
   };
 
 
-  ak.updateWithMode = function (self, mode, obj/*, ...  */) {
-    for (var i = 2; i < arguments.length; ++i) {
-      var o = arguments[i];
-      for (var key in o)
-        ak.setObjectProp(self, key, mode, o[key]);
-    }
-    return self;
-  };
+  ak.updateWithMode(
+    ak.Module.prototype, ak.DONT_ENUM,
+    {
+      __repr__: function () {
+        return ('<' + this.__name__ +
+                (this.__version__ ? ' ' + this.__version__ : '') +
+                '>');
+      },
+
+      toString: function () {
+        return this.__repr__();
+      }
+    });
+
+
+  ak.updateWithMode(
+    ak, ak.DONT_ENUM,
+    {
+      __name__: 'ak',
+      __version__: '0.1',
+      __repr__: ak.Module.prototype.__repr__,
+      toString: ak.Module.prototype.toString
+    });
 
 
   ak.update = function (self, obj/*, ... */) {
     Array.prototype.splice.call(arguments, 0, 1, self, ak.NONE);
     return ak.updateWithMode.apply(this, arguments);
   };
-
-
-  ak.__name__ = 'ak';
-  ak.__version__ = '0.1';
-  ak.update(ak, ak.Module.prototype);
 
 
   ak.updateTree = function (self, obj/*, ...*/) {
@@ -302,22 +335,23 @@
   ak.partial = function (func/*, args... */) {
     var args = Array.slice(arguments, 1);
     return function () {
-      return func.apply(this, args.slice().extend(arguments));
+      Array.prototype.unshift.apply(arguments, args);
+      return func.apply(this, arguments);
     };
   };
 
 
   ak.method = function (func) {
     return function (self/*, args... */) {
-      return func.apply(this, [this].extend(arguments));
+      Array.unshift(arguments, this);
+      return func.apply(this, arguments);
     };
   };
 
 
   ak.factory = function (constructor) {
     return function () {
-      var result = {};
-      result.__proto__ = constructor.prototype;
+      var result = {__proto__: constructor.prototype};
       constructor.apply(result, arguments);
       return result;
     };
@@ -325,134 +359,112 @@
 
 
   ak.nameFunctions = function (ns) {
+    var prefix = ns.__name__ ? ns.__name__ + '.' : '';
     for (var key in ns) {
       var x = ns[key];
-      if (typeof(x) == 'function' && x.__name__ === undefined) {
-        x.__name__ = ns.__name__ + '.' + key;
-        arguments.callee(x);
-      } else if (x instanceof ak.Module) {
+      if (typeof(x) == 'function' && !('__name__' in x)) {
+        x.setNonEnumerable('__name__', prefix + key);
         arguments.callee(x);
       }
     }
   };
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Function methods
+  //////////////////////////////////////////////////////////////////////////////
 
-  ak.makeClass = function(/* optional */constructor,
-                         /* optional */prototype) {
-    constructor = constructor || function () {};
-    if (prototype)
-      constructor.prototype = prototype;
-    constructor.prototype.constructor = constructor;
-    return constructor;
-  };
+  ak.updateWithMode(
+    Function.prototype, ak.DONT_ENUM,
+    {
+      decorate: function (/* decorators... */) {
+        var result = this;
+        for (var i = arguments.length - 1; i >= 0; --i) {
+          var decorator = arguments[i];
+          result = decorator(result);
+        }
+        return result;
+      },
+
+      wraps: function (func) {
+        this.prototype = func.prototype;
+        this.prototype.setNonEnumerable('constructor', this);
+        this.__proto__ = func.__proto__;
+        if ('__name__' in func)
+          this.__name__ = func.__name__;
+        return this;
+      },
+
+      subclass: function (/* [constructor,] prototype */) {
+        var self = this;
+        var constructor = (typeof(arguments[0]) == 'function'
+                           ? Array.shift(arguments)
+                           : (this === Object
+                              ? function () {}
+                              : function () { self.apply(this, arguments); }));
+        if (arguments[0])
+          constructor.prototype = arguments[0];
+        constructor.prototype.setNonEnumerable('constructor', constructor);
+        constructor.prototype.instances(this);
+        constructor.__proto__ = this.__proto__;
+        return constructor;
+      },
+
+      subclassOf: function (base) {
+        for (var prototype = this.prototype;
+             prototype;
+             prototype = prototype.__proto__)
+          if (prototype === base.prototype)
+            return true;
+        return false;
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Error definitions
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.ErrorMeta = Function.subclass(
+    {
+      subclass: function (/* arguments */) {
+        var constructor = Function.prototype.subclass.apply(this, arguments);
+        var result = function (message) {
+          Error.captureStackTrace(this);
+          if (arguments.length && !this.message)
+            this.message = message + '';
+          constructor.apply(this, arguments);
+        }.wraps(constructor);
+        result.prototype.__defineGetter__(
+          'name',
+          function () {
+            return this.constructor.__name__ || this.__proto__.name;
+          });
+        return result;
+      }
+    });
 
 
-  ak.makeSubclass = function(parent,
-                            /* optional */constructor,
-                            /* optional */prototype) {
-    constructor = (constructor ||
-                   function () { parent.apply(this, arguments); });
-    constructor = ak.makeClass(constructor, prototype);
-    constructor.prototype.__proto__ = parent.prototype;
-    return constructor;
-  };
+  [
+    Error,
+    EvalError,
+    RangeError,
+    ReferenceError,
+    SyntaxError,
+    TypeError,
+    URIError
+  ].forEach(function (constructor) { constructor.instances(ak.ErrorMeta); });
 
 
-  Error.stackTraceLimit = 1000;
-
-
-  ak.makeErrorClass = function (parent) {
-    // Error.apply doesn't work for unknown reasons
-    // so using ak.makeClass is impossible
-    var result = (parent
-                  ? function (message) { parent.call(this, message); }
-                  : function (message) {
-                    Error.captureStackTrace(this);
-                    this.message = message + '';
-                  });
-    result.prototype.__defineGetter__(
-      'name',
-      function () {
-        return this.constructor.__name__ || this.__proto__.name;
-      });
-    result.prototype.__proto__ = (parent || Error).prototype;
-    return result;
-  };
-
-
-  ak.NotImplementedError = ak.makeErrorClass();
-  ak.ValueError = ak.makeErrorClass();
+  ak.NotImplementedError = Error.subclass();
+  ak.ValueError = Error.subclass();
 
 
   ak.abstract = function () {
     throw new ak.NotImplementedError();
   };
 
-
-  ak.isSubclass = function (cls, base) {
-    if (typeof(cls) != 'function' || typeof(base) != 'function')
-      return false;
-    if (base === Object)
-      return true;
-    for (var prototype = cls.prototype;
-         prototype !== Object.prototype;
-         prototype = prototype.__proto__)
-      if (prototype === base.prototype)
-        return true;
-    return false;
-  };
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Object methods
-  //////////////////////////////////////////////////////////////////////////////
-
-  ak.setObjectProp(Object.prototype, 'setProp', ak.DONT_ENUM,
-                   function (name, attrs, value) {
-                     return ak.setObjectProp(this, name, attrs, value);
-                   });
-
-
-  Object.prototype.setProp('setNonEnumerable', ak.DONT_ENUM,
-                           function (name, value) {
-                             this.setProp(name, ak.DONT_ENUM, value);
-                           });
-
   //////////////////////////////////////////////////////////////////////////////
   // Array methods
   //////////////////////////////////////////////////////////////////////////////
-
-  [
-    'concat',
-    'every',
-    'filter',
-    'indexOf',
-    'forEach',
-    'join',
-    'lastIndexOf',
-    'map',
-    'pop',
-    'push',
-    'reverse',
-    'shift',
-    'slice',
-    'some',
-    'sort',
-    'splice',
-    'toString',
-    'unshift'
-  ].forEach(function (name) {
-              var func = Array.prototype[name];
-              Array.setNonEnumerable(name,
-                function (self/*, args... */) {
-                  var args = Array.prototype.slice.call(arguments, 1);
-                  return func.apply(self, args);
-                });
-            });
-
-
-  ak.map = Array.map;
-  ak.filter = Array.filter;
-
 
   function flattenArray(result, lst) {
     for (var i = 0; i < lst.length; ++i) {
@@ -464,6 +476,7 @@
     }
     return result;
   }
+
 
   ak.updateWithMode(
     Array.prototype, ak.DONT_ENUM,
@@ -497,14 +510,39 @@
           if (ak.equal(this[i], value))
             return i;
         return -1;
-      },
-
-      extend: function (lst, skip) {
-        for (var i = skip || 0; i < lst.length; ++i)
-          this.push(lst[i]);
-        return this;
       }
     });
+
+
+  [
+    'concat',
+    'every',
+    'filter',
+    'flatten',
+    'index',
+    'indexOf',
+    'forEach',
+    'join',
+    'lastIndexOf',
+    'map',
+    'pop',
+    'push',
+    'reverse',
+    'shift',
+    'slice',
+    'some',
+    'sort',
+    'splice',
+    'toString',
+    'unshift'
+  ].forEach(function (name) {
+              var func = Array.prototype[name];
+              Array.setNonEnumerable(name,
+                function (self/*, args... */) {
+                  var args = Array.prototype.slice.call(arguments, 1);
+                  return func.apply(self, args);
+                });
+            });
 
   //////////////////////////////////////////////////////////////////////////////
   // String methods
@@ -572,21 +610,6 @@
   RegExp.escape = function (string) {
     return string.replace(specialsRegExp, '\\$&');
   };
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Function decorating
-  //////////////////////////////////////////////////////////////////////////////
-
-  Function.prototype.setNonEnumerable(
-    'decorated',
-    function (/* decorators... */) {
-      var result = this;
-      for (var i = arguments.length - 1; i >= 0; --i) {
-        var decorator = arguments[i];
-        result = decorator(result);
-      }
-      return result;
-    });
 
   //////////////////////////////////////////////////////////////////////////////
   // Query comparison for equality

@@ -181,6 +181,8 @@
   ak._main = function (data) {
     var request = eval('(' + data + ')');
     request.data = ak._data;
+    request.user = ak._user;
+    request.fullPath = '/' + ak.appName + '/' + request.path;
     request.files = {};
     // request.fileNames.length and ak._files.length are guaranteed to be equal
     for (var i = 0; i < ak._files.length; ++i)

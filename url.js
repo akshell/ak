@@ -31,8 +31,8 @@
   ak.include('http.js');
 
 
-  ak.ResolveError = ak.makeErrorClass(ak.NotFoundError);
-  ak.ReverseError = ak.makeErrorClass();
+  ak.ResolveError = ak.NotFoundError.subclass();
+  ak.ReverseError = Error.subclass();
 
 
   function makePutByRegExp(re) {
@@ -50,7 +50,7 @@
   var defaultPattern = /([^\/]*)\//;
 
 
-  ak.Route = ak.makeClass(
+  ak.Route = Object.subclass(
     function (/* [pattern,] [controller,] [put,] [children] */) {
       if (typeof(arguments[0]) == 'string' || arguments[0] instanceof RegExp)
         this._pattern = Array.shift(arguments);
@@ -155,16 +155,16 @@
         var dict = this._reverseDict.get(controller);
         if (!dict)
           throw new ak.ReverseError(
-            'Controller ' + controller + ' is not found');
+            'Controller ' + ak.repr(controller) + ' is not found');
         var count = arguments.length - 1;
         var route = dict[count];
         if (route === undefined)
           throw new ak.ReverseError(
-            'Controller ' + controller + ' does not accept ' +
+            'Controller ' + ak.repr(controller) + ' does not accept ' +
             count + ' arguments');
         if (route === null)
           throw new ak.ReverseError(
-            'Reverse abibuity for controller ' + controller +
+            'Reverse ambiguity for controller ' + ak.repr(controller) +
             ' with ' + count + ' arguments');
         var parts = [];
         route._climb(this, Array.slice(arguments, 1), parts);

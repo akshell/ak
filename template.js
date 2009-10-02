@@ -32,20 +32,20 @@
   ak.include('utils.js');
   ak.include('url.js');
 
-  var $ = ak.template = new ak.Module('ak.template', '0.1');
+  var $ = new ak.Module('ak.template', '0.1');
 
   //////////////////////////////////////////////////////////////////////////////
   // Errors
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.TemplateSyntaxError = ak.makeErrorClass();
-  ak.TemplateDoesNotExist = ak.makeErrorClass();
+  ak.TemplateSyntaxError = Error.subclass();
+  ak.TemplateDoesNotExist = Error.subclass();
 
   //////////////////////////////////////////////////////////////////////////////
   // Wrap
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Wrap = ak.makeClass(
+  $.Wrap = Object.subclass(
     function (raw, safe/* = false */) {
       this.raw = raw;
       this.safe = safe || false;
@@ -76,7 +76,7 @@
   // Filter
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Filter = ak.makeClass(
+  $.Filter = Object.subclass(
     function (func, traits/* = {} */) {
       this._func = func;
       this._traits = traits || {};
@@ -102,15 +102,13 @@
   // Exprs
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Expr = ak.makeClass(
-    null,
+  $.Expr = Object.subclass(
     {
       resolve: ak.abstract
     });
 
 
-  var Variable = ak.makeSubclass(
-    $.Expr,
+  var Variable = $.Expr.subclass(
     function (lookups) {
       this._lookups = lookups;
     },
@@ -130,8 +128,7 @@
     });
 
 
-  var Constant = ak.makeSubclass(
-    $.Expr,
+  var Constant = $.Expr.subclass(
     function (value) {
       this._value = new $.Wrap(value, true);
     },
@@ -140,8 +137,7 @@
     });
 
 
-  var FilterExpr = ak.makeSubclass(
-    $.Expr,
+  var FilterExpr = $.Expr.subclass(
     function (filter, expr, arg) {
       this._filter = filter;
       this._expr = expr;
@@ -281,15 +277,13 @@
   // Nodes
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Node = ak.makeClass(
-    null,
+  $.Node = Object.subclass(
     {
       render: ak.abstract
     });
 
 
-  var GroupNode = ak.makeSubclass(
-    $.Node,
+  var GroupNode = $.Node.subclass(
     function (subnodes) {
       this._subnodes = subnodes;
     },
@@ -303,8 +297,7 @@
     });
 
 
-  var TextNode = ak.makeSubclass(
-    $.Node,
+  var TextNode = $.Node.subclass(
     function (string) {
       this._string = string;
     },
@@ -313,8 +306,7 @@
     });
 
 
-  var ExprNode = ak.makeSubclass(
-    $.Node,
+  var ExprNode = $.Node.subclass(
     function (expr, env) {
       this._expr = expr;
       this._env = env;
@@ -332,7 +324,7 @@
   // Token
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Token = ak.makeClass(
+  $.Token = Object.subclass(
     function (kind, contents) {
       this.kind = kind;
       this.contents = contents;
@@ -373,7 +365,7 @@
   // Parser
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Parser = ak.makeClass(
+  $.Parser = Object.subclass(
     function (string, store, env/* = ak.template.defaultEnv */) {
       this._tokens = tokenize(string);
       this.store = store;
@@ -434,7 +426,7 @@
   // Template and getTemplate
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.Template = ak.makeClass(
+  ak.Template = Object.subclass(
     function (string,
               name/* = '<Unknown Template>' */,
               env/* = ak.template.defaultEnv */) {
@@ -843,9 +835,7 @@
   $.defaultTags = {};
 
 
-  var CommentNode = ak.makeSubclass(
-    $.Node,
-    null,
+  var CommentNode = $.Node.subclass(
     {
       render: function (context) {
         return '';
@@ -858,8 +848,7 @@
   };
 
 
-  var ForNode = ak.makeSubclass(
-    $.Node,
+  var ForNode = $.Node.subclass(
     function (name, expr, reversed, bodyNode, emptyNode) {
       this._name = name;
       this._expr = expr;
@@ -912,8 +901,7 @@
   };
 
 
-  var ExtendsNode = ak.makeSubclass(
-    $.Node,
+  var ExtendsNode = $.Node.subclass(
     function (expr, blocks, env) {
       this._expr = expr;
       this._blocks = blocks;
@@ -948,8 +936,7 @@
   };
 
 
-  var BlockNode = ak.makeSubclass(
-    $.Node,
+  var BlockNode = $.Node.subclass(
     function (name, node, store) {
       store.blocks[name] = this;
       this._name = name;
@@ -983,8 +970,7 @@
   };
 
 
-  var CycleNode = ak.makeSubclass(
-    $.Node,
+  var CycleNode = $.Node.subclass(
     function (exprs, env) {
       this._itr = ak.cycle(exprs);
       this._env = env;
@@ -1032,9 +1018,7 @@
   };
 
 
-  var DebugNode = ak.makeSubclass(
-    $.Node,
-    null,
+  var DebugNode = $.Node.subclass(
     {
       render: function (context) {
         return (new $.Wrap(ak.repr(context))) + '';
@@ -1046,8 +1030,7 @@
   };
 
 
-  var FilterNode = ak.makeSubclass(
-    $.Node,
+  var FilterNode = $.Node.subclass(
     function (expr, node, env) {
       this._expr = expr;
       this._node = node;
@@ -1067,8 +1050,7 @@
   };
 
 
-  var FirstOfNode = ak.makeSubclass(
-    $.Node,
+  var FirstOfNode = $.Node.subclass(
     function (exprs) {
       this._exprs = exprs;
     },
@@ -1092,8 +1074,7 @@
   };
 
 
-  var IfChangedNode = ak.makeSubclass(
-    $.Node,
+  var IfChangedNode = $.Node.subclass(
     function (exprs, thenNode, elseNode) {
       this._exprs = exprs;
       this._thenNode = thenNode;
@@ -1132,8 +1113,7 @@
   };
 
 
-  var IncludeNode = ak.makeSubclass(
-    $.Node,
+  var IncludeNode = $.Node.subclass(
     function (expr, env) {
       this._expr = expr;
       this._env = env;
@@ -1167,8 +1147,7 @@
   };
 
 
-  var RegroupNode = ak.makeSubclass(
-    $.Node,
+  var RegroupNode = $.Node.subclass(
     function (targetExpr, keyExpr, name) {
       this._targetExpr = targetExpr;
       this._keyExpr = keyExpr;
@@ -1213,8 +1192,7 @@
   };
 
 
-  var SpacelessNode = ak.makeSubclass(
-    $.Node,
+  var SpacelessNode = $.Node.subclass(
     function (node) {
       this._node = node;
     },
@@ -1254,8 +1232,7 @@
   };
 
 
-  var WidthRatioNode = ak.makeSubclass(
-    $.Node,
+  var WidthRatioNode = $.Node.subclass(
     function (currExpr, maxExpr, maxWidthExpr) {
       this._currExpr = currExpr;
       this._maxExpr = maxExpr;
@@ -1282,8 +1259,7 @@
   };
 
 
-  var WithNode = ak.makeSubclass(
-    $.Node,
+  var WithNode = $.Node.subclass(
     function (expr, name, node) {
       this._expr = expr;
       this._name = name;
@@ -1311,8 +1287,7 @@
   };
 
 
-  var URLNode = ak.makeSubclass(
-    $.Node,
+  var URLNode = $.Node.subclass(
     function (controller, argExprs, as) {
       this._controller = controller;
       this._argExprs = argExprs;
@@ -1355,7 +1330,8 @@
     } else {
       exprStrings = args.slice(2);
     }
-    var bits = args[1].split('.');
+    var controllerAndPage = args[1].split('#', 2);
+    var bits = controllerAndPage[0].split('.');
     var object = ak.global;
     for (var i = 0; i < bits.length; ++i) {
       object = object[bits[i]];
@@ -1363,6 +1339,8 @@
         throw new ak.TemplateSyntaxError(
           'Controller ' + args[1] + ' does not exist');
     }
+    if (controllerAndPage[1])
+      object = object.page(controllerAndPage[1]);
     return new URLNode(object, parser.makeExprs(exprStrings), as);
   };
 
@@ -1370,7 +1348,7 @@
   // if tag
   //////////////////////////////////////////////////////////////////////////////
 
-  var ExprToken = ak.makeClass(
+  var ExprToken = Object.subclass(
     function (kind, value, string, pos, /* optional */expr) {
       this.kind = kind;
       this.value = value;
@@ -1428,8 +1406,7 @@
   }
 
 
-  var Binary = ak.makeSubclass(
-    $.Expr,
+  var Binary = $.Expr.subclass(
     function (left, right, func) {
       this._left = left;
       this._right = right;
@@ -1443,8 +1420,7 @@
     });
 
 
-  var Unary = ak.makeSubclass(
-    $.Expr,
+  var Unary = $.Expr.subclass(
     function (arg, func) {
       this._arg = arg;
       this._func = func;
@@ -1577,8 +1553,7 @@
   }
 
 
-  var IfNode = ak.makeSubclass(
-    $.Node,
+  var IfNode = $.Node.subclass(
     function (expr, thenNode, /* optional */elseNode) {
       this._expr = expr;
       this._thenNode = thenNode;
@@ -1620,5 +1595,11 @@
     load: $.loadFromCode,
     loadDir: '/templates' // loadFromCode specific
   };
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Epilogue
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.nameFunctions($);
 
 })();
