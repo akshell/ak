@@ -351,9 +351,7 @@
 
   ak.factory = function (constructor) {
     return function () {
-      var result = {__proto__: constructor.prototype};
-      constructor.apply(result, arguments);
-      return result;
+      return ak.construct(constructor, arguments);
     };
   };
 
@@ -450,12 +448,13 @@
     ReferenceError,
     SyntaxError,
     TypeError,
-    URIError
+    URIError,
+    ak.BaseError
   ].forEach(function (constructor) { constructor.instances(ak.ErrorMeta); });
 
 
-  ak.NotImplementedError = Error.subclass();
-  ak.ValueError = Error.subclass();
+  ak.NotImplementedError = ak.BaseError.subclass();
+  ak.ValueError = ak.BaseError.subclass();
 
 
   ak.abstract = function () {
@@ -612,10 +611,10 @@
   };
 
   //////////////////////////////////////////////////////////////////////////////
-  // Query comparison for equality
+  // Rel comparison for equality
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.Query.prototype.setNonEnumerable(
+  ak.Rel.prototype.setNonEnumerable(
     '__eq__',
     function (other) {
       if (!ak.equal(this.length, other.length))

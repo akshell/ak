@@ -29,7 +29,7 @@
   ak.include('base.js');
 
 
-  ak.HttpError = Error.subclass(
+  ak.HttpError = ak.BaseError.subclass(
     function (message, status/* = 400 */) {
       this.status = status || ak.http.BAD_REQUEST;
     });
@@ -103,19 +103,5 @@
     INSUFFICIENT_STORAGE: 507,
     NOT_EXTENDED: 510
   };
-
-
-  ak.ResponseRedirect = ak.Response.subclass(
-    function (location) {
-      ak.Response.call(this,
-                       '', ak.http.FOUND, {Location: location});
-    });
-
-
-  ak.ResponsePermanentRedirect = ak.Response.subclass(
-    function (location) {
-      ak.Response.call(this,
-                       '', ak.http.MOVED_PERMANENTLY, {Location: location});
-    });
 
 })();

@@ -32,7 +32,7 @@
 
 
   ak.ResolveError = ak.NotFoundError.subclass();
-  ak.ReverseError = Error.subclass();
+  ak.ReverseError = ak.BaseError.subclass();
 
 
   function makePutByRegExp(re) {
@@ -75,7 +75,7 @@
       _addChild: function (child) {
         if (!(child instanceof ak.Route)) {
           if (child instanceof Array)
-            child = ak.factory(ak.Route).apply(ak.global, child);
+            child = ak.construct(ak.Route, child);
           else
             throw new Error('Route child could be either Route or Array');
         }
@@ -174,7 +174,7 @@
 
 
   ak.defineRoutes = function (/* arguments... */) {
-    ak.rootRoute = ak.factory(ak.Route).apply(ak.global, arguments);
+    ak.rootRoute = ak.construct(ak.Route, arguments);
   };
 
 

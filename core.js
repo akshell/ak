@@ -34,58 +34,76 @@
   ak.DONT_DELETE = 1 << 2;
 
 
-  // SubRel is inherited from Query
-  ak.SubRel.prototype.__proto__ = ak.Query.prototype;
+  // Selection is inherited from Rel
+  ak.Selection.prototype.__proto__ = ak.Rel.prototype;
 
 
-  function publish(constructor, name, mode/* = ak.NONE */) {
+  function publishMethod(constructor, name, mode/* = ak.NONE */) {
     ak._setObjectProp(constructor.prototype,
                       name,
                       mode || ak.NONE,
                       constructor.prototype['_' + name]);
   }
 
-  publish(ak.AK, 'setObjectProp');
-  publish(ak.AK, 'compile');
-  publish(ak.AK, 'readCode');
-  publish(ak.AK, 'hash');
-  publish(ak.Script, 'run');
-  publish(ak.App, 'call');
-  publish(ak.Type, 'int');
-  publish(ak.Type, 'serial');
-  publish(ak.Type, 'default');
-  publish(ak.Type, 'unique');
-  publish(ak.Type, 'foreign');
-  publish(ak.Type, 'check');
-  publish(ak.Query, 'perform', ak.DONT_ENUM);
-  publish(ak.Query, 'only', ak.DONT_ENUM);
-  publish(ak.Query, 'by', ak.DONT_ENUM);
-  publish(ak.SubRel, 'update', ak.DONT_ENUM);
-  publish(ak.SubRel, 'del', ak.DONT_ENUM);
-  publish(ak.Constrs, 'unique');
-  publish(ak.Constrs, 'foreign');
-  publish(ak.Constrs, 'check');
-  publish(ak.DB, 'query');
-  publish(ak.DB, 'createRel');
-  publish(ak.DB, 'dropRels');
-  publish(ak.Rel, 'insert');
-  publish(ak.Rel, 'drop');
-  publish(ak.Rel, 'all');
-  publish(ak.Rel, 'getInts');
-  publish(ak.Rel, 'getSerials');
-  publish(ak.Rel, 'getDefaults');
-  publish(ak.Rel, 'getUniques');
-  publish(ak.Rel, 'getForeigns');
-  publish(ak.Data, 'toString');
-  publish(ak.FS, 'read');
-  publish(ak.FS, 'list');
-  publish(ak.FS, 'exists');
-  publish(ak.FS, 'isDir');
-  publish(ak.FS, 'isFile');
-  publish(ak.FS, 'makeDir');
-  publish(ak.FS, 'write');
-  publish(ak.FS, 'rename');
-  publish(ak.FS, 'copyFile');
+  publishMethod(ak.Script, 'run');
+  publishMethod(ak.Type, 'integer');
+  publishMethod(ak.Type, 'serial');
+  publishMethod(ak.Type, 'default');
+  publishMethod(ak.Type, 'unique');
+  publishMethod(ak.Type, 'foreign');
+  publishMethod(ak.Type, 'check');
+  publishMethod(ak.Rel, 'perform', ak.DONT_ENUM);
+  publishMethod(ak.Rel, 'only', ak.DONT_ENUM);
+  publishMethod(ak.Rel, 'by', ak.DONT_ENUM);
+  publishMethod(ak.Selection, 'update', ak.DONT_ENUM);
+  publishMethod(ak.Selection, 'del', ak.DONT_ENUM);
+  publishMethod(ak.RelVar, 'create');
+  publishMethod(ak.RelVar, 'insert');
+  publishMethod(ak.RelVar, 'drop');
+  publishMethod(ak.RelVar, 'all');
+  publishMethod(ak.RelVar, 'getInts');
+  publishMethod(ak.RelVar, 'getSerials');
+  publishMethod(ak.RelVar, 'getDefaults');
+  publishMethod(ak.RelVar, 'getUniques');
+  publishMethod(ak.RelVar, 'getForeigns');
+  publishMethod(ak.Data, 'toString');
+
+
+  function publishFunction(object,
+                           name,
+                           owner/* = object */) {
+    var func = object['_' + name];
+    (owner || object)[name] = function (/* arguments... */) {
+      return func.apply(object, arguments);
+    };
+  }
+
+  publishFunction(ak, 'setObjectProp');
+  publishFunction(ak, 'readCode');
+  publishFunction(ak, 'request');
+  publishFunction(ak, 'hash');
+  publishFunction(ak, 'construct');
+  publishFunction(ak.fs, 'read');
+  publishFunction(ak.fs, 'list');
+  publishFunction(ak.fs, 'exists');
+  publishFunction(ak.fs, 'isDir');
+  publishFunction(ak.fs, 'isFile');
+  publishFunction(ak.fs, 'makeDir');
+  publishFunction(ak.fs, 'write');
+  publishFunction(ak.fs, 'rename');
+  publishFunction(ak.fs, 'copyFile');
+  publishFunction(ak._dbMediator, 'query', ak);
+  publishFunction(ak._dbMediator, 'dropRelVars', ak);
+  publishFunction(ak._dbMediator, 'unique', ak);
+  publishFunction(ak._dbMediator, 'foreign', ak);
+  publishFunction(ak._dbMediator, 'check', ak);
+
+
+  ak.number = ak._dbMediator.number;
+  ak.string = ak._dbMediator.string;
+  ak.bool = ak._dbMediator.bool;
+  ak.boolean_ = ak.bool;
+  ak.date = ak._dbMediator.date;
 
 
   ak.appName = ak._appName;
@@ -106,7 +124,7 @@
 
 
   ak.setObjectProp(
-    ak.Query.prototype, 'where', ak.DONT_ENUM,
+    ak.Rel.prototype, 'where', ak.DONT_ENUM,
     function (/* arguments... */) {
       if (typeof(arguments[0]) != 'object')
         return this._where.apply(this, arguments);
@@ -123,7 +141,7 @@
 
 
   ak.setObjectProp(
-    ak.Query.prototype, 'field', ak.DONT_ENUM,
+    ak.Rel.prototype, 'field', ak.DONT_ENUM,
     function (name) {
       var query = this.only(name);
       var result = [];
@@ -134,7 +152,7 @@
 
 
   ak.setObjectProp(
-    ak.SubRel.prototype, 'set', ak.DONT_ENUM,
+    ak.Selection.prototype, 'set', ak.DONT_ENUM,
     function (obj) {
       var args = [{}];
       var index = 0;
@@ -146,19 +164,19 @@
     });
 
 
-  function makeRelDelegation(func_name) {
-    ak.Rel.prototype[func_name] = function (/* arguments... */) {
-      return ak.SubRel.prototype[func_name].apply(this.all(), arguments);
+  function makeRelVarDelegation(func_name) {
+    ak.RelVar.prototype[func_name] = function (/* arguments... */) {
+      return ak.Selection.prototype[func_name].apply(this.all(), arguments);
     };
   }
 
-  makeRelDelegation('only');
-  makeRelDelegation('by');
-  makeRelDelegation('update');
-  makeRelDelegation('del');
-  makeRelDelegation('where');
-  makeRelDelegation('field');
-  makeRelDelegation('set');
+  makeRelVarDelegation('only');
+  makeRelVarDelegation('by');
+  makeRelVarDelegation('update');
+  makeRelVarDelegation('del');
+  makeRelVarDelegation('where');
+  makeRelVarDelegation('field');
+  makeRelVarDelegation('set');
 
 
   ak.TempFile.prototype.read = function () {

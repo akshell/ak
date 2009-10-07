@@ -245,10 +245,10 @@
 
       setUp: function () {
         this._clean();
-        db.createRel('R', {'s': types.string, 'n': types.number});
-        rels.R.insert({s: 'a', n: 1});
-        rels.R.insert({s: 'b', n: 2});
-        rels.R.insert({s: 'c', n: 3});
+        db.RV.create({s: string, n: number});
+        db.RV.insert({s: 'a', n: 1});
+        db.RV.insert({s: 'b', n: 2});
+        db.RV.insert({s: 'c', n: 3});
       },
 
       tearDown: function () {
@@ -257,7 +257,7 @@
 
       _clean: function () {
         fs.list('').forEach(fs.remove);
-        db.dropRels(keys(rels));
+        dropRelVars(keys(db));
       },
 
       testRemove: function () {
@@ -271,23 +271,23 @@
       },
 
       testWhere: function () {
-        var q = rels.R.where('n % 2 == 1').by('n');
+        var q = db.RV.where('n % 2 == 1').by('n');
         assertEqual(q, [{s: 'a', n: 1}, {n: 3, s: 'c'}]);
         assertEqual(q, q);
         assert(!equal(q, [null, 42]));
         assert(!equal(q, [{s: 'a', n: 1}, {n: 4, s: 'c'}]));
         assert(!equal(q, [{s: 'a', n: 1}]));
-        assertEqual(rels.R.where({n: 2}), [{s: 'b', n: 2}]);
-        assertSame(rels.R.where({n: 1, s: 'a'})[0].n, 1);
+        assertEqual(db.RV.where({n: 2}), [{s: 'b', n: 2}]);
+        assertSame(db.RV.where({n: 1, s: 'a'})[0].n, 1);
       },
 
       testField: function () {
-        assertEqual(rels.R.by('n').field('n'), [1, 2, 3], 'Query field');
+        assertEqual(db.RV.by('n').field('n'), [1, 2, 3]);
       },
 
       testSet: function () {
-        rels.R.where('n == 1 || s == "c"').set({s: '!'});
-        assertEqual(rels.R.by('n').field('s'), ['!', 'b', '!'], 'SubRel set');
+        db.RV.where('n == 1 || s == "c"').set({s: '!'});
+        assertEqual(db.RV.by('n').field('s'), ['!', 'b', '!']);
       }
     });
 
@@ -1742,15 +1742,6 @@
       testErrors: function () {
         assertSame((new HttpError()).status, http.BAD_REQUEST);
         assertSame((new NotFoundError()).message, 'Not found');
-      },
-
-      testResponses: function () {
-        var r = new ResponseRedirect('abc');
-        assertSame(r.content, '');
-        assertSame(r.status, http.FOUND);
-        assertSame(r.headers.Location, 'abc');
-        r = new ResponsePermanentRedirect('abc');
-        assertSame(r.status, http.MOVED_PERMANENTLY);
       }
     });
 
@@ -1831,14 +1822,15 @@
   var TestController = Controller.subclass(
     function (request, string) {
       this._string = string;
+      this.args = [string];
     },
     {
       get: function () {
         return new Response(this._string);
       },
 
-      getUpper: function () {
-        return new Response(this._string.toUpperCase());
+      getUpper: function (string) {
+        return new Response(string.toUpperCase());
       },
 
       handleMethod: function () {
@@ -1875,6 +1867,39 @@
         assertSame(response.status, 1);
         assertSame(response.headers, headers);
         ak.template.defaultEnv = ak.template.defaultEnv.__proto__;
+      },
+
+      testRedirect: function () {
+        var oldRootRoute = ak.rootRoute;
+        function f () {}
+        defineRoutes(f);
+        var response = redirect('xyz');
+        assertSame(response.content, '');
+        assertSame(response.status, http.FOUND);
+        assertSame(response.headers.Location, 'xyz');
+        assertSame(redirect(f, 'abc').headers.Location, '/ak/abc/');
+        ak.rootRoute = oldRootRoute;
+      },
+
+      testGet: function () {
+        db.RV.create({x: number});
+        db.RV.insert({x: 1});
+        db.RV.insert({x: 2});
+        db.RV.insert({x: 3});
+        assertThrow(MultipleTuplesError,
+                    function () { db.RV.get('x % 2 == 1'); });
+        assertThrow(TupleNotFoundError,
+                    function () { db.RV.get({x: 4}); });
+        assertSame(db.RV.get('x % 2 == 0').x, 2);
+        assertSame(query('RV').get('x > 2').x, 3);
+        db.RV.get({x: 1}).del();
+        assertEqual(db.RV.by('x').field('x'), [2, 3]);
+        db.RV.get({x: 3}).set({x: 4});
+        assertEqual(db.RV.by('x').field('x'), [2, 4]);
+        db.RV.get({x: 2}).update({x: '$'}, 42);
+        assertEqual(db.RV.by('x').field('x'), [4, 42]);
+        db.RV.drop();
+
       },
 
       testController: function () {

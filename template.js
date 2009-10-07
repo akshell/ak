@@ -38,8 +38,8 @@
   // Errors
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.TemplateSyntaxError = Error.subclass();
-  ak.TemplateDoesNotExist = Error.subclass();
+  ak.TemplateSyntaxError = ak.BaseError.subclass();
+  ak.TemplateDoesNotExist = ak.BaseError.subclass();
 
   //////////////////////////////////////////////////////////////////////////////
   // Wrap
@@ -435,8 +435,8 @@
       this._name = name || '<Unknown Template>';
     },
     {
-      render: function (context) {
-        return this._root.render(context);
+      render: function (context/* = {} */) {
+        return this._root.render(context || {});
       }
     });
 
