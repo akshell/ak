@@ -192,7 +192,7 @@
   };
 
 
-  ak.rootPrefix = '/' + ak.appName + '/';
+  ak.rootPrefix = '/' + ak.app.name + '/';
 
 
   ak.reverse = function (/* arguments... */) {

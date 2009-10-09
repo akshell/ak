@@ -97,6 +97,7 @@
   publishFunction(ak._dbMediator, 'unique', ak);
   publishFunction(ak._dbMediator, 'foreign', ak);
   publishFunction(ak._dbMediator, 'check', ak);
+  publishFunction(ak._dbMediator, 'describeApp', ak);
 
 
   ak.number = ak._dbMediator.number;
@@ -104,9 +105,6 @@
   ak.bool = ak._dbMediator.bool;
   ak.boolean_ = ak.bool;
   ak.date = ak._dbMediator.date;
-
-
-  ak.appName = ak._appName;
 
 
   // Dates should be in UTC on the server
@@ -200,13 +198,13 @@
     var request = eval('(' + data + ')');
     request.data = ak._data;
     request.user = ak._user;
-    request.fullPath = '/' + ak.appName + '/' + request.path;
+    request.fullPath = '/' + ak.app.name + '/' + request.path;
     request.files = {};
     // request.fileNames.length and ak._files.length are guaranteed to be equal
     for (var i = 0; i < ak._files.length; ++i)
       request.files[request.fileNames[i]] = ak._files[i];
     delete request.fileNames;
-    request.requester = ak._requesterAppName;
+    request.issuer = ak._issuer;
 
     var response = __main__(request);
     var headerLines = [];
