@@ -299,26 +299,24 @@
       testRequest: function() {
         var oldRequest = ak._request;
         ak._request = testRequest;
-        var response = ak.request('method', {data: '201\n'});
+        var response = request('method', {data: '201\n'});
         assertSame(response.status, 201);
         assertSame(response.content, '"GET"');
         assertEqual(items(response.headers), []);
-        response = ak.request('post', {data: '200\n', post: 'hi'});
+        response = request('post', {data: '200\n', post: 'hi'});
         assertSame(response.content, '"hi"');
-        response = ak.request('get', {data: '200\n'});
+        response = request('get', {data: '200\n'});
         assertSame(response.content, '{}');
-        response = ak.request('fileNames',
-                              {data: '200\n',
-                               files: {f1: 'file1', f2: 'file2'}});
+        response = request('fileNames',
+                           {data: '200\n',
+                            files: {f1: 'file1', f2: 'file2'}});
         assertSame(response.content, '["f1", "f2"]\nfile1\nfile2');
-        response = ak.request('headers', {data: '200\na: b\nc:  d\n'});
+        response = request('headers', {data: '200\na: b\nc:  d\n'});
         assertEqual(items(response.headers), [['a', 'b'], ['c', ' d']]);
-        assertThrow(ak.AppError,
-                    function () { ak.request('', {}); });
-        assertThrow(ak.AppError,
-                    function () { ak.request('', {data: '!\n'}); });
-        assertThrow(ak.AppError,
-                    function () { ak.request('', {data: '200\na:b\n'}); });
+        assertThrow(AppError, function () { request('', {}); });
+        assertThrow(AppError, function () { request('', {data: '!\n'}); });
+        assertThrow(AppError,
+                    function () { request('', {data: '200\na:b\n'}); });
         ak._request = oldRequest;
       }
     });
@@ -337,7 +335,7 @@
 
       testObjectSetProp: function () {
         var o = {};
-        o.setProp('x', ak.DONT_DELETE, 42);
+        o.setProp('x', DONT_DELETE, 42);
         delete o.x;
         assertSame(o.x, 42, 'setProp');
       },
@@ -375,7 +373,7 @@
       },
 
       testUpdateWithMode: function () {
-        var o = updateWithMode({}, ak.DONT_ENUM, {a: 1});
+        var o = updateWithMode({}, DONT_ENUM, {a: 1});
         assertSame(o.a, 1, 'updateWithMode set');
         assertSame(repr(o), '{}', 'updateWithMode not enumerable');
       },
@@ -1898,8 +1896,8 @@
       name: 'rest',
 
       testRenderToResponse: function () {
-        ak.template.defaultEnv = clone(ak.template.defaultEnv);
-        ak.template.defaultEnv.load = function (name) {
+        template.defaultEnv = clone(template.defaultEnv);
+        template.defaultEnv.load = function (name) {
           return '{{' + name + '}}';
         };
         var headers = {};
@@ -1907,7 +1905,7 @@
         assertSame(response.content, '42');
         assertSame(response.status, 1);
         assertSame(response.headers, headers);
-        ak.template.defaultEnv = ak.template.defaultEnv.__proto__;
+        template.defaultEnv = template.defaultEnv.__proto__;
       },
 
       testRedirect: function () {
