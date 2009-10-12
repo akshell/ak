@@ -449,7 +449,8 @@
     SyntaxError,
     TypeError,
     URIError,
-    ak.BaseError
+    ak.BaseError,
+    ak.UsageError
   ].forEach(function (constructor) { constructor.instances(ak.ErrorMeta); });
 
 

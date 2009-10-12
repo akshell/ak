@@ -48,10 +48,9 @@
                       constructor.prototype['_' + name]);
   }
 
-  publishMethod(ak.Script, 'run');
+  ak.Type.prototype.default_ = ak.Type.prototype._default;
   publishMethod(ak.Type, 'integer');
   publishMethod(ak.Type, 'serial');
-  publishMethod(ak.Type, 'default');
   publishMethod(ak.Type, 'unique');
   publishMethod(ak.Type, 'foreign');
   publishMethod(ak.Type, 'check');
@@ -70,6 +69,7 @@
   publishMethod(ak.RelVar, 'getUniques');
   publishMethod(ak.RelVar, 'getForeigns');
   publishMethod(ak.Data, 'toString');
+  publishMethod(ak.Script, 'run');
 
 
   function publishFunction(object,

@@ -453,7 +453,7 @@
         var o = {a: 1, b: 2};
         var expect = [['a', 1], ['b', 2]];
         var o_items = items(o);
-        o_items.sort();
+        o_items.sort(cmp);
         assertEqual(o_items, expect, 'items');
       },
 
@@ -499,14 +499,14 @@
 
       testKeys: function () {
         var a = keys({a: 1, b: 2, c: 3});
-        a.sort();
+        a.sort(cmp);
         assertEqual(a, ['a', 'b', 'c'], 'keys');
       },
 
       testValues: function () {
         var o = {a: 1, b: 2, c: 4, d: -1};
         var got = values(o);
-        got.sort();
+        got.sort(cmp);
         assertEqual(got, [-1, 1, 2, 4], 'values');
       },
 
@@ -872,6 +872,15 @@
                     'thrower TypeError');
         assertThrow(Number, thrower(1),
                     'thrower number');
+      },
+
+      testNextMatch: function () {
+        var re = new RegExp(/x/g);
+        var string = 'x';
+        assertSame(nextMatch(re, string)[0], 'x');
+        assertSame(nextMatch(re, string), null);
+        assertThrow(SyntaxError, function () { nextMatch(/a/g, 'b'); });
+        assertThrow(SyntaxError, function () { nextMatch(/a/g, 'ba'); });
       }
     });
 
@@ -1115,9 +1124,9 @@
       testObjectIterator: function () {
         var o = {a: 1, b: 2};
         var lst = array(iter(o));
-        lst.sort();
+        lst.sort(cmp);
         var expect = items(o);
-        expect.sort();
+        expect.sort(cmp);
         assertEqual(lst, expect, 'ObjectIterator');
       },
 
@@ -1971,6 +1980,79 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
+  // db tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  var dbSuite = loadTests(
+    {
+      name: 'db',
+
+      tearDown: function () {
+        dropRelVars(keys(db));
+      },
+
+      testType: function () {
+        assertThrow(UsageError,
+                    function () { db.RV.create({x: 'unparseble'}); });
+        assertThrow(UsageError,
+                    function () { db.RV.create({x: 'number string'}); });
+        assertThrow(UsageError,
+                    function () { db.RV.create({x: 'number string'}); });
+        assertThrow(UsageError,
+                    function () { db.RV.create({x: 'unique default 1'}); });
+        assertThrow(UsageError,
+                    function () {
+                      db.RV.create({x: 'number default 1 default 2'});
+                    });
+        db.Check.create({n: 'number check (n != 42)'});
+        db.X.create({i: 'int default "15" number unique'});
+        db.Y.create(
+          {
+            i: 'unique default -1  int',
+            s: ' \t\nserial\t foreign Y.i ->X.i ',
+            n: 'number->Check.n default \'42\''
+          });
+        assertSame(db.Y.header.i, 'integer');
+        assertSame(db.Y.header.s, 'serial');
+        assertEqual(db.Y.getForeigns().map(items).sort(cmp),
+                    [[["keyFields", ["n"]],
+                      ["refRelVar", "Check"],
+                      ["refFields", ["n"]]],
+                     [["keyFields", ["s"]],
+                      ["refRelVar", "X"],
+                      ["refFields", ["i"]]],
+                     [["keyFields", ["s"]],
+                      ["refRelVar", "Y"],
+                      ["refFields", ["i"]]]]);
+        assertEqual(items(db.X.getDefaults()), [['i', 15]]);
+        assertEqual(items(db.Y.getDefaults()).sort(cmp),
+                    [["i", -1], ["n", 42]]);
+        assertThrow(ConstraintError,
+                    function () { db.Check.insert({n: 42}); });
+      },
+
+      testConstr: function () {
+        assertThrow(UsageError, function () { db.X.create({}, 'invalid'); });
+        db.X.create({i: 'int', n: 'number', s: 'string'},
+                    'unique i , n',
+                    ' \tunique[n,s  ]\t',
+                    ' check i != 42     ');
+        db.Y.create({ii: 'int', nn: 'number', ss: 'string'},
+                    ' [ ii , nn ]foreign X[i,n]',
+                    '[ss,nn]   ->X  [s  ,n ] ');
+        assertThrow(ConstraintError,
+                    function () { db.X.insert({i: 42, n: 0, s: ''}); });
+        assertEqual(db.Y.getForeigns().map(items).sort(cmp),
+                    [[["keyFields", ["ii", "nn"]],
+                      ["refRelVar", "X"],
+                      ["refFields", ["i", "n"]]],
+                     [["keyFields", ["ss", "nn"]],
+                      ["refRelVar", "X"],
+                      ["refFields", ["s", "n"]]]]);
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
   // suite
   //////////////////////////////////////////////////////////////////////////////
 
@@ -1987,7 +2069,8 @@
       dictSuite,
       httpSuite,
       urlSuite,
-      restSuite
+      restSuite,
+      dbSuite
     ]);
 
 })();

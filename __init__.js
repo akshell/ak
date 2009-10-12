@@ -28,6 +28,7 @@
 {
   ak.include('base.js');
   ak.include('core.js');
+  ak.include('db.js');
   ak.include('debug.js');
   ak.include('http.js');
   ak.include('io.js');

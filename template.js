@@ -197,27 +197,6 @@
   }
 
 
-  function nextMatch(re, string) {
-    var doneIndex = re.lastIndex;
-    if (doneIndex == string.length)
-      return null;
-    var match = re.exec(string);
-    if (!match)
-      throw new ak.TemplateSyntaxError(
-        'Could not parse the remainder: "' +
-          string.substring(0, doneIndex) + '((' +
-          string.substring(doneIndex) + '))"');
-    var startIndex = re.lastIndex - match[0].length;
-    if (doneIndex != startIndex)
-      throw new ak.TemplateSyntaxError(
-        'Could not parse some characters: "' +
-        string.substring(0, doneIndex) + '((' +
-        string.substring(doneIndex, startIndex) + '))' +
-        string.substring(startIndex) + '"');
-    return match;
-  }
-
-
   var stringLiteralString = ('("[^"\\\\]*(?:\\\\.[^"\\\\]*)*"|' +
                              "'[^'\\\\]*(?:\\\\.[^'\\\\]*)*')");
 
@@ -247,7 +226,7 @@
 
     var re = new RegExp(filterRegExp);
     re.lastIndex = match[0].length;
-    while ((match = nextMatch(re, string))) {
+    while ((match = nextMatch(re, string, ak.TemplateSyntaxError))) {
       var filter = filters[match[1]];
       if (!filter)
         throw new ak.TemplateSyntaxError('Invalid filter: "' + match[1] + '"');
@@ -1383,7 +1362,7 @@
     var re = new RegExp(exprTokenRegExp);
     var result = [];
     var match;
-    while ((match = nextMatch(re, string))) {
+    while ((match = nextMatch(re, string, ak.TemplateSyntaxError))) {
       var kind;
       var expr = undefined;
       if (match[2]) {

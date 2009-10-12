@@ -165,4 +165,26 @@
     };
   };
 
+
+  ak.nextMatch = function (re, string, ErrorClass/* = SyntaxError */) {
+    ErrorClass = ErrorClass || SyntaxError;
+    var doneIndex = re.lastIndex;
+    if (doneIndex == string.length)
+      return null;
+    var match = re.exec(string);
+    if (!match)
+      throw new ErrorClass(
+        'Could not parse the remainder: ' +
+        ak.repr(string.substring(0, doneIndex) + '((' +
+                string.substring(doneIndex) + '))'));
+    var startIndex = re.lastIndex - match[0].length;
+    if (doneIndex != startIndex)
+      throw new ErrorClass(
+        'Could not parse some characters: ' +
+        ak.repr(string.substring(0, doneIndex) + '((' +
+                string.substring(doneIndex, startIndex) + '))' +
+                string.substring(startIndex)));
+    return match;
+  };
+
 })();
