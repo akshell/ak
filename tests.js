@@ -239,6 +239,12 @@
   // core tests
   //////////////////////////////////////////////////////////////////////////////
 
+  function testRequest(appName, request, files, data) {
+    return ([data, repr(JSON.parse(request)[appName])].concat(files)
+            .join('\n'));
+  }
+
+
   coreSuite = loadTests(
     {
       name: 'core',
@@ -288,6 +294,32 @@
       testSet: function () {
         db.RV.where('n == 1 || s == "c"').set({s: '!'});
         assertEqual(db.RV.by('n').field('s'), ['!', 'b', '!']);
+      },
+
+      testRequest: function() {
+        var oldRequest = ak._request;
+        ak._request = testRequest;
+        var response = ak.request('method', {data: '201\n'});
+        assertSame(response.status, 201);
+        assertSame(response.content, '"GET"');
+        assertEqual(items(response.headers), []);
+        response = ak.request('post', {data: '200\n', post: 'hi'});
+        assertSame(response.content, '"hi"');
+        response = ak.request('get', {data: '200\n'});
+        assertSame(response.content, '{}');
+        response = ak.request('fileNames',
+                              {data: '200\n',
+                               files: {f1: 'file1', f2: 'file2'}});
+        assertSame(response.content, '["f1", "f2"]\nfile1\nfile2');
+        response = ak.request('headers', {data: '200\na: b\nc:  d\n'});
+        assertEqual(items(response.headers), [['a', 'b'], ['c', ' d']]);
+        assertThrow(ak.AppError,
+                    function () { ak.request('', {}); });
+        assertThrow(ak.AppError,
+                    function () { ak.request('', {data: '!\n'}); });
+        assertThrow(ak.AppError,
+                    function () { ak.request('', {data: '200\na:b\n'}); });
+        ak._request = oldRequest;
       }
     });
 

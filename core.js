@@ -26,6 +26,9 @@
 
 (function ()
 {
+  ak.use('JSON');
+
+
   // Property access modes for ak._setObjectProp
   // Could be combined using '|' operator.
   ak.NONE        = 0;
@@ -80,7 +83,6 @@
 
   publishFunction(ak, 'setObjectProp');
   publishFunction(ak, 'readCode');
-  publishFunction(ak, 'request');
   publishFunction(ak, 'hash');
   publishFunction(ak, 'construct');
   publishFunction(ak.fs, 'read');
@@ -191,6 +193,47 @@
     this.content = content || '';
     this.status = status || 200;
     this.headers = headers || ak.defaultHeaders;
+  };
+
+
+  ak.request = function (appName, request) {
+    var realRequest = {
+      method: request.method || 'GET',
+      path: request.path || '',
+      get: request.get || {},
+      post: request.post || {},
+      headers: request.headers || {},
+      fileNames: []
+    };
+    var filePathes = [];
+    var files = request.files || {};
+    for (var fileName in files) {
+      realRequest.fileNames.push(fileName);
+      filePathes.push(files[fileName]);
+    }
+    var responseString = ak._request(appName,
+                                     JSON.stringify(realRequest),
+                                     filePathes,
+                                     request.data || '');
+    var head = responseString.split('\n\n', 1)[0];
+    if (head.length == responseString.length)
+      throw new ak.AppError('Response without a head');
+    var content = responseString.substr(head.length + 2);
+    var statusString = head.split('\n', 1)[0];
+    var status = +statusString;
+    if (!status)
+      throw new ak.AppError('Invalid status: "' + statusString + '"');
+    var headersString = head.substr(statusString.length + 1);
+    var headers = {};
+    if (headersString)
+      headersString.split('\n').forEach(
+        function (headerLine) {
+          var name = headerLine.split(': ', 1)[0];
+          if (name.length == headerLine.length)
+            throw new AppError('Invalid header line: "' + headerLine + '"');
+          headers[name] = headerLine.substr(name.length + 2);
+        });
+    return new ak.Response(content, status, headers);
   };
 
 
