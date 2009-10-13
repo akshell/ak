@@ -1617,7 +1617,7 @@
                         function () {
                           new Template(test, test, normalEnv);
                         },
-                        'TemplateSyntaxError on "' + test + '"');
+                        'TemplateSyntaxError in ' + repr(test));
           });
         assertThrow(NotImplementedError,
                     function () {

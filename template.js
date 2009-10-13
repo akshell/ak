@@ -219,7 +219,7 @@
     var match = exprStartRegExp.exec(string);
     if (!match)
       throw new ak.TemplateSyntaxError(
-        'Expr does not start with primary: "' + string + '"');
+        'Expr does not start with primary: ' + ak.repr(string));
     var i = findSignificant(match);
     ak.assert(i != -1);
     var result = makePrimaryExpr(match[i], i - 1);
@@ -229,7 +229,8 @@
     while ((match = nextMatch(re, string, ak.TemplateSyntaxError))) {
       var filter = filters[match[1]];
       if (!filter)
-        throw new ak.TemplateSyntaxError('Invalid filter: "' + match[1] + '"');
+        throw new ak.TemplateSyntaxError(
+          'Invalid filter: ' + ak.repr(match[1]));
       var arg = undefined;
       i = findSignificant(match, 2);
       if (i != -1)
@@ -373,7 +374,7 @@
             var compile = this.env.tags[command];
             if (!compile)
               throw new ak.TemplateSyntaxError(
-                'Invalid block tag: "' + command + '"');
+                'Invalid block tag: ' + ak.repr(command));
             nodes.push(compile(this));
             this.parsedNonText = true;
           }
@@ -869,8 +870,8 @@
     if (!match)
       throw new ak.TemplateSyntaxError(
         '"for" tag should use the format ' +
-          '"for <letters, digits or underscores> in <expr> [reversed]": "' +
-          parser.token.contents + '"');
+          '"for <letters, digits or underscores> in <expr> [reversed]": ' +
+          ak.repr(parser.token.contents));
     var bodyNode = parser.parse(['empty', 'endfor']);
     var emptyNode;
     if (parser.token.contents == 'empty')
@@ -941,8 +942,8 @@
     var name = args[1];
     parser.store.blocks = parser.store.blocks || {};
     if (name in parser.store.blocks)
-      throw new ak.TemplateSyntaxError('Block with name "' + name +
-                                       '" appears more than once');
+      throw new ak.TemplateSyntaxError('Block with name ' + ak.repr(name) +
+                                       ' appears more than once');
     return new BlockNode(name,
                          parser.parse(['endblock', 'endblock ' + name]),
                          parser.store);
@@ -978,7 +979,7 @@
       var node = parser.store.cycles[name];
       if (!node)
         throw new ak.TemplateSyntaxError(
-          'Named cycle "' + name + '" is not defined');
+          'Named cycle ' + ak.repr(name) + ' is not defined');
       return node;
     }
     var exprStrings;
@@ -1205,8 +1206,8 @@
     var value = templateTagMapping[args[1]];
     if (!value)
       throw new ak.TemplateSyntaxError(
-        'Invalid "templatetag" argument: "' + args[1] + '". ' +
-        'Must be one of: ' + ak.keys(templateTagMapping).join(', '));
+        'Invalid "templatetag" argument: ' + ak.repr(args[1]) +
+        '. Must be one of: ' + ak.keys(templateTagMapping).join(', '));
     return new TextNode(value);
   };
 
@@ -1338,9 +1339,10 @@
     {
       check: function (cond) {
         if (!cond)
-          throw new ak.TemplateSyntaxError('Unexpected token "' + this.value +
-                                           '" in expr "' + this.string +
-                                           '" position ' + this.pos);
+          throw new ak.TemplateSyntaxError(
+            'Unexpected token ' + ak.repr(this.value) +
+            ' in expr ' + ak.repr(this.string) +
+            ' position ' + this.pos);
       }
     });
 
@@ -1457,7 +1459,7 @@
     function require(cond) {
       if (!cond)
         throw new ak.TemplateSyntaxError(
-          'Expr "' + string + '" is incomplete');
+          'Expr ' + ak.repr(string) + ' is incomplete');
     }
 
     var tokens = tokenizeExpr(string);
@@ -1513,8 +1515,9 @@
           token.check(binaryExpected);
           fold();
           if (!ops.length)
-            throw new ak.TemplateSyntaxError('Excess close paren in expr "' +
-                                             string + '" position ' + token.pos);
+            throw new ak.TemplateSyntaxError(
+              'Excess close paren in expr ' + ak.repr(string) +
+              ' position ' + token.pos);
           ak.assert(ops[ops.length - 1].arity == 0);
           ops.pop();
         }
@@ -1525,7 +1528,7 @@
     if (ops.length) {
       ak.assert(ops[ops.length - 1].arity == 0);
       throw new ak.TemplateSyntaxError(
-        'Close paren is missing in expr "' + string + '"');
+        'Close paren is missing in expr ' + ak.repr(string));
     }
     require(exprs.length == 1);
     return exprs[0];

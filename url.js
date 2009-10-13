@@ -118,7 +118,7 @@
       resolve: function (path) {
         var result = this._resolve(path);
         if (!result)
-          throw new ak.ResolveError('Can not resolve path "' + path + '"');
+          throw new ak.ResolveError('Can not resolve path ' + ak.repr(path));
         return result;
       },
 
