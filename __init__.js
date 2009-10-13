@@ -30,11 +30,11 @@
   ak.include('core.js');
   ak.include('db.js');
   ak.include('debug.js');
-  ak.include('http.js');
-  ak.include('io.js');
-  ak.include('iter.js');
   ak.include('dict.js');
+  ak.include('http.js');
+  ak.include('iter.js');
   ak.include('rest.js');
+  ak.include('stream.js');
   ak.include('template.js');
   ak.include('unittest.js');
   ak.include('url.js');

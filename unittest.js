@@ -27,7 +27,7 @@
 (function ()
 {
   ak.include('utils.js');
-  ak.include('io.js');
+  ak.include('stream.js');
   ak.include('debug.js');
 
   //////////////////////////////////////////////////////////////////////////////

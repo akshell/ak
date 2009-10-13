@@ -96,7 +96,7 @@
   ak.err = new ak.Stream();
 
 
-  ak.log = function (/* arguments */) {
+  ak.dump = function (/* arguments */) {
     ak.err.writeLine();
     Array.forEach(arguments,
                   function (arg) {
