@@ -243,6 +243,7 @@
 
   ak._main = function (data) {
     var request = eval('(' + data + ')');
+    request.method = request.method.toLowerCase();
     request.data = ak._data;
     request.user = ak._user;
     request.fullPath = '/' + ak.app.name + '/' + request.path;

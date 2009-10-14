@@ -115,7 +115,7 @@
     {
       respond: function (pageName/* = '' */) {
         pageName = pageName || '';
-        var methodProp = this.request.method.toLowerCase() + pageName;
+        var methodProp = this.request.method + pageName;
         if (this.__proto__.hasOwnProperty(methodProp))
           return this[methodProp].apply(this, this.args);
         var handleProp = 'handle' + pageName;
