@@ -313,9 +313,9 @@
         assertSame(response.content, '["f1", "f2"]\nfile1\nfile2');
         response = request('headers', {data: '200\na: b\nc:  d\n'});
         assertEqual(items(response.headers), [['a', 'b'], ['c', ' d']]);
-        assertThrow(AppError, function () { request('', {}); });
-        assertThrow(AppError, function () { request('', {data: '!\n'}); });
-        assertThrow(AppError,
+        assertThrow(RequestError, function () { request('', {}); });
+        assertThrow(RequestError, function () { request('', {data: '!\n'}); });
+        assertThrow(RequestError,
                     function () { request('', {data: '200\na:b\n'}); });
         ak._request = oldRequest;
       }

@@ -100,6 +100,9 @@
   publishFunction(ak._dbMediator, 'foreign', ak);
   publishFunction(ak._dbMediator, 'check', ak);
   publishFunction(ak._dbMediator, 'describeApp', ak);
+  publishFunction(ak._dbMediator, 'getAdminedApps', ak);
+  publishFunction(ak._dbMediator, 'getDevelopedApps', ak);
+  publishFunction(ak._dbMediator, 'getAppsByLabel', ak);
 
 
   ak.number = ak._dbMediator.number;
@@ -217,12 +220,12 @@
                                      request.data || '');
     var head = responseString.split('\n\n', 1)[0];
     if (head.length == responseString.length)
-      throw new ak.AppError('Response without a head');
+      throw new ak.RequestError('Response without a head');
     var content = responseString.substr(head.length + 2);
     var statusString = head.split('\n', 1)[0];
     var status = +statusString;
     if (!status)
-      throw new ak.AppError('Invalid status: "' + statusString + '"');
+      throw new ak.RequestError('Invalid status: "' + statusString + '"');
     var headersString = head.substr(statusString.length + 1);
     var headers = {};
     if (headersString)
@@ -230,7 +233,8 @@
         function (headerLine) {
           var name = headerLine.split(': ', 1)[0];
           if (name.length == headerLine.length)
-            throw new AppError('Invalid header line: "' + headerLine + '"');
+            throw new ak.RequestError(
+              'Invalid header line: "' + headerLine + '"');
           headers[name] = headerLine.substr(name.length + 2);
         });
     return new ak.Response(content, status, headers);
