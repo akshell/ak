@@ -426,10 +426,13 @@
       subclass: function (/* arguments */) {
         var constructor = Function.prototype.subclass.apply(this, arguments);
         var result = function (message) {
+          if (!(this instanceof arguments.callee))
+            return ak.construct(arguments.callee, arguments);
           Error.captureStackTrace(this);
           if (arguments.length && !this.message)
             this.message = message + '';
           constructor.apply(this, arguments);
+          return undefined;
         }.wraps(constructor);
         result.prototype.__defineGetter__(
           'name',

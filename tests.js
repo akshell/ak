@@ -635,6 +635,9 @@
         assertSame(e.name, 'TypeError');
         E.__name__ = 'E';
         assertSame(e.name, 'E');
+        assert(SyntaxError() instanceof SyntaxError);
+        assert(E() instanceof E);
+        assertSame(E('hi').message, 'hi');
       },
 
       testAbstract: function () {
