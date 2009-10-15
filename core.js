@@ -254,7 +254,7 @@
   };
 
   ak.Request.prototype = {
-    get fullEncodedPath() {
+    get encodedFullPath() {
       var parts = [];
       for (var name in this.get)
         parts.push(encodeURIComponent(name) + '=' +

@@ -166,6 +166,22 @@
         }
       }));
 
+
+  ak.LoginRequiredError = ak.BaseError.subclass();
+
+
+  ak.update(
+    ak.Controller,
+    {
+      requiringLogin: function (controller) {
+        return function (request /* ... */) {
+          if (!request.user)
+            throw new ak.LoginRequiredError();
+          return controller.apply(this, arguments);
+        }.wraps(controller);
+      }
+    });
+
   //////////////////////////////////////////////////////////////////////////////
   // serve() and defaultServe()
   //////////////////////////////////////////////////////////////////////////////
@@ -182,7 +198,7 @@
   ak.update(
     ak.serve,
     {
-      catchingHttpErrors: function (serve) {
+      catchingHttpError: function (serve) {
         return function (/* arguments... */) {
           try {
             return serve.apply(this, arguments);
@@ -197,6 +213,18 @@
             }
             return new ak.Response(template.render({error: error}),
                                    error.status);
+          }
+        };
+      },
+
+      catchingLoginRequiredError: function (serve) {
+        return function (request /* ... */) {
+          try {
+            return serve.apply(this, arguments);
+          } catch (error) {
+            if (!(error instanceof ak.LoginRequiredError))
+              throw error;
+            return ak.redirect('/login/?next=' + request.encodedFullPath);
           }
         };
       },
@@ -224,7 +252,8 @@
 
 
   ak.defaultServe = ak.serve.decorated(
-    ak.serve.catchingHttpErrors,
+    ak.serve.catchingHttpError,
+    ak.serve.catchingLoginRequiredError,
     ak.serve.appendingSlash
   );
 

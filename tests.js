@@ -326,9 +326,9 @@
         ak._request = oldRequest;
       },
 
-      testFullEncodedPath: function () {
+      testEncodedFullPath: function () {
         assertSame((new Request({path: '?/<>',
-                                 get: {'?': '&', '/': '='}})).fullEncodedPath,
+                                 get: {'?': '&', '/': '='}})).encodedFullPath,
                    '/ak/?/%3C%3E?%3F=%26&%2F=%3D');
       }
     });
@@ -1960,6 +1960,25 @@
         var P = C.page('Page');
         C.__name__ = 'C';
         assertSame(P.__name__, 'C#Page');
+      },
+
+      testRequiringLogin: function () {
+        var C = Controller.subclass(
+          {
+            handleP: function () {
+              return new Response(42);
+            }
+          }).decorated(Controller.requiringLogin);
+        assertSame(C.page('P')({user: 'x'}).content, 42);
+        assertThrow(LoginRequiredError, function () { C.page('P')({}); });
+        assertThrow(LoginRequiredError, function () { C({}); });
+        var f = function () {}.decorated(Controller.requiringLogin);
+        assertThrow(LoginRequiredError, function () { f({}); });
+        var route = new Route(f);
+        var response = defaultServe({path: 'x/', encodedFullPath: '/ak/x/'},
+                                    route);
+        assertSame(response.status, http.FOUND);
+        assertSame(response.headers.Location, '/login/?next=/ak/x/');
       },
 
       testServe: function () {
