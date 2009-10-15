@@ -24,11 +24,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-(function ()
+// 'with' is used here in order to ensure that ak namespace is used correctly
+(function () { with (ak.use('ak'))
 {
-  ak.use('ak');
-  ak.update(ak.global, ak);
-
   //////////////////////////////////////////////////////////////////////////////
   // debug tests
   //////////////////////////////////////////////////////////////////////////////
@@ -240,7 +238,7 @@
   //////////////////////////////////////////////////////////////////////////////
 
   function testRequest(appName, request, files, data) {
-    return ([data, repr(JSON.parse(request)[appName])].concat(files)
+    return ([data, ak.repr(JSON.parse(request)[appName])].concat(files)
             .join('\n'));
   }
 
@@ -2104,4 +2102,4 @@
       dbSuite
     ]);
 
-})();
+}})();

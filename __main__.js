@@ -27,28 +27,27 @@
 
 var suite = ak.include('tests.js');
 
-
 function test() {
-  runTestSuite(suite);
-  return out.read();
+  ak.runTestSuite(suite);
+  return ak.out.read();
 }
 
 
-var HelloController = Controller.subclass(
+var HelloController = ak.Controller.subclass(
   function (request, name) {
     this._name = name;
   },
   {
     get: function () {
-      return renderToResponse('hello.html', {name: this._name});
+      return ak.renderToResponse('hello.html', {name: this._name});
     }
   });
 
 
-var MainController = Controller.subclass(
+var MainController = ak.Controller.subclass(
   {
     handleTest: function () {
-      return renderToResponse('test.html', {request: this.request});
+      return ak.renderToResponse('test.html', {request: this.request});
     },
 
     getError: function () {
@@ -57,15 +56,15 @@ var MainController = Controller.subclass(
   });
 
 
-defineRoutes('',
-             [
-               ['hello/', [[HelloController]]],
-               ['test/', MainController.page('Test')],
-               ['error/', MainController.page('Error')]
-             ]);
+ak.defineRoutes('',
+                [
+                  ['hello/', [[HelloController]]],
+                  ['test/', MainController.page('Test')],
+                  ['error/', MainController.page('Error')]
+                ]);
 
 
-__main__ = defaultServe;
+__main__ = ak.defaultServe;
 
 
-nameFunctions(this);
+ak.nameFunctions(this);

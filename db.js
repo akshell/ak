@@ -48,7 +48,7 @@
     var check;
     var default_;
     var match;
-    while ((match = nextMatch(re, string, ak.UsageError))) {
+    while ((match = ak.nextMatch(re, string, ak.UsageError))) {
       var i = 1;
       while (!match[i])
         ++i;

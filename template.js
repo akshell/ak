@@ -226,7 +226,7 @@
 
     var re = new RegExp(filterRegExp);
     re.lastIndex = match[0].length;
-    while ((match = nextMatch(re, string, ak.TemplateSyntaxError))) {
+    while ((match = ak.nextMatch(re, string, ak.TemplateSyntaxError))) {
       var filter = filters[match[1]];
       if (!filter)
         throw new ak.TemplateSyntaxError(
@@ -1364,7 +1364,7 @@
     var re = new RegExp(exprTokenRegExp);
     var result = [];
     var match;
-    while ((match = nextMatch(re, string, ak.TemplateSyntaxError))) {
+    while ((match = ak.nextMatch(re, string, ak.TemplateSyntaxError))) {
       var kind;
       var expr = undefined;
       if (match[2]) {
