@@ -223,7 +223,7 @@
     });
 
 
-  ak.defaultServe = ak.serve.decorate(
+  ak.defaultServe = ak.serve.decorated(
     ak.serve.catchingHttpErrors,
     ak.serve.appendingSlash
   );

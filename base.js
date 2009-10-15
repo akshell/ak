@@ -374,7 +374,7 @@
   ak.updateWithMode(
     Function.prototype, ak.DONT_ENUM,
     {
-      decorate: function (/* decorators... */) {
+      decorated: function (/* decorators... */) {
         var result = this;
         for (var i = arguments.length - 1; i >= 0; --i) {
           var decorator = arguments[i];

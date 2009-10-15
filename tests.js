@@ -584,12 +584,12 @@
       // Function methods tests
       //////////////////////////////////////////////////////////////////////////
 
-      testFunctionDecorate: function () {
+      testFunctionDecorated: function () {
         function f() { return 42; }
         function g(func) { return function () { return func() + 1; }; }
         function h(func) { return function () { return func() * 2; }; }
-        assertSame(f.decorate(g, h)(), 85);
-        assertSame(f.decorate()(), 42);
+        assertSame(f.decorated(g, h)(), 85);
+        assertSame(f.decorated()(), 42);
       },
 
       testFunctionWraps: function () {
