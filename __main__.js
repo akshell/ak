@@ -28,10 +28,10 @@
 var suite = ak.include('tests.js');
 
 
-function main(stream/* = 'ak.out' */) {
+function test(stream/* = 'ak.out' */) {
   if (stream == 'both')
     ak.err = out;
-  test(suite);
+  runTestSuite(suite);
   return (stream == 'err' ? err : out).read();
 }
 

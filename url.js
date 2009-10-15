@@ -168,7 +168,7 @@
             ' with ' + count + ' arguments');
         var parts = [];
         route._climb(this, Array.slice(arguments, 1), parts);
-        return parts.join('');
+        return encodeURI(parts.join(''));
       }
     });
 
@@ -197,8 +197,7 @@
 
   ak.reverse = function (/* arguments... */) {
     return (ak.rootPrefix +
-            encodeURI(ak.getRootRoute().reverse.apply(ak.rootRoute,
-                                                      arguments)));
+            ak.getRootRoute().reverse.apply(ak.rootRoute, arguments));
   };
 
 })();

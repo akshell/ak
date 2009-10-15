@@ -242,7 +242,7 @@
   };
 
 
-  ak.test = function (suite, stream/* = ak.out */) {
+  ak.runTestSuite = function (suite, stream/* = ak.out */) {
     var runner = new ak.TextTestRunner(stream || ak.out);
     return runner.run(suite);
   };

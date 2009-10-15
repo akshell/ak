@@ -231,7 +231,7 @@
       testTest: function () {
         var suite = loadTests({test: function () {}});
         var stream = new Stream();
-        assert(test(suite, stream), 'test');;
+        assert(runTestSuite(suite, stream), 'test');;
       }
     });
 
@@ -264,6 +264,12 @@
       _clean: function () {
         fs.list('').forEach(fs.remove);
         dropRelVars(keys(db));
+      },
+
+      testDescribeApp: function () {
+        var description = describeApp('ak');
+        assertSame(description.name, 'ak');
+        assertSame(description.admin, description.developers[0]);
       },
 
       testRemove: function () {
@@ -318,6 +324,12 @@
         assertThrow(RequestError,
                     function () { request('', {data: '200\na:b\n'}); });
         ak._request = oldRequest;
+      },
+
+      testFullEncodedPath: function () {
+        assertSame((new Request({path: '?/<>',
+                                 get: {'?': '&', '/': '='}})).fullEncodedPath,
+                   '/ak/?/%3C%3E?%3F=%26&%2F=%3D');
       }
     });
 
@@ -1937,6 +1949,8 @@
         assertEqual(db.RV.by('x').field('x'), [2, 4]);
         db.RV.get({x: 2}).update({x: '$'}, 42);
         assertEqual(db.RV.by('x').field('x'), [4, 42]);
+        db.RV.get({x: 4}).del();
+        assertSame(db.RV.get().x, 42);
         db.RV.drop();
 
       },

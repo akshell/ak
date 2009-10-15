@@ -62,7 +62,7 @@
 
 
   function getUnitupleRel(rel, whereArgs) {
-    var result = rel.where.apply(rel, whereArgs);
+    var result = rel.where.apply(rel, whereArgs.length ? whereArgs : ['true']);
     if (!result.length)
       throw new ak.TupleNotFoundError();
     if (result.length > 1)
@@ -110,6 +110,9 @@
     return ak.Selection.prototype.get.apply(this.all(), arguments);
   };
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Controller
+  //////////////////////////////////////////////////////////////////////////////
 
   ak.Controller = Object.subclass(
     {
@@ -127,9 +130,6 @@
       }
     });
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Controller
-  //////////////////////////////////////////////////////////////////////////////
 
   ak.Controller.instances(
     ak.ControllerMeta = Function.subclass(
@@ -179,51 +179,53 @@
   };
 
 
-  ak.middleware = {
-    appendSlash: function (serve) {
-      return function (request, root) {
-        try {
-          return serve.apply(this, arguments);
-        } catch (error) {
-          if (!(error instanceof ak.ResolveError))
-            throw error;
+  ak.update(
+    ak.serve,
+    {
+      catchingHttpErrors: function (serve) {
+        return function (/* arguments... */) {
           try {
-            (root || ak.rootRoute).resolve(request.path + '/');
-          } catch (_) {
-            throw error;
+            return serve.apply(this, arguments);
+          } catch (error) {
+            if (!(error instanceof ak.HttpError))
+              throw error;
+            var template;
+            try {
+              template = ak.getTemplate('error.html');
+            } catch (_) {
+              template = new ak.Template('{{ error.message }}');
+            }
+            return new ak.Response(template.render({error: error}),
+                                   error.status);
           }
-          return new ak.Response(
-            '',
-            ak.http.MOVED_PERMANENTLY,
-            {Location: ak.rootPrefix + request.path + '/'});
-        }
-      };
-    },
+        };
+      },
 
-    error: function (serve) {
-      return function (/* arguments... */) {
-        try {
-          return serve.apply(this, arguments);
-        } catch (error) {
-          if (!(error instanceof ak.HttpError))
-            throw error;
-          var template;
+      appendingSlash: function (serve) {
+        return function (request, root) {
           try {
-            template = ak.getTemplate('error.html');
-          } catch (_) {
-            template = new ak.Template('{{ error.message }}');
+            return serve.apply(this, arguments);
+          } catch (error) {
+            if (!(error instanceof ak.ResolveError))
+              throw error;
+            try {
+              (root || ak.rootRoute).resolve(request.path + '/');
+            } catch (_) {
+              throw error;
+            }
+            return new ak.Response(
+              '',
+              ak.http.MOVED_PERMANENTLY,
+              {Location: ak.rootPrefix + request.path + '/'});
           }
-          return new ak.Response(template.render({error: error}),
-                                 error.status);
-        }
-      };
-    }
-  };
+        };
+      }
+    });
 
 
   ak.defaultServe = ak.serve.decorate(
-    ak.middleware.error,
-    ak.middleware.appendSlash
+    ak.serve.catchingHttpErrors,
+    ak.serve.appendingSlash
   );
 
 })();

@@ -99,7 +99,6 @@
   publishFunction(ak._dbMediator, 'unique', ak);
   publishFunction(ak._dbMediator, 'foreign', ak);
   publishFunction(ak._dbMediator, 'check', ak);
-  publishFunction(ak._dbMediator, 'describeApp', ak);
   publishFunction(ak._dbMediator, 'getAdminedApps', ak);
   publishFunction(ak._dbMediator, 'getDevelopedApps', ak);
   publishFunction(ak._dbMediator, 'getAppsByLabel', ak);
@@ -114,6 +113,14 @@
 
   // Dates should be in UTC on the server
   Date.prototype.toString = Date.prototype.toUTCString;
+
+
+  ak.describeApp = function (name) {
+    var result = ak._dbMediator._describeApp(name);
+    result.name = name;
+    result.developers.unshift(result.admin);
+    return result;
+  };
 
 
   ak.fs.remove = function (path) {
@@ -241,12 +248,29 @@
   };
 
 
+  ak.Request = function (object) {
+    for (var key in object)
+      this[key] = object[key];
+  };
+
+  ak.Request.prototype = {
+    get fullEncodedPath() {
+      var parts = [];
+      for (var name in this.get)
+        parts.push(encodeURIComponent(name) + '=' +
+                   encodeURIComponent(this.get[name]));
+      return ('/' + ak.app.name + '/' + encodeURI(this.path) +
+              (parts.length ? ('?' + parts.join('&')) : ''));
+    }
+  };
+
+
   ak._main = function (data) {
     var request = eval('(' + data + ')');
+    request.__proto__ = ak.Request.prototype;
     request.method = request.method.toLowerCase();
     request.data = ak._data;
     request.user = ak._user;
-    request.fullPath = '/' + ak.app.name + '/' + request.path;
     request.files = {};
     // request.fileNames.length and ak._files.length are guaranteed to be equal
     for (var i = 0; i < ak._files.length; ++i)
