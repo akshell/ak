@@ -159,9 +159,9 @@
   };
 
 
-  ak.thrower = function (err) {
+  ak.thrower = function (error) {
     return function () {
-      throw err;
+      throw error;
     };
   };
 

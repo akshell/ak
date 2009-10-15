@@ -51,12 +51,12 @@
 
       stopTest: function (test) {},
 
-      addError: function (test, err) {
-        this.errors.push([test, err]);
+      addError: function (test, error) {
+        this.errors.push([test, error]);
       },
 
-      addFailure: function (test, err) {
-        this.failures.push([test, err]);
+      addFailure: function (test, error) {
+        this.failures.push([test, error]);
       },
 
       addSuccess: function (test) {}
@@ -80,8 +80,8 @@
           if (typeof(this._proto.setUp) == 'function') {
             try {
               obj.setUp();
-            } catch (err) {
-              result.addError(this, err);
+            } catch (error) {
+              result.addError(this, error);
               return;
             }
           }
@@ -89,17 +89,17 @@
           try {
             obj[this._methodName]();
             ok = true;
-          } catch (err) {
-            if (err instanceof ak.AssertionError)
-              result.addFailure(this, err);
+          } catch (error) {
+            if (error instanceof ak.AssertionError)
+              result.addFailure(this, error);
             else
-              result.addError(this, err);
+              result.addError(this, error);
           }
           if (typeof(this._proto.tearDown) == 'function') {
             try {
               obj.tearDown();
-            } catch (err) {
-              result.addError(this, err);
+            } catch (error) {
+              result.addError(this, error);
               ok = false;
             }
           }
@@ -161,13 +161,13 @@
         this._stream.write(test);
       },
 
-      addError: function (test, err) {
-        ak.TestResult.prototype.addError.call(this, test, err);
+      addError: function (test, error) {
+        ak.TestResult.prototype.addError.call(this, test, error);
         this._stream.writeLine(' ERROR');
       },
 
-      addFailure: function (test, err) {
-        ak.TestResult.prototype.addFailure.call(this, test, err);
+      addFailure: function (test, error) {
+        ak.TestResult.prototype.addFailure.call(this, test, error);
         this._stream.writeLine(' FAIL');
       },
 

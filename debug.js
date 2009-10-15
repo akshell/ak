@@ -66,17 +66,17 @@
       args.push(arguments[i]);
     try {
       func.apply(ak.global, args);
-    } catch (err) {
-      if (typeof(err) != 'object')
-        err = Object(err);
-      if (!(err instanceof constructor)) {
+    } catch (error) {
+      if (typeof(error) != 'object')
+        error = Object(error);
+      if (!(error instanceof constructor)) {
         var expected = constructor.__name__ || constructor.name;
-        var got = err.constructor.__name__ || err.constructor.name;
+        var got = error.constructor.__name__ || error.constructor.name;
         throw new ak.AssertionError(prefix(msg) +
                                     'Expected ' +
                                     expected +
                                     ' exception, got ' +
-                                    got + ' (' + err + ')');
+                                    got + ' (' + error + ')');
       }
       return;
     }
