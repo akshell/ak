@@ -93,14 +93,13 @@
 
 
   ak.out = new ak.Stream();
-  ak.err = new ak.Stream();
 
 
   ak.dump = function (/* arguments */) {
-    ak.err.writeLine();
+    ak.out.writeLine();
     Array.forEach(arguments,
                   function (arg) {
-                    ak.err.writeLine(ak.repr(arg));
+                    ak.out.writeLine(ak.repr(arg));
                   });
   };
 
