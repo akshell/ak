@@ -1664,9 +1664,9 @@
                     'smartSplit 7');
       },
 
-      testLoadFromCode: function () {
+      testMakeLoadFromCode: function () {
         var env = clone(template.defaultEnv);
-        env.loadDir = '/test_data/templates';
+        env.load = template.makeLoadFromCode('/test_data/templates');
         assertSame(getTemplate('child.txt', env).render({x: 42}),
                    '\n42\n\n\n\nfoo\n\n',
                    'loadFromCode');

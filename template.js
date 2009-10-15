@@ -1564,8 +1564,13 @@
   // defaultEnv
   //////////////////////////////////////////////////////////////////////////////
 
-  $.loadFromCode = function (name) {
-    return ak.readCode(this.loadDir + '/' + name);
+  $.makeLoadFromCode = function (dir) {
+    var cache = {};
+    return function (name) {
+      return (name in cache
+              ? cache[name]
+              : ak.readCode(dir + '/' + name));
+    };
   };
 
 
@@ -1574,8 +1579,7 @@
     invalid: '',
     tags: $.defaultTags,
     filters: $.defaultFilters,
-    load: $.loadFromCode,
-    loadDir: '/templates' // loadFromCode specific
+    load: $.makeLoadFromCode('/templates')
   };
 
   //////////////////////////////////////////////////////////////////////////////
