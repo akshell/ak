@@ -1505,6 +1505,7 @@
     ['{% with "<>" as x %}{{ x }}{% endwith %}', {}, '<>'],
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
     ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
+    ['{% with "a>b" as x %}{{ x.toUpperCase }}{% endwith %}', {}, 'A>B'],
     ['{% url ak._TestController x y %}', {x: '&', y: '"'},
      '/ak/%3C%3E/&/%22/'],
     ['{% url ak._TestController 1 2 as x %}{{ x }}', {}, '/ak/%3C%3E/1/2/'],
@@ -1602,7 +1603,7 @@
                                      test[0],
                                      normalEnv)).render(test[1]),
                        test[2],
-                       'Template rendering');
+                       'Rendering ' + repr(test[0]));
           });
         ak.rootRoute = oldRootRoute;
       },
@@ -1614,12 +1615,12 @@
                                      test[0],
                                      normalEnv)).render(test[1]),
                        test[2] || '',
-                       'Template rendering with empty invalid');
+                       'Rendering with empty invalid ' + repr(test[0]));
             assertSame((new Template(test[0],
                                      test[0],
                                      invalidEnv)).render(test[1]),
                        test[3] || 'INVALID',
-                       'Template rendering with "INVALID"');
+                       'Rendering with "INVALID" ' + repr(test[0]));
           });
       },
 

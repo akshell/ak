@@ -115,15 +115,19 @@
     {
       resolve: function (context) {
         var current = context;
+        var safe = false;
         for (var i = 0; i < this._lookups.length; ++i) {
           var bit = this._lookups[i];
-          current = current[bit];
-          if (typeof(current) == 'function')
-            current = current();
+          if (current instanceof $.Wrap) {
+            safe = current.safe;
+            current = current.raw;
+          }
+          var field = current[bit];
+          current = typeof(field) == 'function' ? field.call(current) : field;
           if (current === undefined || current === null)
             break;
         }
-        return current instanceof $.Wrap ? current : new $.Wrap(current);
+        return current instanceof $.Wrap ? current : new $.Wrap(current, safe);
       }
     });
 
