@@ -63,66 +63,6 @@
     });
 
 
-  ak.TestCase = Object.subclass(
-    function (proto, methodName) {
-      if (!(methodName in proto))
-        throw new Error(proto + ' does not have method ' + methodName);
-      this._proto = proto;
-      this._methodName = methodName;
-    },
-    {
-      count: 1,
-
-      run: function (result) {
-        result.startTest(this);
-        var obj = ak.clone(this._proto);
-        try {
-          if (typeof(this._proto.setUp) == 'function') {
-            try {
-              obj.setUp();
-            } catch (error) {
-              result.addError(this, error);
-              return;
-            }
-          }
-          var ok = false;
-          try {
-            obj[this._methodName]();
-            ok = true;
-          } catch (error) {
-            if (error instanceof ak.AssertionError)
-              result.addFailure(this, error);
-            else
-              result.addError(this, error);
-          }
-          if (typeof(this._proto.tearDown) == 'function') {
-            try {
-              obj.tearDown();
-            } catch (error) {
-              result.addError(this, error);
-              ok = false;
-            }
-          }
-          if (ok)
-            result.addSuccess(this);
-        } finally {
-          result.stopTest(this);
-        }
-      },
-
-      toString: function () {
-        var result = this._methodName;
-        if (this._proto.name)
-          result += '(' + this._proto.name + ')';
-        return result;
-      },
-
-      __repr__: function () {
-        return '<TestCase ' + this.toString() + '>';
-      }
-    });
-
-
   ak.TestSuite = Object.subclass(
     function (tests) {
       this._tests = tests || [];
@@ -148,6 +88,89 @@
         return 'TestSuite([' + this._tests.map(ak.repr).join(', ') + '])';
       }
     });
+
+
+  ak.TestCase = Object.subclass(
+    function (methodName) {
+      if (typeof(this[methodName]) != 'function')
+        throw new Error(ak.repr(this) + ' does not have method ' +
+                        ak.repr(methodName));
+      this._methodName = methodName;
+    },
+    {
+      count: 1,
+
+      run: function (result) {
+        result.startTest(this);
+        try {
+          if (typeof(this.setUp) == 'function') {
+            try {
+              this.setUp();
+            } catch (error) {
+              result.addError(this, error);
+              return;
+            }
+          }
+          var ok = false;
+          try {
+            this[this._methodName]();
+            ok = true;
+          } catch (error) {
+            if (error instanceof ak.AssertionError)
+              result.addFailure(this, error);
+            else
+              result.addError(this, error);
+          }
+          if (typeof(this.tearDown) == 'function') {
+            try {
+              this.tearDown();
+            } catch (error) {
+              result.addError(this, error);
+              ok = false;
+            }
+          }
+          if (ok)
+            result.addSuccess(this);
+        } finally {
+          result.stopTest(this);
+        }
+      },
+
+      toString: function () {
+        var result = this._methodName;
+        var name = this.name || this.constructor.__name__;
+        if (name)
+          result += '(' + name + ')';
+        return result;
+      },
+
+      __repr__: function () {
+        return '<TestCase ' + this.toString() + '>';
+      }
+    });
+
+
+  ak.TestCase.instances(
+    ak.TestCaseMeta = Function.subclass(
+      {
+        loadSuite: function (/* optional */methodNames) {
+          if (!methodNames) {
+            methodNames = [];
+            for (var name in this.prototype)
+              if (name.substr(0, 4) == 'test' &&
+                  typeof(this.prototype[name]) == 'function')
+                methodNames.push(name);
+            methodNames.sort();
+          }
+          var result = new ak.TestSuite();
+          methodNames.forEach(
+            function (methodName) {
+              result.addTest(new this(methodName));
+            },
+            this);
+          return result;
+        }
+      }));
 
 
   ak.TextTestResult = ak.TestResult.subclass(
@@ -226,19 +249,12 @@
   // Free functions
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.loadTests = function (proto, methodNames) {
-    if (methodNames === undefined) {
-      methodNames = [];
-      for (var name in proto)
-        if (name.substr(0, 4) == 'test' && typeof(proto[name]) == 'function')
-          methodNames.push(name);
-      methodNames.sort();
-    }
-    var suite = new ak.TestSuite();
-    methodNames.forEach(function (methodName) {
-                          suite.addTest(new ak.TestCase(proto, methodName));
-                        });
-    return suite;
+  ak.loadSuite = function (TestCases) {
+    return new ak.TestSuite(
+      TestCases.map(
+        function (TC) {
+          return TC.loadSuite();
+        }));
   };
 
 

@@ -31,7 +31,7 @@
   // debug tests
   //////////////////////////////////////////////////////////////////////////////
 
-  debugSuite = loadTests(
+  var DebugTestCase = TestCase.subclass(
     {
       name: 'debug',
 
@@ -76,7 +76,7 @@
   // unittest tests
   //////////////////////////////////////////////////////////////////////////////
 
-  unittestSuite = loadTests(
+  var UnittestTestCase = TestCase.subclass(
     {
       name: 'unittest',
 
@@ -102,61 +102,53 @@
         var tr = new TestResult();
         tr.startTest = function () { ++started; };
         tr.stopTest = function () { ++stopped; };
-        function run(t) {
-          (new TestCase(t, 'f')).run(tr);
+
+        var TC = TestCase.subclass(
+          {
+            setUp: function () {
+              setUp = true;
+            },
+            tearDown: function () {
+              tearedDown = true;
+            },
+            f: function () {
+              tested = true;
+            }
+          });
+
+        function run(TC) {
+          (new TC('f')).run(tr);
         }
 
-        var test = {
-          setUp: function () {
-            setUp = true;
-          },
-          tearDown: function () {
-            tearedDown = true;
-          },
-          f: function () {
-            tested = true;
-          }};
 
-        var tc = new TestCase(test, 'f');
+        var tc = new TC('f');
         assertSame(tc.count, 1, 'TestCase count');
         assertSame(tc + '', 'f', 'TestCase toString');
-        test.name = 'test';
+        tc.name = 'test';
         assertSame(repr(tc), '<TestCase f(test)>', 'TestCase repr');
 
-        run(test);
-        assert(tested && setUp && tearedDown, 'TestCase run test');
+        run(TC);
+        assert(tested && setUp && tearedDown, 'TestCase run TC');
         tested = setUp = tearedDown = false;
 
-        var testBadSetUp = {
-          __proto__: test,
-          setUp: thrower(1)
-        };
-        run(testBadSetUp);
-        assert(!tested && !setUp && !tearedDown, 'TestCase run testBadSetUp');
+        var BadSetUpTC = TC.subclass({setUp: thrower(1)});
+        run(BadSetUpTC);
+        assert(!tested && !setUp && !tearedDown, 'TestCase run BadSetUpTC');
 
-        var testError = {
-          __proto__: test,
-          f: thrower(2)
-        };
-        run(testError);
-        assert(!tested && setUp && tearedDown, 'TestCase run testError');
+        var ErrorTC = TC.subclass({f: thrower(2)});
+        run(ErrorTC);
+        assert(!tested && setUp && tearedDown, 'TestCase run ErrorTC');
         setUp = tearedDown = false;
 
         var assertionError = new AssertionError(3);
-        var testFailure = {
-          __proto__: test,
-          f: thrower(assertionError)
-        };
-        run(testFailure);
-        assert(!tested && setUp && tearedDown, 'TestCase run testFailure');
+        var FailureTC = TC.subclass({f: thrower(assertionError)});
+        run(FailureTC);
+        assert(!tested && setUp && tearedDown, 'TestCase run FailureTC');
         setUp = tearedDown = false;
 
-        var testBadTearDown = {
-          __proto__: test,
-          tearDown: thrower(4)
-        };
-        run(testBadTearDown);
-        assert(tested && setUp && !tearedDown, 'TestCase run testBadTearDown');
+        var BadTearDownTC = TC.subclass({tearDown: thrower(4)});
+        run(BadTearDownTC);
+        assert(tested && setUp && !tearedDown, 'TestCase run BadTearDownTC');
 
         assertEqual(tr.errors.map(attrGetter(1)), [1, 2, 4], 'TestCase errors');
         assertEqual(tr.failures.map(attrGetter(1)), [assertionError],
@@ -166,10 +158,9 @@
       },
 
       testTestSuite: function () {
-        var test = {f: function () {}, g: function () {}};
-        var ts = new TestSuite([new TestCase(test, 'f'),
-                                new TestCase(test, 'g')]);
-        ts.addTest(new TestCase(test, 'f'));
+        var TC = TestCase.subclass({f: function () {}, g: function () {}});
+        var ts = new TestSuite([new TC('f'), new TC('g')]);
+        ts.addTest(new TC('f'));
         assertSame(ts.count, 3, 'TestSuite count');
         assertSame(repr(ts),
                    'TestSuite([<TestCase f>, <TestCase g>, <TestCase f>])',
@@ -191,17 +182,17 @@
       },
 
       testTextTestRunner: function () {
-        var test = {
-          name: 'test',
-
-          testOk: function () {},
-          testError: thrower(1),
-          testAssert: partial(assert, false, 'msg1'),
-          testAssertEqual: partial(assertEqual, 1, 2, 'msg2'),
-          testAssertThrow: partial(assertThrow, Error, thrower(1), 'msg3')
-        };
+        var TC = TestCase.subclass(
+          {
+            testOk: function () {},
+            testError: thrower(1),
+            testAssert: partial(assert, false, 'msg1'),
+            testAssertEqual: partial(assertEqual, 1, 2, 'msg2'),
+            testAssertThrow: partial(assertThrow, Error, thrower(1), 'msg3')
+          });
+        TC.__name__ = 'test';
         var stream = new Stream();
-        (new TextTestRunner(stream)).run(loadTests(test));
+        (new TextTestRunner(stream)).run(TC.loadSuite());
         assert(stream.read().startsWith(
                  'testAssert(test) FAIL\n' +
                  'testAssertEqual(test) FAIL\n' +
@@ -212,22 +203,29 @@
                  'TextTestRunner');
       },
 
-      testLoadTests: function () {
-        assertSame(loadTests({
-                               name: 'n',
-                               test1: function () {},
-                               test2: function () {},
-                               test3: 42
-                             }) + '',
-                   'test1(n), test2(n)',
-                   'loadTests without methodNames');
-        assertSame(loadTests({f: 1, g: 2}, ['f', 'g']) + '',
-                   'f, g',
-                   'loadTests with methodNames');
+      testLoadSuite: function () {
+        assertSame(TestCase.subclass(
+                     {
+                       name: 'n',
+                       test1: function () {},
+                       test2: function () {},
+                       test3: 42
+                     }).loadSuite() + '',
+                   'test1(n), test2(n)');
+        assertSame(TestCase.subclass(
+                     {
+                       name: 'n',
+                       f: function () {},
+                       g: function () {}
+                     }).loadSuite(['f', 'g']) + '',
+                   'f(n), g(n)');
+        assertSame(loadSuite([TestCase.subclass({test1: function () {}}),
+                              TestCase.subclass({test2: function () {}})]) + '',
+                   'test1, test2');
       },
 
-      testTest: function () {
-        var suite = loadTests({test: function () {}});
+      testRunTestSuite: function () {
+        var suite = TestCase.subclass({test: function () {}}).loadSuite();
         var stream = new Stream();
         assert(runTestSuite(suite, stream), 'test');;
       }
@@ -243,7 +241,7 @@
   }
 
 
-  coreSuite = loadTests(
+  var CoreTestCase = TestCase.subclass(
     {
       name: 'core',
 
@@ -335,7 +333,7 @@
   // base tests
   //////////////////////////////////////////////////////////////////////////////
 
-  baseSuite = loadTests(
+  var BaseTestCase = TestCase.subclass(
     {
       name: 'base',
 
@@ -794,7 +792,7 @@
   // utils tests
   //////////////////////////////////////////////////////////////////////////////
 
-  utilsSuite = loadTests(
+  var UtilsTestCase = TestCase.subclass(
     {
       name: 'utils',
 
@@ -899,7 +897,7 @@
   // iter tests
   //////////////////////////////////////////////////////////////////////////////
 
-  iterSuite = loadTests(
+  var IterTestCase = TestCase.subclass(
     {
       name: 'iter',
 
@@ -1153,12 +1151,12 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // io tests
+  // stream tests
   //////////////////////////////////////////////////////////////////////////////
 
-  ioSuite = loadTests(
+  var StreamTestCase = TestCase.subclass(
     {
-      name: 'io',
+      name: 'stream',
 
       testStream: function () {
         var s = new Stream();
@@ -1588,7 +1586,7 @@
   ];
 
 
-  var templateSuite = loadTests(
+  var TemplateTestCase = TestCase.subclass(
     {
       name: 'template',
 
@@ -1678,7 +1676,7 @@
   // dict tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var dictSuite = loadTests(
+  var DictTestCase = TestCase.subclass(
     {
       name: 'dict',
 
@@ -1788,7 +1786,7 @@
   // http tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var httpSuite = loadTests(
+  var HttpTestCase = TestCase.subclass(
     {
       name: 'http',
 
@@ -1802,7 +1800,7 @@
   // url tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var urlSuite = loadTests(
+  var UrlTestCase = TestCase.subclass(
     {
       name: 'url',
 
@@ -1905,7 +1903,7 @@
   }
 
 
-  var restSuite = loadTests(
+  var RestTestCase = TestCase.subclass(
     {
       name: 'rest',
 
@@ -2016,7 +2014,7 @@
   // db tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var dbSuite = loadTests(
+  var DbTestCase = TestCase.subclass(
     {
       name: 'db',
 
@@ -2089,21 +2087,21 @@
   // suite
   //////////////////////////////////////////////////////////////////////////////
 
-  return new TestSuite(
+  return loadSuite(
     [
-      debugSuite,
-      unittestSuite,
-      coreSuite,
-      baseSuite,
-      utilsSuite,
-      iterSuite,
-      ioSuite,
-      templateSuite,
-      dictSuite,
-      httpSuite,
-      urlSuite,
-      restSuite,
-      dbSuite
+      DebugTestCase,
+      UnittestTestCase,
+      CoreTestCase,
+      BaseTestCase,
+      UtilsTestCase,
+      IterTestCase,
+      StreamTestCase,
+      TemplateTestCase,
+      DictTestCase,
+      HttpTestCase,
+      UrlTestCase,
+      RestTestCase,
+      DbTestCase
     ]);
 
 }})();
