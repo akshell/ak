@@ -46,11 +46,11 @@ var HelloController = ak.Controller.subclass(
 
 var MainController = ak.Controller.subclass(
   {
-    handleTest: function () {
+    handleTestPage: function () {
       return ak.renderToResponse('test.html', {request: this.request});
     },
 
-    getError: function () {
+    getErrorPage: function () {
       throw Error('Test error');
     }
   });

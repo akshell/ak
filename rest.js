@@ -116,12 +116,12 @@
 
   ak.Controller = Object.subclass(
     {
-      respond: function (pageName/* = '' */) {
-        pageName = pageName || '';
-        var methodProp = this.request.method + pageName;
+      respond: function (page/* = '' */) {
+        var suffix = page ? (page + 'Page') : '';
+        var methodProp = this.request.method + suffix;
         if (this.__proto__.hasOwnProperty(methodProp))
           return this[methodProp].apply(this, this.args);
-        var handleProp = 'handle' + pageName;
+        var handleProp = 'handle' + suffix;
         if (this.__proto__.hasOwnProperty(handleProp))
           return this[handleProp].apply(this, this.args);
         throw new ak.HttpError(
@@ -137,6 +137,7 @@
         page: function (name) {
           if (!name)
             return this;
+          name = name[0].toUpperCase() + name.substr(1);
           this._pages = this._pages || {};
           if (name in this._pages)
             return this._pages[name];

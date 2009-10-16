@@ -1881,11 +1881,11 @@
         return new Response(this._string);
       },
 
-      getUpper: function (string) {
+      getUpperPage: function (string) {
         return new Response(string.toUpperCase());
       },
 
-      handleMethod: function () {
+      handleMethodPage: function () {
         return new Response(this.request.method);
       }
     });
@@ -1958,7 +1958,7 @@
 
       testController: function () {
         var C = Controller.subclass();
-        var P = C.page('Page');
+        var P = C.page('page');
         C.__name__ = 'C';
         assertSame(P.__name__, 'C#Page');
       },
@@ -1966,11 +1966,11 @@
       testRequiringLogin: function () {
         var C = Controller.subclass(
           {
-            handleP: function () {
+            handleXPage: function () {
               return new Response(42);
             }
           }).decorated(Controller.requiringLogin);
-        assertSame(C.page('P')({user: 'x'}).content, 42);
+        assertSame(C.page('x')({user: 'x'}).content, 42);
         assertThrow(LoginRequiredError, function () { C.page('P')({}); });
         assertThrow(LoginRequiredError, function () { C({}); });
         var f = function () {}.decorated(Controller.requiringLogin);
