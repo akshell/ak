@@ -228,6 +228,74 @@
         var suite = TestCase.subclass({test: function () {}}).loadSuite();
         var stream = new Stream();
         assert(runTestSuite(suite, stream), 'test');;
+      },
+
+      testTestClient: function () {
+        var client = new TestClient(
+          ['user1', 'user2'],
+          {
+            app1: {
+              admin: 'user1'
+            },
+            app2: {
+              admin: 'user2',
+              developers: ['user1']
+            },
+            app3: {
+              admin: 'user1'
+            },
+            app4: {
+              admin: 'user2',
+              developers: ['user1']
+            }
+          });
+        var aspect = weave(InsteadOf, global, '__main__',
+                           function (request) { return eval(request.data); });
+        function request(data) {
+          return client.request({data: data});
+        }
+
+        assertThrow(NoSuchUserError,
+                    function () { client.login('no_such_user'); });
+        client.login('user1');
+        assertSame(request('request.user'), 'user1');
+        assertSame(client.request({user: 'user2', data: 'request.user'}),
+                   'user2');
+        client.logout();
+        assertSame(request('request.user'), undefined);
+
+        assertSame(client.get({data: 'request.method'}), 'get');
+        assertSame(client.put({data: 'request.method'}), 'put');
+        assertSame(client.post({data: 'request.method'}), 'post');
+        assertSame(client.del({data: 'request.method'}), 'delete');
+
+        assertSame(request('ak.describeApp("app1")'), client.apps.app1);
+        assertEqual(request('ak.getAdminedApps("user1")'), ['app1', 'app3']);
+        assertEqual(request('ak.getDevelopedApps("user1")'), ['app2', 'app4']);
+        assertEqual(request('ak.getDevelopedApps("user2")'), []);
+        assertThrow(
+          NoSuchUserError,
+          function () { request('ak.getAdminedApps("no_such_user")'); });
+        assertThrow(
+          NoSuchUserError,
+          function () { request('ak.getDevelopedApps("no_such_user")'); });
+
+        var context = {};
+        assertSame(
+          request(
+            'new ak.Response((new ak.Template("")).render(context))').context,
+          context);
+
+        var C = Controller.subclass(
+          {
+            get: function () { return {}; },
+            getXPage: function () { return {}; }
+          });
+        assertSame(request('C({method: "get"})').controller, C);
+        assertSame(request('C.page("x")({method: "get"})').controller,
+                   C.page('x'));
+
+        aspect.unweave();
       }
     });
 

@@ -29,6 +29,7 @@
   ak.include('utils.js');
   ak.include('stream.js');
   ak.include('debug.js');
+  ak.include('aspect.js');
 
   //////////////////////////////////////////////////////////////////////////////
   // Classes
@@ -262,5 +263,123 @@
     var runner = new ak.TextTestRunner(stream || ak.out);
     return runner.run(suite);
   };
+
+  //////////////////////////////////////////////////////////////////////////////
+  // TestClient
+  //////////////////////////////////////////////////////////////////////////////
+
+  function weaveAliases(AspectClass, method, advice) {
+    var holders = [ak];
+    if (ak.global[method] === ak[method])
+      holders.push(ak.global);
+    return holders.map(
+      function (holder) {
+        return ak.weave(AspectClass, holder, method, advice);
+      });
+  }
+
+
+  function makeRequester(method) {
+    return function (request) {
+      request = ak.clone(request);
+      request.method = method;
+      return this.request(request);
+    };
+  }
+
+
+  ak.TestClient = Object.subclass(
+    function (users/* = [] */, apps/* = {} */) {
+      this.users = users || [];
+      this.apps = apps || {};
+      for (var name in this.apps) {
+        var app = this.apps[name];
+        app.name = name;
+        app.developers = app.developers || [];
+        app.developers.unshift(app.admin);
+      }
+    },
+    {
+      _describeApp: function (name) {
+        var result = this.apps[name];
+        if (!result)
+          throw new ak.NoSuchAppError('No such test app: ' + ak.repr(name));
+        return result;
+      },
+
+      _checkUserExists: function (user) {
+        if (this.users.indexOf(user) == -1)
+          throw new ak.NoSuchUserError('No such test user: ' + ak.repr(user));
+      },
+
+      _getAdminedApps: function (user) {
+        this._checkUserExists(user);
+        var result = [];
+        for (var name in this.apps)
+          if (this.apps[name].admin == user)
+            result.push(name);
+        return result;
+      },
+
+      _getDevelopedApps: function (user) {
+        this._checkUserExists(user);
+        var result = [];
+        for (var name in this.apps)
+          if (this.apps[name].developers.indexOf(user) > 0)
+            result.push(name);
+        return result;
+      },
+
+      _substitute: function (name) {
+        return weaveAliases(ak.InsteadOf, name,
+                            ak.bind(this['_' + name], this));
+      },
+
+      login: function (user) {
+        this._checkUserExists(user);
+        this._user = user;
+      },
+
+      logout: function () {
+        delete this._user;
+      },
+
+      request: function (request) {
+        if (this._user && !('user' in request)) {
+          request = ak.clone(request);
+          request.user = this._user;
+        }
+        var contexts = {};
+        var aspects = [].concat(
+          this._substitute('describeApp'),
+          this._substitute('getAdminedApps'),
+          this._substitute('getDevelopedApps'),
+          ak.weave(ak.After, ak.Template, 'render',
+                   function (result, args) {
+                     contexts[result] = args[0];
+                     return result;
+                   }),
+          weaveAliases(ak.After, 'Response',
+                       function () {
+                         this.context = contexts[this.content];
+                       }),
+          ak.weave(ak.After, ak.Controller, 'respond',
+                   function (result, args) {
+                     result.controller = this.constructor.page(args[0]);
+                     return result;
+                   })
+        ).instances(ak.AspectArray);
+        try {
+          return __main__(request);
+        } finally {
+          aspects.unweave();
+        }
+      },
+
+      get: makeRequester('get'),
+      post: makeRequester('post'),
+      put: makeRequester('put'),
+      del: makeRequester('delete')
+    });
 
 })();
