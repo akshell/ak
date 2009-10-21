@@ -2084,6 +2084,115 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
+  // aspect tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  var AspectTestCase = TestCase.subclass(
+    {
+      name: 'aspect',
+
+      testAspects: function () {
+        var f = function (x) { return x; };
+        var g = function (x) { throw x; };
+        var C = Object.subclass({f: f, g: g, n: 42});
+        var c = new C();
+
+        var aspect0 = weave(Before, C, 'f', function (args) { ++args[0]; });
+        assert(aspect0 instanceof Before);
+        assertSame(aspect0, C.prototype.f);
+        assertSame(c.f(0), 1);
+        aspect0.enabled = false;
+        assertSame(c.f(0), 0);
+        aspect0.enabled = true;
+        assertSame(c.f(0), 1);
+        var aspect1 = weave(
+          Before, c, 'f',
+          function (args, method) { Array.push(args, method.length); });
+        assertSame(c.f(), 2);
+        var aspect2 = weave(Before, C, 'f', function (args) { args[0] += 2;});
+        assertSame(c.f(), 4);
+        assertSame(aspect0.unweave(), aspect2);
+        assertSame(aspect1.unweave(), aspect2);
+        assertSame(c.f(15), 17);
+        assertSame(C.prototype.f.callSource(c, 0), 0);
+        assertSame(aspect2.unweave(), f);
+
+        var aspect3 = weave(After, C, 'f',
+                            function (result) { return result + 1; });
+        assertSame(c.f(0), 1);
+        var aspect4 = weave(
+          After, C, 'f',
+          function (result, args, method) {
+            return method + result + args[0];
+          });
+        assertSame(c.f(0), 'f10');
+        aspect3.enabled = false;
+        assertSame(c.f(0), 'f00');
+        aspect3.unweave();
+        aspect4.unweave();
+
+        var aspect5 = weave(AfterCatch, C, 'f', function () { return 42; });
+        assertSame(c.f(0), 0);
+        var aspect6 = weave(
+          AfterCatch, C, 'g',
+          function (error, args, method) {
+            return [method, Array.apply(null, args), error].join(' ');
+          });
+        assertSame(c.g(1,2,3), 'g 1,2,3 1');
+        aspect5.unweave();
+        aspect6.unweave();
+
+        var buf;
+        function save(args, method) {
+          buf = method + ' ' + Array.apply(null, args);
+        }
+        var aspect7 = weave(AfterFinally, C, 'f', save);
+        c.f(1, 2, 3);
+        assertSame(buf, 'f 1,2,3');
+        var aspect8 = weave(AfterFinally, C, 'g', save);
+        var aspect9 = weave(AfterCatch, C, 'g', function () {});
+        c.g(4, 5, 6);
+        assertSame(buf, 'g 4,5,6');
+        aspect7.unweave();
+        aspect8.unweave();
+        aspect9.unweave();
+
+        var aspect10 = weave(
+          Around, C, 'g',
+          function (source, args, method) {
+            try {
+              return source.apply(this, args);
+            } catch (error) {
+              return [method, error, args[1]].join(' ');
+            }
+          });
+        assertSame(c.g(1, 2), 'g 1 2');
+        aspect10.unweave();
+
+        assertThrow(UsageError,
+                    function () { weave(Before, C, 'n', function () {}); });
+        assertThrow(NotImplementedError,
+                    function () { weave(Aspect, C, 'f', function () {}); });
+      },
+
+      testWeave: function () {
+        var f = function () {};
+        var f1 = f.f1 = function () { return 1; };
+        var f2 = f.f2 = function () { return 2; };
+        var f3 = f.f3 = function () { return 3; };
+        var aspects = weave(After, f, /[12]/,
+                            function (result) { return -result; },
+                            true);
+        assertSame(f.f1(), -1);
+        assertSame(f.f2(), -2);
+        assertSame(f.f3(), 3);
+        assertEqual(aspects.unweave(), [f1, f2]);
+        assertSame(f.f1(), 1);
+        assertSame(f.f2(), 2);
+      }
+    });
+
+  //////////////////////////////////////////////////////////////////////////////
   // suite
   //////////////////////////////////////////////////////////////////////////////
 
@@ -2101,7 +2210,8 @@
       HttpTestCase,
       UrlTestCase,
       RestTestCase,
-      DbTestCase
+      DbTestCase,
+      AspectTestCase
     ]);
 
 }})();

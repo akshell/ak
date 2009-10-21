@@ -26,6 +26,7 @@
 
 (function ()
 {
+  ak.include('aspect.js');
   ak.include('base.js');
   ak.include('core.js');
   ak.include('db.js');
