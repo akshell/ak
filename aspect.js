@@ -153,10 +153,20 @@
 
   ak.AspectArray = Array.subclass();
 
-  ak.AspectArray.prototype.setNonEnumerable(
-    'unweave',
-    function () {
-      return this.map(function (aspect) { return aspect.unweave(); });
+  ak.updateWithMode(
+    ak.AspectArray.prototype, ak.DONT_ENUM,
+    {
+      unweave: function () {
+        return this.map(function (aspect) { return aspect.unweave(); });
+      },
+
+      enable: function () {
+        this.forEach(function (aspect) { aspect.enabled = true; });
+      },
+
+      disable: function () {
+        this.forEach(function (aspect) { aspect.enabled = false; });
+      }
     });
 
 

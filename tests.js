@@ -2209,6 +2209,10 @@
         assertSame(f.f1(), -1);
         assertSame(f.f2(), -2);
         assertSame(f.f3(), 3);
+        aspects.disable();
+        assertSame(f.f1(), 1);
+        aspects.enable();
+        assertSame(f.f1(), -1);
         assertEqual(aspects.unweave(), [f1, f2]);
         assertSame(f.f1(), 1);
         assertSame(f.f2(), 2);
