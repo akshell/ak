@@ -677,6 +677,26 @@
                    'index with custom __cmp__');
       },
 
+      testArrayRelMethods: function () {
+        dropRelVars(keys(db));
+        db.RV.create({n: 'number'});
+        db.RV.insert({n: 0});
+        db.RV.insert({n: 1});
+        db.RV.insert({n: 2});
+        var rel = db.RV.all();
+        assert(rel.every(function (tuple) { return tuple.n < 3; }));
+        assert(rel.some(function (tuple) { return tuple.n == 1; }));
+        assertEqual((rel
+                     .filter(function (tuple) { return tuple.n % 2 == 0; })
+                     .map(function (tuple) { return tuple.n; })),
+                    [0, 2]);
+        var s = 0;
+        rel.forEach(function (tuple) { s += tuple.n; });
+        assertSame(s, 3);
+        assertSame(repr(rel), '[{n: 0}, {n: 1}, {n: 2}]');
+        db.RV.drop();
+      },
+
       ////////////////////////////////////////////////////////////////////////////
       // String methods tests
       ////////////////////////////////////////////////////////////////////////////
@@ -1933,6 +1953,7 @@
       },
 
       testGet: function () {
+        dropRelVars(keys(db));
         db.RV.create({x: number});
         db.RV.insert({x: 1});
         db.RV.insert({x: 2});
@@ -1952,7 +1973,6 @@
         db.RV.get({x: 4}).del();
         assertSame(db.RV.get().x, 42);
         db.RV.drop();
-
       },
 
       testController: function () {

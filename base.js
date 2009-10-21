@@ -538,14 +538,28 @@
     'splice',
     'toString',
     'unshift'
-  ].forEach(function (name) {
-              var func = Array.prototype[name];
-              Array.setNonEnumerable(name,
-                function (self/*, args... */) {
-                  var args = Array.prototype.slice.call(arguments, 1);
-                  return func.apply(self, args);
-                });
-            });
+  ].forEach(
+    function (name) {
+      var func = Array.prototype[name];
+      Array.setNonEnumerable(
+        name,
+        function (self/*, args... */) {
+          var args = Array.prototype.slice.call(arguments, 1);
+          return func.apply(self, args);
+        });
+    });
+
+
+  [
+    'every',
+    'filter',
+    'forEach',
+    'map',
+    'some'
+  ].forEach(
+    function (name) {
+      ak.Rel.prototype.setNonEnumerable(name, Array.prototype[name]);
+    });
 
   //////////////////////////////////////////////////////////////////////////////
   // String methods
@@ -653,6 +667,9 @@
   setRepr(Array, function () {
             return '[' + this.map(ak.repr).join(', ') + ']';
           });
+
+
+  setRepr(ak.Rel, Array.prototype.__repr__);
 
 
   setRepr(Date, function () {
