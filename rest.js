@@ -115,6 +115,10 @@
   //////////////////////////////////////////////////////////////////////////////
 
   ak.Controller = Object.subclass(
+    function (request) {
+      this.request = request;
+      this.args = [request];
+    },
     {
       respond: function (page/* = '' */) {
         var suffix = page ? (page + 'Page') : '';
@@ -157,12 +161,9 @@
         subclass: function (/* arguments... */) {
           var constructor = Function.prototype.subclass.apply(this, arguments);
           return function (request /* ... */) {
-            if (!(this instanceof arguments.callee))
-              return ak.construct(arguments.callee, arguments).respond();
-            this.request = request;
-            constructor.apply(this, arguments);
-            this.args = this.args || [request];
-            return undefined;
+            return (this instanceof arguments.callee
+                    ? constructor.apply(this, arguments)
+                    : ak.construct(arguments.callee, arguments).respond());
           }.wraps(constructor);
         }
       }));

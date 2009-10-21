@@ -35,6 +35,7 @@ function test() {
 
 var HelloController = ak.Controller.subclass(
   function (request, name) {
+    ak.Controller.call(this, request);
     this._name = name;
   },
   {

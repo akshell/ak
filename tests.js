@@ -1960,6 +1960,7 @@
 
   var TestController = Controller.subclass(
     function (request, string) {
+      Controller.call(this, request);
       this._string = string;
       this.args = [string];
     },
