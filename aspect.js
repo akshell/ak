@@ -143,6 +143,14 @@
     });
 
 
+  ak.InsteadOf = ak.Aspect.subclass(
+    {
+      _apply: function (self, args) {
+        return this._advice.apply(self, args);
+      }
+    });
+
+
   ak.AspectArray = Array.subclass();
 
   ak.AspectArray.prototype.setNonEnumerable(

@@ -2167,7 +2167,10 @@
             }
           });
         assertSame(c.g(1, 2), 'g 1 2');
+        var aspect11 = weave(InsteadOf, C, 'g', function (x) { return -x; });
+        assertSame(c.g(1, 2), -1);
         aspect10.unweave();
+        aspect11.unweave();
 
         assertThrow(UsageError,
                     function () { weave(Before, C, 'n', function () {}); });
