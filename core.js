@@ -194,7 +194,7 @@
   };
 
 
-  ak.defaultHeaders = {'Content-Type': 'text/html; charser=utf-8'};
+  ak.defaultHeaders = {'Content-Type': 'text/html; charset=utf-8'};
 
 
   ak.Response = function (content/* = '' */,
