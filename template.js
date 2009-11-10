@@ -434,7 +434,7 @@
   // defaultFilters
   //////////////////////////////////////////////////////////////////////////////
 
-  function doDictSort(iterable, key) {
+  function sortObjects(iterable, key) {
     return ak.sorted(iterable,
                      function (a, b) {
                        return ak.cmp(a[key], b[key]);
@@ -473,7 +473,7 @@
       },
       {safety: 'always', accept: 'wrap'}),
 
-    addslashes: new $.Filter(
+    addSlashes: new $.Filter(
       function (value) {
         return (value
                 .replace(/\\/g, '\\\\')
@@ -482,7 +482,7 @@
       },
       {safety: 'value', accept: 'string'}),
 
-    capfirst: new $.Filter(
+    capFirst: new $.Filter(
       function (value) {
         return value && value[0].toUpperCase() + value.substr(1);
       },
@@ -500,43 +500,43 @@
       },
       {accept: 'wrap'}),
 
-    default_if_null: new $.Filter(
+    defaultIfNull: new $.Filter(
       function (value, arg) {
         return value.raw === null ? arg : value;
       },
       {accept: 'wrap'}),
 
-    default_if_undefined: new $.Filter(
+    defaultIfUndefined: new $.Filter(
       function (value, arg) {
         return value.raw === undefined ? arg : value;
       },
       {accept: 'wrap'}),
 
-    dictsort: new $.Filter(
+    sortObjects: new $.Filter(
       function (value, arg) {
-        return doDictSort(value, arg);
+        return sortObjects(value, arg);
       },
       {safety: 'value'}),
 
-    dictsortreversed: new $.Filter(
+    sortObjectsReversed: new $.Filter(
       function (value, arg) {
-        return doDictSort(value, arg).reverse();
+        return sortObjects(value, arg).reverse();
       },
       {safety: 'value'}),
 
-    divisibleby: new $.Filter(
+    divisibleBy: new $.Filter(
       function (value, arg) {
         return value % arg === 0;
       },
       {safety: 'always'}),
 
-    encode_uri: new $.Filter(
+    encodeURI: new $.Filter(
       function (value) {
         return encodeURI(value);
       },
       {safe: 'always', accept: 'string'}),
 
-    encode_uri_component: new $.Filter(
+    encodeURIComponent: new $.Filter(
       function (value) {
         return encodeURIComponent(value);
       },
@@ -545,7 +545,7 @@
     escape: new $.Filter(
       function (value) { return value; }),
 
-    escapejs: new $.Filter(
+    escapeJavaScript: new $.Filter(
       function (value) {
         return ak.reduce(
           function (string, replacement) {
@@ -556,7 +556,7 @@
       },
       {accept: 'string'}),
 
-    filesizeformat: new $.Filter(
+    formatFileSize: new $.Filter(
       function (value) {
         value = +value;
         if (isNaN(value))
@@ -581,7 +581,7 @@
       },
       {safety: 'value'}),
 
-    floatformat: new $.Filter(
+    formatFloat: new $.Filter(
       function (value, arg/* = -1 */) {
         value = +value;
         if (isNaN(value))
@@ -597,13 +597,13 @@
       },
       {safety: 'always'}),
 
-    force_escape: new $.Filter(
+    forceEscape: new $.Filter(
       function (value) {
         return (new $.Wrap(value)) + '';
       },
       {safety: 'always', accept: 'wrap'}),
 
-    get_digit: new $.Filter(
+    getDigit: new $.Filter(
       function (value, arg) {
         var num = +value;
         arg = +arg;
@@ -634,7 +634,7 @@
       },
       {safety: 'value'}),
 
-    linebreaks: new $.Filter(
+    paragraph: new $.Filter(
       function (value) {
         value = (value + '').trim();
         if (!value)
@@ -646,13 +646,13 @@
       },
       {safety: 'always', accept: 'wrap'}),
 
-    linebreaksbr: new $.Filter(
+    breakLines: new $.Filter(
       function (value) {
         return (value + '').replace(/\n/g, '<br />');
       },
       {safety: 'always', accept: 'wrap'}),
 
-    linenumbers: new $.Filter(
+    numberLines: new $.Filter(
       function (value) {
         var lines = (value + '').split('\n');
         var width = (lines.length + '').length;
@@ -690,7 +690,7 @@
       },
       {safety: 'arg'}),
 
-    removetags: new $.Filter(
+    removeTags: new $.Filter(
       function (value, arg) {
         if (!arg || !arg.raw)
           return value;
@@ -752,7 +752,7 @@
       },
       {safety: 'always', accept: 'string'}),
 
-    striptags: new $.Filter(
+    stripTags: new $.Filter(
       function (value) {
         return value.replace(/<[^>]*?>/g, '');
       },
@@ -773,7 +773,7 @@
       },
       {safety: 'value', accept: 'string'}),
 
-    truncatewords: new $.Filter(
+    truncateWords: new $.Filter(
       function (value, arg) {
         var length = +arg;
         if (isNaN(length))
@@ -791,7 +791,7 @@
       },
       {safety: 'value', accept: 'string'}),
 
-    wordcount: new $.Filter(
+    countWords: new $.Filter(
       function (value) {
         var words = value.trim().split(/\s+/);
         return (words.length == 1 && !words[0]
