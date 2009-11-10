@@ -226,7 +226,11 @@
           } catch (error) {
             if (!(error instanceof ak.LoginRequiredError))
               throw error;
-            return ak.redirect('/login/?next=' + request.encodedFullPath);
+            var parts = request.headers.Host.split('.');
+            return ak.redirect('http://www.' +
+                               parts.slice(parts.length - 2).join('.') +
+                               '/login/?next=' +
+                               encodeURIComponent(request.uri));
           }
         };
       },
@@ -246,7 +250,7 @@
             return new ak.Response(
               '',
               ak.http.MOVED_PERMANENTLY,
-              {Location: ak.rootPrefix + request.path + '/'});
+              {Location: '/' + request.path + '/'});
           }
         };
       }

@@ -192,12 +192,8 @@
   };
 
 
-  ak.rootPrefix = '/' + ak.app.name + '/';
-
-
   ak.reverse = function (/* arguments... */) {
-    return (ak.rootPrefix +
-            ak.getRootRoute().reverse.apply(ak.rootRoute, arguments));
+    return '/' + ak.getRootRoute().reverse.apply(ak.rootRoute, arguments);
   };
 
 })();

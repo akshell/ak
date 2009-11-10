@@ -254,13 +254,8 @@
   };
 
   ak.Request.prototype = {
-    get encodedFullPath() {
-      var parts = [];
-      for (var name in this.get)
-        parts.push(encodeURIComponent(name) + '=' +
-                   encodeURIComponent(this.get[name]));
-      return ('/' + ak.app.name + '/' + encodeURI(this.path) +
-              (parts.length ? ('?' + parts.join('&')) : ''));
+    get uri() {
+      return 'http://' + this.headers.Host + '/' + this.fullPath;
     }
   };
 

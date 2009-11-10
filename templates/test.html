@@ -16,8 +16,14 @@
       <dd>{{ request.path }}</dd>
       <dt>fullPath</dt>
       <dd>{{ request.fullPath }}</dd>
+      <dt>uri</dt>
+      <dd>{{ request.uri }}</dd>
+      <dt>user</dt>
+      <dd>{{ request.user }}</dd>
       <dt>session</dt>
       <dd>{{ request.session }}</dd>
+      <dt>csrf</dt>
+      <dd>{{ request.csrf }}</dd>
       <dt>get</dt>
       <dd>
         {% for item in request.get %}

@@ -390,10 +390,12 @@
         ak._request = oldRequest;
       },
 
-      testEncodedFullPath: function () {
-        assertSame((new Request({path: '?/<>',
-                                 get: {'?': '&', '/': '='}})).encodedFullPath,
-                   '/ak/?/%3C%3E?%3F=%26&%2F=%3D');
+      testURI: function () {
+        var request = new Request({
+                                    fullPath: 'a/b',
+                                    headers: {Host: 'ak.akshell.com'}
+                                  });
+        assertSame(request.uri, 'http://ak.akshell.com/a/b');
       }
     });
 
@@ -1592,11 +1594,10 @@
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
     ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
     ['{% with "a>b" as x %}{{ x.toUpperCase }}{% endwith %}', {}, 'A>B'],
-    ['{% url ak._TestController x y %}', {x: '&', y: '"'},
-     '/ak/%3C%3E/&/%22/'],
-    ['{% url ak._TestController 1 2 as x %}{{ x }}', {}, '/ak/%3C%3E/1/2/'],
+    ['{% url ak._TestController x y %}', {x: '&', y: '"'}, '/%3C%3E/&/%22/'],
+    ['{% url ak._TestController 1 2 as x %}{{ x }}', {}, '/%3C%3E/1/2/'],
     ['{% url ak._TestController as x %}{{ x }}', {}, ''],
-    ['{% url ak._TestController#page "a" "b" %}', {}, '/ak/%3C%3E/a/b/page/']
+    ['{% url ak._TestController#page "a" "b" %}', {}, '/%3C%3E/a/b/page/']
   ];
 
 
@@ -1948,7 +1949,7 @@
         assertThrow(Error, reverse);
         function f() {};
         defineRoutes('abc', f);
-        assertSame(reverse(f), '/ak/abc');
+        assertSame(reverse(f), '/abc');
         assertEqual(resolve('abc'), [f, []]);
         ak.rootRoute = oldRootRoute;
       }
@@ -2017,7 +2018,7 @@
         assertSame(response.content, '');
         assertSame(response.status, http.FOUND);
         assertSame(response.headers.Location, 'xyz');
-        assertSame(redirect(f, 'abc').headers.Location, '/ak/abc/');
+        assertSame(redirect(f, 'abc').headers.Location, '/abc/');
         ak.rootRoute = oldRootRoute;
       },
 
@@ -2064,10 +2065,18 @@
         var f = function () {}.decorated(Controller.requiringLogin);
         assertThrow(LoginRequiredError, function () { f({}); });
         var route = new Route(f);
-        var response = defaultServe({path: 'x/', encodedFullPath: '/ak/x/'},
-                                    route);
+        var request = new Request({
+                                    path: 'x/',
+                                    fullPath: 'x/',
+                                    headers: {
+                                      Host: 'ak.akshell.com'
+                                    }
+                                  });
+        var response = defaultServe(request, route);
         assertSame(response.status, http.FOUND);
-        assertSame(response.headers.Location, '/login/?next=/ak/x/');
+        assertSame(response.headers.Location,
+                   ('http://www.akshell.com/login/?next=' +
+                    'http%3A%2F%2Fak.akshell.com%2Fx%2F'));
       },
 
       testServe: function () {
@@ -2081,7 +2090,7 @@
         assertSame(defaultServe({path: 'a/b'}, root).status, http.NOT_FOUND);
         var response = defaultServe({path: 'abc'}, root);
         assertSame(response.status, http.MOVED_PERMANENTLY);
-        assertSame(response.headers.Location, '/ak/abc/');
+        assertSame(response.headers.Location, '/abc/');
         assertThrow(ResolveError, function () { serve({path: 'abc'}, root); });
         assertSame(serve({path: 'abc/', method: 'get'}, root).content, 'abc');
         assertSame(defaultServe({path: 'abc/', method: 'put'}, root).status,
