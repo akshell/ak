@@ -1328,6 +1328,23 @@
     return new URLNode(object, parser.makeExprs(exprStrings), as);
   };
 
+
+  var CSRFTokenNode = $.Node.subclass(
+    function (value) {
+      this._value = value;
+    },
+    {
+      render: function (context) {
+        return ('<div style="display:none;">' +
+                '<input type="hidden" name="csrfToken" value="' + this._value +
+                '" /></div>');
+      }
+    });
+
+  $.defaultTags.csrfToken = function (parser) {
+    return new CSRFTokenNode(arguments.callee.value || '');
+  };
+
   //////////////////////////////////////////////////////////////////////////////
   // if tag
   //////////////////////////////////////////////////////////////////////////////

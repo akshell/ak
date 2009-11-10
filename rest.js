@@ -200,6 +200,19 @@
   ak.update(
     ak.serve,
     {
+      protectingFromCSRF: function (serve) {
+        return function (request /* ... */) {
+          if (request.method == 'post' &&
+              request.csrfToken &&
+              request.post.csrfToken != request.csrfToken)
+            return new ak.Response(
+              'Cross Site Request Forgery detected. Request aborted.',
+              ak.http.FORBIDDEN);
+          ak.template.defaultTags.csrfToken.value = request.csrfToken;
+          return serve.apply(this, arguments);
+        };
+      },
+
       catchingHttpError: function (serve) {
         return function (/* arguments... */) {
           try {
@@ -258,6 +271,7 @@
 
 
   ak.defaultServe = ak.serve.decorated(
+    ak.serve.protectingFromCSRF,
     ak.serve.catchingHttpError,
     ak.serve.catchingLoginRequiredError,
     ak.serve.appendingSlash

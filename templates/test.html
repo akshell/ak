@@ -22,8 +22,8 @@
       <dd>{{ request.user }}</dd>
       <dt>session</dt>
       <dd>{{ request.session }}</dd>
-      <dt>csrf</dt>
-      <dd>{{ request.csrf }}</dd>
+      <dt>csrfToken</dt>
+      <dd>{{ request.csrfToken }}</dd>
       <dt>get</dt>
       <dd>
         {% for item in request.get %}
@@ -67,6 +67,7 @@
     </form>
     <h2>Post form</h2>
     <form action="." method=post enctype="multipart/form-data">
+      {% csrfToken %}
       <p>
         <label for=a>a:</label>
         <input id=a type=text name=a />

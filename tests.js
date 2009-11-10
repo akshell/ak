@@ -1597,7 +1597,11 @@
     ['{% url ak._TestController x y %}', {x: '&', y: '"'}, '/%3C%3E/&/%22/'],
     ['{% url ak._TestController 1 2 as x %}{{ x }}', {}, '/%3C%3E/1/2/'],
     ['{% url ak._TestController as x %}{{ x }}', {}, ''],
-    ['{% url ak._TestController#page "a" "b" %}', {}, '/%3C%3E/a/b/page/']
+    ['{% url ak._TestController#page "a" "b" %}', {}, '/%3C%3E/a/b/page/'],
+    ['{% csrfToken %}', {},
+     ('<div style=\"display:none;\">' +
+      '<input type=\"hidden\" name=\"csrfToken\" value=\"42\" />' +
+      '</div>')]
   ];
 
 
@@ -1684,6 +1688,7 @@
         defineRoutes('<>/', [[[[ak._TestController,
                                 [['page/', ak._TestController.page('page')]]
                                ]]]]);
+        template.defaultTags.csrfToken.value = '42';
         renderingTests.forEach(
           function (test) {
             assertSame((new Template(test[0],
@@ -2105,6 +2110,22 @@
                    3);
         assertSame(defaultServe({path: 'a/length', method: 'get'}, root).status,
                    http.METHOD_NOT_ALLOWED);
+        assertSame(defaultServe({
+                                  method: 'post',
+                                  path: 'abc/method',
+                                  post: {},
+                                  csrfToken: 'x'
+                                },
+                                root).status,
+                   http.FORBIDDEN);
+        assertSame(defaultServe({
+                                  method: 'post',
+                                  path: 'abc/method',
+                                  post: {csrfToken: 'x'},
+                                  csrfToken: 'x'
+                                },
+                                root).status,
+                   http.OK);
       }
     });
 
