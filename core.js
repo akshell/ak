@@ -26,9 +26,6 @@
 
 (function ()
 {
-  ak.use('JSON');
-
-
   // Property access modes for ak._setObjectProp
   // Could be combined using '|' operator.
   ak.NONE        = 0;
