@@ -190,7 +190,7 @@
 
   ak.serve = function (request, root/* = ak.rootRoute */) {
     root = root || ak.getRootRoute();
-    var resolveInfo = root.resolve(request.path);
+    var resolveInfo = root.resolve(request.path.substr(1));
     var controller = resolveInfo[0];
     var args = [request].concat(resolveInfo[1]);
     return controller.apply(ak.global, args);
@@ -256,14 +256,14 @@
             if (!(error instanceof ak.ResolveError))
               throw error;
             try {
-              (root || ak.rootRoute).resolve(request.path + '/');
+              (root || ak.rootRoute).resolve(request.path.substr(1) + '/');
             } catch (_) {
               throw error;
             }
             return new ak.Response(
               '',
               ak.http.MOVED_PERMANENTLY,
-              {Location: '/' + request.path + '/'});
+              {Location: request.path + '/'});
           }
         };
       }

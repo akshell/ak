@@ -188,7 +188,7 @@
 
 
   ak.resolve = function (path) {
-    return ak.getRootRoute().resolve(path);
+    return ak.getRootRoute().resolve(path.substr(1));
   };
 
 

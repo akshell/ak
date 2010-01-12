@@ -1955,7 +1955,7 @@
         function f() {};
         defineRoutes('abc', f);
         assertSame(reverse(f), '/abc');
-        assertEqual(resolve('abc'), [f, []]);
+        assertEqual(resolve('/abc'), [f, []]);
         ak.rootRoute = oldRootRoute;
       }
     });
@@ -2092,27 +2092,27 @@
                                ['error', controlError],
                                ['length', LengthController]
                              ]);
-        assertSame(defaultServe({path: 'a/b'}, root).status, http.NOT_FOUND);
-        var response = defaultServe({path: 'abc'}, root);
+        assertSame(defaultServe({path: '/a/b'}, root).status, http.NOT_FOUND);
+        var response = defaultServe({path: '/abc'}, root);
         assertSame(response.status, http.MOVED_PERMANENTLY);
         assertSame(response.headers.Location, '/abc/');
-        assertThrow(ResolveError, function () { serve({path: 'abc'}, root); });
-        assertSame(serve({path: 'abc/', method: 'get'}, root).content, 'abc');
-        assertSame(defaultServe({path: 'abc/', method: 'put'}, root).status,
+        assertThrow(ResolveError, function () { serve({path: '/abc'}, root); });
+        assertSame(serve({path: '/abc/', method: 'get'}, root).content, 'abc');
+        assertSame(defaultServe({path: '/abc/', method: 'put'}, root).status,
                    http.METHOD_NOT_ALLOWED);
         assertThrow(Error,
-                    function () { defaultServe({path: 'abc/error'}, root); });
-        assertSame(serve({path: 'abc/method', method: 'PUT'}, root).content,
+                    function () { defaultServe({path: '/abc/error'}, root); });
+        assertSame(serve({path: '/abc/method', method: 'PUT'}, root).content,
                    'PUT');
-        assertSame(serve({path: 'abc/upper', method: 'get'}, root).content,
+        assertSame(serve({path: '/abc/upper', method: 'get'}, root).content,
                    'ABC');
-        assertSame(serve({path: 'abc/length', method: 'put'}, root).content,
+        assertSame(serve({path: '/abc/length', method: 'put'}, root).content,
                    3);
-        assertSame(defaultServe({path: 'a/length', method: 'get'}, root).status,
+        assertSame(defaultServe({path: '/a/length', method: 'get'}, root).status,
                    http.METHOD_NOT_ALLOWED);
         assertSame(defaultServe({
                                   method: 'post',
-                                  path: 'abc/method',
+                                  path: '/abc/method',
                                   post: {},
                                   csrfToken: 'x'
                                 },
@@ -2120,7 +2120,7 @@
                    http.FORBIDDEN);
         assertSame(defaultServe({
                                   method: 'post',
-                                  path: 'abc/method',
+                                  path: '/abc/method',
                                   post: {csrfToken: 'x'},
                                   csrfToken: 'x'
                                 },
