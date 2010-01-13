@@ -203,7 +203,7 @@
   };
 
 
-  ak.request = function (appName, request) {
+  ak.requestApp = function (appName, request) {
     var realRequest = {
       method: request.method || 'GET',
       path: request.path || '',
@@ -218,18 +218,18 @@
       realRequest.fileNames.push(fileName);
       filePathes.push(files[fileName]);
     }
-    var responseString = ak._request(appName,
-                                     JSON.stringify(realRequest),
-                                     filePathes,
-                                     request.data || '');
+    var responseString = ak._requestApp(appName,
+                                        JSON.stringify(realRequest),
+                                        filePathes,
+                                        request.data || '');
     var head = responseString.split('\n\n', 1)[0];
     if (head.length == responseString.length)
-      throw new ak.RequestError('Response without a head');
+      throw new ak.AppRequestError('Response without a head');
     var content = responseString.substr(head.length + 2);
     var statusString = head.split('\n', 1)[0];
     var status = +statusString;
     if (!status)
-      throw new ak.RequestError('Invalid status: "' + statusString + '"');
+      throw new ak.AppRequestError('Invalid status: "' + statusString + '"');
     var headersString = head.substr(statusString.length + 1);
     var headers = {};
     if (headersString)
@@ -237,7 +237,7 @@
         function (headerLine) {
           var name = headerLine.split(': ', 1)[0];
           if (name.length == headerLine.length)
-            throw new ak.RequestError(
+            throw new ak.AppRequestError(
               'Invalid header line: "' + headerLine + '"');
           headers[name] = headerLine.substr(name.length + 2);
         });

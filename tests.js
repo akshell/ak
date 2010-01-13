@@ -303,7 +303,7 @@
   // core tests
   //////////////////////////////////////////////////////////////////////////////
 
-  function testRequest(appName, request, files, data) {
+  function testRequestApp(appName, request, files, data) {
     return ([data, ak.repr(JSON.parse(request)[appName])].concat(files)
             .join('\n'));
   }
@@ -366,28 +366,29 @@
         assertEqual(db.RV.by('n').field('s'), ['!', 'b', '!']);
       },
 
-      testRequest: function() {
-        var oldRequest = ak._request;
-        ak._request = testRequest;
-        var response = request('method', {data: '201\n'});
+      testRequestApp: function() {
+        var oldRequestApp = ak._requestApp;
+        ak._requestApp = testRequestApp;
+        var response = requestApp('method', {data: '201\n'});
         assertSame(response.status, 201);
         assertSame(response.content, '"GET"');
         assertEqual(items(response.headers), []);
-        response = request('post', {data: '200\n', post: 'hi'});
+        response = requestApp('post', {data: '200\n', post: 'hi'});
         assertSame(response.content, '"hi"');
-        response = request('get', {data: '200\n'});
+        response = requestApp('get', {data: '200\n'});
         assertSame(response.content, '{}');
-        response = request('fileNames',
-                           {data: '200\n',
-                            files: {f1: 'file1', f2: 'file2'}});
+        response = requestApp('fileNames',
+                              {data: '200\n',
+                              files: {f1: 'file1', f2: 'file2'}});
         assertSame(response.content, '["f1", "f2"]\nfile1\nfile2');
-        response = request('headers', {data: '200\na: b\nc:  d\n'});
+        response = requestApp('headers', {data: '200\na: b\nc:  d\n'});
         assertEqual(items(response.headers), [['a', 'b'], ['c', ' d']]);
-        assertThrow(RequestError, function () { request('', {}); });
-        assertThrow(RequestError, function () { request('', {data: '!\n'}); });
-        assertThrow(RequestError,
-                    function () { request('', {data: '200\na:b\n'}); });
-        ak._request = oldRequest;
+        assertThrow(AppRequestError, function () { requestApp('', {}); });
+        assertThrow(AppRequestError,
+                    function () { requestApp('', {data: '!\n'}); });
+        assertThrow(AppRequestError,
+                    function () { requestApp('', {data: '200\na:b\n'}); });
+        ak._requestApp = oldRequestApp;
       },
 
       testURI: function () {
