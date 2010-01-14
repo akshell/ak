@@ -2036,8 +2036,13 @@
         db.RV.insert({x: 3});
         assertThrow(MultipleTuplesError,
                     function () { db.RV.get('x % 2 == 1'); });
-        assertThrow(TupleNotFoundError,
-                    function () { db.RV.get({x: 4}); });
+        try {
+          db.RV.get({x: 4});
+          assert(false);
+        } catch (error) {
+          assert(error instanceof db.RV.DoesNotExist);
+          assertSame(error.message, 'RV does not exist');
+        }
         assertSame(db.RV.get('x % 2 == 0').x, 2);
         assertSame(query('RV').get('x > 2').x, 3);
         db.RV.get({x: 1}).del();

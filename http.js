@@ -31,14 +31,14 @@
 
   ak.HttpError = ak.BaseError.subclass(
     function (message, status/* = 400 */) {
+      ak.BaseError.call(this, message);
       this.status = status || ak.http.BAD_REQUEST;
     });
 
 
   ak.NotFoundError = ak.HttpError.subclass(
     function (message/* = 'Not found' */) {
-      ak.HttpError.call(this, message, ak.http.NOT_FOUND);
-      this.message = message || 'Not found';
+      ak.HttpError.call(this, message || 'Not found', ak.http.NOT_FOUND);
     }
   );
 

@@ -57,14 +57,22 @@
   // Rel, Selection and RelVar get() method
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.TupleNotFoundError = ak.NotFoundError.subclass();
-  ak.MultipleTuplesError = ak.BaseError.subclass();
+  ak.TupleDoesNotExist = ak.NotFoundError.subclass(
+    function (message/* = 'Tuple does not exist' */) {
+      ak.NotFoundError.call(this, message || 'Tuple does not exist');
+    });
 
 
-  function getUnitupleRel(rel, whereArgs) {
+  ak.MultipleTuplesError = ak.BaseError.subclass(
+    function () {
+      ak.BaseError.call(this, 'Multiple tuples returned');
+    });
+
+
+  function getUnitupleRel(rel, whereArgs, AbsenceError) {
     var result = rel.where.apply(rel, whereArgs.length ? whereArgs : ['true']);
     if (!result.length)
-      throw new ak.TupleNotFoundError();
+      throw new AbsenceError();
     if (result.length > 1)
       throw new ak.MultipleTuplesError();
     return result;
@@ -74,7 +82,7 @@
   ak.Rel.prototype.setNonEnumerable(
     'get',
     function (/* arguments... */) {
-      return getUnitupleRel(this, arguments)[0];
+      return getUnitupleRel(this, arguments, ak.TupleDoesNotExist)[0];
     });
 
 
@@ -93,10 +101,26 @@
     });
 
 
+  var absenceErrors = {};
+
+  ak.RelVar.prototype.__defineGetter__(
+    'DoesNotExist',
+    function () {
+      var name = this.name;
+      if (!absenceErrors[name]) {
+        absenceErrors[name] = ak.TupleDoesNotExist.subclass(
+          function () {
+            ak.TupleDoesNotExist.call(this, name + ' does not exist');
+          });
+      }
+      return absenceErrors[name];
+    });
+
+
   ak.Selection.prototype.setNonEnumerable(
     'get',
     function (/* arguments... */) {
-      var selection = getUnitupleRel(this, arguments);
+      var selection = getUnitupleRel(this, arguments, this.relVar.DoesNotExist);
       result = selection[0];
       ak.setObjectProp(result, '$', ak.DONT_ENUM, selection);
       for (var name in tupleMixin)
