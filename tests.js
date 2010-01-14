@@ -981,6 +981,37 @@
         assertSame(nextMatch(re, string), null);
         assertThrow(SyntaxError, function () { nextMatch(/a/g, 'b'); });
         assertThrow(SyntaxError, function () { nextMatch(/a/g, 'ba'); });
+      },
+
+      testTimeSince: function () {
+        assertSame(timeSince(new Date('14 Jan 2010 09:32:00'),
+                             new Date('14 Jan 2010 09:33:03')),
+                   '1 minute, 3 seconds');
+        assertSame(timeSince(new Date('14 Jan 2010 09:33:03'),
+                             new Date('14 Jan 2010 09:32:00')),
+                   '0 seconds');
+        assertSame(timeSince(new Date('14 Jan 2010 09:32:00'),
+                             new Date('14 Jan 2010 09:32:00')),
+                   '0 seconds');
+        assertSame(timeSince(new Date('14 Jan 2009 09:32:00'),
+                             new Date('14 Jan 2010 09:33:03')),
+                   '1 year');
+        var date1 = new Date('14 Jan 2009 09:32:00');
+        var date2 = new Date(date1);
+        date2.setMilliseconds(1);
+        assertSame(timeSince(date1, date2), '0 seconds');
+      },
+
+      testTimeUntil: function () {
+        assertSame(timeUntil(new Date('14 Jan 2009 09:32:00'),
+                             new Date('14 Jan 2010 09:33:03')),
+                   '0 seconds');
+        assertSame(timeUntil(new Date('14 Jan 2010 09:33:03'),
+                             new Date('14 Feb 2000 09:32:00')),
+                   '9 years, 11 months');
+        assertSame(timeUntil(new Date('fdsa'),
+                             new Date('14 Feb 2000 09:32:00')),
+                   '0 seconds');
       }
     });
 
@@ -1466,6 +1497,12 @@
     ['{{ " everything\'s ok "|title }}', {}, ' Everything\'s Ok '],
     ['{{ "\thello  world  "|countWords }}', {}, '2'],
     ['{{ "\t "|countWords }}', {}, '0'],
+    ['{{ date1|timeSince:date2 }} {{ date2|timeUntil:date1 }}',
+     {
+       date1: new Date('14 Jan 2010 07:45:00'),
+       date2: new Date('14 Jan 2010 09:32:00')
+     },
+     '1 hour, 47 minutes 1 hour, 47 minutes'],
 
 
     ['{% comment %} hi {% endcomment %}hello', {}, 'hello'],

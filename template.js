@@ -758,6 +758,18 @@
       },
       {safety: 'value', accept: 'string'}),
 
+    timeSince: new $.Filter(
+      function (value, arg) {
+        return ak.timeSince(value, arg);
+      },
+      {safety: 'always'}),
+
+    timeUntil: new $.Filter(
+      function (value, arg) {
+        return ak.timeUntil(value, arg);
+      },
+      {safety: 'always'}),
+
     title: new $.Filter(
       function (value) {
         return (value
