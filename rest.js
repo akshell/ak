@@ -101,19 +101,18 @@
     });
 
 
-  var absenceErrors = {};
-
   ak.RelVar.prototype.__defineGetter__(
     'DoesNotExist',
     function () {
-      var name = this.name;
-      if (!absenceErrors[name]) {
-        absenceErrors[name] = ak.TupleDoesNotExist.subclass(
+      if (!this._DoesNotExist) {
+        var name = this.name;
+        this._DoesNotExist = ak.TupleDoesNotExist.subclass(
           function () {
             ak.TupleDoesNotExist.call(this, name + ' does not exist');
           });
+        this._DoesNotExist.__name__ = 'ak.db.' + name + '.DoesNotExist';
       }
-      return absenceErrors[name];
+      return this._DoesNotExist;
     });
 
 

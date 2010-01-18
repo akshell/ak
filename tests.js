@@ -366,6 +366,10 @@
         assertEqual(db.RV.by('n').field('s'), ['!', 'b', '!']);
       },
 
+      testRelVar: function () {
+        assertSame(db.RV.where('true').relVar, db.RV);
+      },
+
       testRequestApp: function() {
         var oldRequestApp = ak._requestApp;
         ak._requestApp = testRequestApp;

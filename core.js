@@ -171,6 +171,13 @@
     });
 
 
+  ak.Selection.prototype.__defineGetter__(
+    'relVar',
+    function () {
+      return ak.db[this._getRelVarName()];
+    });
+
+
   function makeRelVarDelegation(func_name) {
     ak.RelVar.prototype[func_name] = function (/* arguments... */) {
       return ak.Selection.prototype[func_name].apply(this.all(), arguments);
