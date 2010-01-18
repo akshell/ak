@@ -758,7 +758,7 @@
         db.RV.insert({n: 0});
         db.RV.insert({n: 1});
         db.RV.insert({n: 2});
-        var rel = db.RV.all();
+        var rel = db.RV.getValue();
         assert(rel.every(function (tuple) { return tuple.n < 3; }));
         assert(rel.some(function (tuple) { return tuple.n == 1; }));
         assertEqual((rel
@@ -2209,8 +2209,8 @@
             s: ' \t\nserial\t foreign Y.i ->X.i ',
             n: 'number->Check.n default \'42\''
           });
-        assertSame(db.Y.header.i, 'integer');
-        assertSame(db.Y.header.s, 'serial');
+        assertSame(db.Y.getHeader().i, 'integer');
+        assertSame(db.Y.getHeader().s, 'serial');
         assertEqual(db.Y.getForeigns().map(items).sort(cmp),
                     [[["keyFields", ["n"]],
                       ["refRelVar", "Check"],
@@ -2226,6 +2226,8 @@
                     [["i", -1], ["n", 42]]);
         assertThrow(ConstraintError,
                     function () { db.Check.insert({n: 42}); });
+        assertEqual(db.Y.getIntegers().sort(), ['i', 's']);
+        assertEqual(db.Y.getSerials(), ['s']);
       },
 
       testConstr: function () {

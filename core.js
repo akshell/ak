@@ -59,8 +59,9 @@
   publishMethod(ak.RelVar, 'create');
   publishMethod(ak.RelVar, 'insert');
   publishMethod(ak.RelVar, 'drop');
-  publishMethod(ak.RelVar, 'all');
-  publishMethod(ak.RelVar, 'getInts');
+  publishMethod(ak.RelVar, 'getValue');
+  publishMethod(ak.RelVar, 'getHeader');
+  publishMethod(ak.RelVar, 'getIntegers');
   publishMethod(ak.RelVar, 'getSerials');
   publishMethod(ak.RelVar, 'getDefaults');
   publishMethod(ak.RelVar, 'getUniques');
@@ -178,9 +179,9 @@
     });
 
 
-  function makeRelVarDelegation(func_name) {
-    ak.RelVar.prototype[func_name] = function (/* arguments... */) {
-      return ak.Selection.prototype[func_name].apply(this.all(), arguments);
+  function makeRelVarDelegation(name) {
+    ak.RelVar.prototype[name] = function (/* arguments... */) {
+      return ak.Selection.prototype[name].apply(this.getValue(), arguments);
     };
   }
 

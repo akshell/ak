@@ -130,7 +130,7 @@
 
 
   ak.RelVar.prototype.get = function (/* arguments... */) {
-    return ak.Selection.prototype.get.apply(this.all(), arguments);
+    return ak.Selection.prototype.get.apply(this.getValue(), arguments);
   };
 
   //////////////////////////////////////////////////////////////////////////////
