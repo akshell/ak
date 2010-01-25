@@ -111,38 +111,44 @@
     ')\\s*$');
   var sepRegExp = /\s*,\s*/;
 
-  function compileConstr(string) {
+  function compileConstr(constrs, string) {
     var match = constrRegExp.exec(string);
     if (!match)
       throw new ak.UsageError('Invalid constraint format: ' + ak.repr(string));
     if (match[1])
-      return ak.check(match[1]);
+      constrs.check.push(match[1]);
     else if (match[2])
-      return ak.unique(match[2].split(sepRegExp));
+      constrs.unique.push(match[2].split(sepRegExp));
     else if (match[3])
-      return ak.unique(match[3].split(sepRegExp));
+      constrs.unique.push(match[3].split(sepRegExp));
     else
-      return ak.foreign(match[4].split(sepRegExp),
-                        match[5],
-                        match[6].split(sepRegExp));
+      constrs.foreign.push([
+                             match[4].split(sepRegExp),
+                             match[5],
+                             match[6].split(sepRegExp)
+                           ]);
   }
 
 
-  var doCreate = ak.RelVar.prototype.create;
+  var doCreate = ak.db.create;
 
-  ak.RelVar.prototype.create = function (header /* constrs... */) {
+  ak.db.create = function (name, header/*, constrs... */) {
     header = ak.clone(header);
-    for (var name in header) {
-      var type = header[name];
-      if (typeof(type) == 'string')
-        header[name] = compileType(type);
+    for (var attrName in header) {
+      if (typeof(header[attrName]) == 'string')
+        header[attrName] = compileType(header[attrName]);
     }
-    var constrs = Array.map(
-      Array.slice(arguments, 1),
-      function (constr) {
-        return typeof(constr) == 'string' ? compileConstr(constr) : constr;
-      });
-    return doCreate.apply(this, [header].concat(constrs));
+    var constrs;
+    if (arguments.length == 3 && typeof(arguments[2]) == 'object') {
+      constrs = arguments[2];
+    } else {
+      constrs = {unique: [], foreign: [], check: []};
+      Array.slice(arguments, 2).forEach(
+        function (string) {
+          compileConstr(constrs, string);
+        });
+    }
+    return doCreate(name, header, constrs);
   };
 
 })();

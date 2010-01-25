@@ -69,38 +69,6 @@
     });
 
 
-  function getUnitupleRel(rel, whereArgs, AbsenceError) {
-    var result = rel.where.apply(rel, whereArgs.length ? whereArgs : ['true']);
-    if (!result.length)
-      throw new AbsenceError();
-    if (result.length > 1)
-      throw new ak.MultipleTuplesError();
-    return result;
-  }
-
-
-  ak.Rel.prototype.setNonEnumerable(
-    'get',
-    function (/* arguments... */) {
-      return getUnitupleRel(this, arguments, ak.TupleDoesNotExist)[0];
-    });
-
-
-  var tupleMixin = {};
-
-  [
-    'update',
-    'set',
-    'del'
-  ].forEach(
-    function (name) {
-      var func = ak.Selection.prototype[name];
-      tupleMixin[name] = function (/* arguments */) {
-        return func.apply(this.$, arguments);
-      };
-    });
-
-
   ak.RelVar.prototype.__defineGetter__(
     'DoesNotExist',
     function () {
@@ -110,27 +78,19 @@
           function () {
             ak.TupleDoesNotExist.call(this, name + ' does not exist');
           });
-        this._DoesNotExist.__name__ = 'ak.db.' + name + '.DoesNotExist';
+        this._DoesNotExist.__name__ = 'ak.rv.' + name + '.DoesNotExist';
       }
       return this._DoesNotExist;
     });
 
 
-  ak.Selection.prototype.setNonEnumerable(
-    'get',
-    function (/* arguments... */) {
-      var selection = getUnitupleRel(this, arguments, this.relVar.DoesNotExist);
-      result = selection[0];
-      ak.setObjectProp(result, '$', ak.DONT_ENUM, selection);
-      for (var name in tupleMixin)
-        if (!(name in result))
-          ak.setObjectProp(result, name, ak.DONT_ENUM, tupleMixin[name]);
-      return result;
-    });
-
-
-  ak.RelVar.prototype.get = function (/* arguments... */) {
-    return ak.Selection.prototype.get.apply(this.getValue(), arguments);
+  ak.Selection.prototype.getOne = function (options) {
+    var tuples = this.get(options);
+    if (!tuples.length)
+      throw new this.rv.DoesNotExist();
+    if (tuples.length > 1)
+      throw new ak.MultipleTuplesError();
+    return tuples[0];
   };
 
   //////////////////////////////////////////////////////////////////////////////

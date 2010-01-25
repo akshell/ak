@@ -547,6 +547,5 @@
   function makeArrayIterator() { return new ak.ArrayIterator(this); };
   Array.prototype.setNonEnumerable('__iter__', makeArrayIterator);
   String.prototype.setNonEnumerable('__iter__', makeArrayIterator);
-  ak.Rel.prototype.setNonEnumerable('__iter__', makeArrayIterator);
 
 })();

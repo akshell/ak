@@ -315,10 +315,10 @@
 
       setUp: function () {
         this._clean();
-        db.RV.create({s: string, n: number});
-        db.RV.insert({s: 'a', n: 1});
-        db.RV.insert({s: 'b', n: 2});
-        db.RV.insert({s: 'c', n: 3});
+        db.create('X', {n: number, b: bool, s: string});
+        rv.X.insert({n: 0, b: false, s: 'zero'});
+        rv.X.insert({n: 1, b: false, s: 'one'});
+        rv.X.insert({n: 42, b: true, s: 'the answer'});
       },
 
       tearDown: function () {
@@ -327,7 +327,127 @@
 
       _clean: function () {
         fs.list('').forEach(fs.remove);
-        dropRelVars(keys(db));
+        db.drop(keys(rv));
+      },
+
+      testQuery: function () {
+        assert(db.query('X') instanceof Array);
+        assertEqual(db.query('X where !b').length, 2);
+        assertEqual(db.query('X.n where !b', {by: 'n'}).map(items),
+                    [[['n', 0]], [['n', 1]]]);
+        assertEqual(
+          db.query('X[b, n]', {by: ['b', 'n * $'], byParams: [-1]}).map(items),
+          [
+            [['b', false], ['n', 1]],
+            [['b', false], ['n', 0]],
+            [['b', true], ['n', 42]]
+          ]);
+        assertEqual(
+          db.query('X.b where n > $1 && s != $2',
+                   {params: [0, 'one']}).map(items),
+          [[['b', true]]]);
+        assertEqual(
+          db.query('X.n', {by: 'n', start: 1, length: 1}).map(items),
+          [[['n', 1]]]);
+      },
+
+      testCount: function () {
+        assertSame(db.count('X'), 3);
+        assertSame(db.count('X.b where n > $1 && s != $2', 0, 'one'), 1);
+        assertSame(db.count('X.b where n > $1 && s != $2', [0, 'one']), 1);
+        assertSame(db.count('X.b where n > $1 && s != $2',
+                            {length: 2, 0: 0, 1: 'one'}),
+                   1);
+      },
+
+      testCreate: function () {
+        db.create('Y', {});
+        assertEqual(items(rv.Y.header), []);
+        assertEqual(items(rv.X.header).sort(),
+                    [['b', 'boolean'], ['n', 'number'], ['s', 'string']]);
+        assertSame(rv.X.header, rv.X.header);
+        rv.Y.drop();
+        db.create('Y',
+                  {
+                    s: number.serial(),
+                    i: number.integer(),
+                    u: string.unique(),
+                    f: string.foreign('Y', 'u'),
+                    c: number.check('c % 2 == 0'),
+                    s1: number.integer(),
+                    i1: number.integer(),
+                    d: number.default_('15')
+                  },
+                  {
+                    unique: [['s', 'i']],
+                    foreign: [[['s1', 'i1'], 'Y', ['s', 'i']]],
+                    check: ['s != i']
+                  });
+        assertEqual(
+          rv.Y.foreign,
+          [[['f'], 'Y', ['u']], [['s1', 'i1'], 'Y', ['s', 'i']]]);
+        assertEqual(
+          rv.Y.unique,
+          [['s', 'i'], ['s', 'i', 'u', 'f', 'c', 's1', 'i1', 'd'], ['u']]);
+        assertEqual(rv.Y.serial, ['s']);
+        assertEqual(rv.Y.integer, ['i', 'i1', 's', 's1']);
+        assertEqual(items(rv.Y.default_), [['d', 15]]);
+        assertEqual(keys(rv).sort(), ['X', 'Y']);
+        rv.Y.drop();
+        assertEqual(keys(rv), ['X']);
+      },
+
+      testDrop: function () {
+        db.create('Y', {u: number.unique()});
+        db.create('Z', {f: number.foreign('Y', 'u')});
+        assertThrow(ak.RelVarDependencyError, function () { rv.Y.drop(); });
+        db.drop('Y', 'Z');
+      },
+
+      testSelection: function () {
+        assertSame(rv.X.where('b').rv, rv.X);
+        assertEqual(rv.X.where({b: false, n: 1}).get({attr: 's'}), ['one']);
+        assertEqual(
+          rv.X.where('b').get().map(items),
+          [[['n', 42], ['b', true], ['s', 'the answer']]]);
+        assertEqual(
+          rv.X.where('b == $', [false]).get({attr: 'n', by: 'n'}),
+          [0, 1]);
+        assertEqual(
+          rv.X.where({b: false})
+            .get({only: ['n', 's'], by: ['s']}).map(items),
+          [[['n', 1], ['s', 'one']], [['n', 0], ['s', 'zero']]]);
+        assertEqual(
+          rv.X.where('s != $', 'five').get({attr: 'n', by: 'n * $'}, -1),
+          [42, 1, 0]);
+        assertSame(rv.X.where('n > $', 5).count(), 1);
+        rv.X.where('b == $', false)
+          .update({n: 'n + $1', s: 's + n + $2'}, 1, '!');
+        assertEqual(
+          rv.X.all().get({only: ['n', 's'], by: 'n'}).map(items),
+          [
+            [['n', 1], ['s', 'zero0!']],
+            [['n', 2], ['s', 'one1!']],
+            [['n', 42], ['s', 'the answer']]
+          ]);
+        rv.X.where('!b').set({s: '$'});
+        assertEqual(rv.X.all().get({attr: 's', by: 's'}), ['$', 'the answer']);
+      },
+
+      testRelVar: function () {
+        db.create('Y', {d: number.default_(42), s: number.serial()});
+        assertEqual(items(rv.Y.insert({d: 1, s:1})).sort(),
+                    [['d', 1], ['s', 1]]);
+        assertEqual(items(rv.Y.insert({d: 1})).sort(),
+                    [['d', 1], ['s', 0]]);
+        assertThrow(ak.ConstraintError, function () { rv.Y.insert({d: 1}); });
+        assertEqual(items(rv.Y.insert({d: 1})).sort(),
+                    [['d', 1], ['s', 2]]);
+        assertEqual(items(rv.Y.insert({})).sort(),
+                    [['d', 42], ['s', 3]]);
+        assertEqual(items(rv.Y.insert({})).sort(),
+                    [['d', 42], ['s', 4]]);
+        rv.Y.drop();
       },
 
       testDescribeApp: function () {
@@ -344,30 +464,6 @@
         fs.remove('dir');
         fs.remove('file');
         assertEqual(fs.list(''), [], 'fs.remove');
-      },
-
-      testWhere: function () {
-        var q = db.RV.where('n % 2 == 1').by('n');
-        assertEqual(q, [{s: 'a', n: 1}, {n: 3, s: 'c'}]);
-        assertEqual(q, q);
-        assert(!equal(q, [null, 42]));
-        assert(!equal(q, [{s: 'a', n: 1}, {n: 4, s: 'c'}]));
-        assert(!equal(q, [{s: 'a', n: 1}]));
-        assertEqual(db.RV.where({n: 2}), [{s: 'b', n: 2}]);
-        assertSame(db.RV.where({n: 1, s: 'a'})[0].n, 1);
-      },
-
-      testField: function () {
-        assertEqual(db.RV.by('n').field('n'), [1, 2, 3]);
-      },
-
-      testSet: function () {
-        db.RV.where('n == 1 || s == "c"').set({s: '!'});
-        assertEqual(db.RV.by('n').field('s'), ['!', 'b', '!']);
-      },
-
-      testRelVar: function () {
-        assertSame(db.RV.where('true').relVar, db.RV);
       },
 
       testRequestApp: function() {
@@ -750,26 +846,6 @@
         assertSame([1, 2, 3].index(1, 1), -1, 'index honors start');
         assertSame([{__cmp__: function () { return 0; }}].index(1), 0,
                    'index with custom __cmp__');
-      },
-
-      testArrayRelMethods: function () {
-        dropRelVars(keys(db));
-        db.RV.create({n: 'number'});
-        db.RV.insert({n: 0});
-        db.RV.insert({n: 1});
-        db.RV.insert({n: 2});
-        var rel = db.RV.getValue();
-        assert(rel.every(function (tuple) { return tuple.n < 3; }));
-        assert(rel.some(function (tuple) { return tuple.n == 1; }));
-        assertEqual((rel
-                     .filter(function (tuple) { return tuple.n % 2 == 0; })
-                     .map(function (tuple) { return tuple.n; })),
-                    [0, 2]);
-        var s = 0;
-        rel.forEach(function (tuple) { s += tuple.n; });
-        assertSame(s, 3);
-        assertSame(repr(rel), '[{n: 0}, {n: 1}, {n: 2}]');
-        db.RV.drop();
       },
 
       ////////////////////////////////////////////////////////////////////////////
@@ -2069,32 +2145,26 @@
         ak.rootRoute = oldRootRoute;
       },
 
-      testGet: function () {
-        dropRelVars(keys(db));
-        db.RV.create({x: number});
-        db.RV.insert({x: 1});
-        db.RV.insert({x: 2});
-        db.RV.insert({x: 3});
+      testGetOne: function () {
+        db.drop(keys(rv));
+        db.create('X', {x: number});
+        rv.X.insert({x: 1});
+        rv.X.insert({x: 2});
+        rv.X.insert({x: 3});
         assertThrow(MultipleTuplesError,
-                    function () { db.RV.get('x % 2 == 1'); });
+                    function () { rv.X.where('x % 2 == 1').getOne(); });
         try {
-          db.RV.get({x: 4});
+          rv.X.where({x: 4}).getOne();
           assert(false);
         } catch (error) {
-          assert(error instanceof db.RV.DoesNotExist);
-          assertSame(error.message, 'RV does not exist');
+          assert(error instanceof rv.X.DoesNotExist);
+          assertSame(error.message, 'X does not exist');
         }
-        assertSame(db.RV.get('x % 2 == 0').x, 2);
-        assertSame(query('RV').get('x > 2').x, 3);
-        db.RV.get({x: 1}).del();
-        assertEqual(db.RV.by('x').field('x'), [2, 3]);
-        db.RV.get({x: 3}).set({x: 4});
-        assertEqual(db.RV.by('x').field('x'), [2, 4]);
-        db.RV.get({x: 2}).update({x: '$'}, 42);
-        assertEqual(db.RV.by('x').field('x'), [4, 42]);
-        db.RV.get({x: 4}).del();
-        assertSame(db.RV.get().x, 42);
-        db.RV.drop();
+        assertSame(rv.X.where('x % 2 == 0').getOne().x, 2);
+        assertSame(rv.X.where('x > $', 2).getOne({attr: 'x'}), 3);
+        assertSame(rv.X.all().getOne({by: 'x', length: 1}).x, 1);
+        assertSame(rv.X.all().getOne({by: 'x', start: 2}).x, 3);
+        rv.X.drop();
       },
 
       testController: function () {
@@ -2185,69 +2255,62 @@
       name: 'db',
 
       tearDown: function () {
-        dropRelVars(keys(db));
+        db.drop(keys(rv));
       },
 
       testType: function () {
         assertThrow(UsageError,
-                    function () { db.RV.create({x: 'unparseble'}); });
+                    function () { db.create('X', {x: 'unparseble'}); });
         assertThrow(UsageError,
-                    function () { db.RV.create({x: 'number string'}); });
+                    function () { db.create('X', {x: 'number string'}); });
         assertThrow(UsageError,
-                    function () { db.RV.create({x: 'number string'}); });
+                    function () { db.create('X', {x: 'number string'}); });
         assertThrow(UsageError,
-                    function () { db.RV.create({x: 'unique default 1'}); });
+                    function () { db.create('X', {x: 'unique default 1'}); });
         assertThrow(UsageError,
                     function () {
-                      db.RV.create({x: 'number default 1 default 2'});
+                      db.create('X', {x: 'number default 1 default 2'});
                     });
-        db.Check.create({n: 'number check (n != 42)'});
-        db.X.create({i: 'int default "15" number unique'});
-        db.Y.create(
+        db.create('Check', {n: 'number check (n != 42)'});
+        db.create('X', {i: 'int default "15" number unique'});
+        db.create(
+          'Y',
           {
             i: 'unique default -1  int',
             s: ' \t\nserial\t foreign Y.i ->X.i ',
             n: 'number->Check.n default \'42\''
           });
-        assertSame(db.Y.getHeader().i, 'integer');
-        assertSame(db.Y.getHeader().s, 'serial');
-        assertEqual(db.Y.getForeigns().map(items).sort(cmp),
-                    [[["keyFields", ["n"]],
-                      ["refRelVar", "Check"],
-                      ["refFields", ["n"]]],
-                     [["keyFields", ["s"]],
-                      ["refRelVar", "X"],
-                      ["refFields", ["i"]]],
-                     [["keyFields", ["s"]],
-                      ["refRelVar", "Y"],
-                      ["refFields", ["i"]]]]);
-        assertEqual(items(db.X.getDefaults()), [['i', 15]]);
-        assertEqual(items(db.Y.getDefaults()).sort(cmp),
-                    [["i", -1], ["n", 42]]);
+        assertSame(rv.Y.header.i, 'integer');
+        assertSame(rv.Y.header.s, 'serial');
+        assertEqual(rv.Y.foreign,
+                    [
+                      [['n'], 'Check', ['n']],
+                      [['s'], 'X', ['i']],
+                      [['s'], 'Y', ['i']]
+                    ]);
+        assertEqual(items(rv.X.default_), [['i', 15]]);
+        assertEqual(items(rv.Y.default_).sort(),
+                    [['i', -1], ['n', 42]]);
         assertThrow(ConstraintError,
-                    function () { db.Check.insert({n: 42}); });
-        assertEqual(db.Y.getIntegers().sort(), ['i', 's']);
-        assertEqual(db.Y.getSerials(), ['s']);
+                    function () { rv.Check.insert({n: 42}); });
+        assertEqual(rv.Y.integer, ['i', 's']);
+        assertEqual(rv.Y.serial, ['s']);
       },
 
       testConstr: function () {
-        assertThrow(UsageError, function () { db.X.create({}, 'invalid'); });
-        db.X.create({i: 'int', n: 'number', s: 'string'},
-                    'unique i , n',
-                    ' \tunique[n,s  ]\t',
-                    ' check i != 42     ');
-        db.Y.create({ii: 'int', nn: 'number', ss: 'string'},
-                    ' [ ii , nn ]foreign X[i,n]',
-                    '[ss,nn]   ->X  [s  ,n ] ');
+        assertThrow(UsageError, function () { db.create('X', {}, 'invalid'); });
+        db.create('X', {i: 'int', n: 'number', s: 'string'},
+                  'unique i , n',
+                  ' \tunique[n,s  ]\t',
+                  ' check i != 42     ');
+        db.create('Y', {ii: 'int', nn: 'number', ss: 'string'},
+                  ' [ ii , nn ]foreign X[i,n]',
+                  '[ss,nn]   ->X  [s  ,n ] ');
         assertThrow(ConstraintError,
-                    function () { db.X.insert({i: 42, n: 0, s: ''}); });
-        assertEqual(db.Y.getForeigns().map(items).sort(cmp),
-                    [[["keyFields", ["ii", "nn"]],
-                      ["refRelVar", "X"],
-                      ["refFields", ["i", "n"]]],
-                     [["keyFields", ["ss", "nn"]],
-                      ["refRelVar", "X"],
-                      ["refFields", ["s", "n"]]]]);
+                    function () { rv.X.insert({i: 42, n: 0, s: ''}); });
+        assertEqual(
+          rv.Y.foreign,
+          [[["ii", "nn"], "X", ["i", "n"]], [["ss", "nn"], "X", ["s", "n"]]]);
       }
     });
 

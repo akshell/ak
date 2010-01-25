@@ -549,18 +549,6 @@
         });
     });
 
-
-  [
-    'every',
-    'filter',
-    'forEach',
-    'map',
-    'some'
-  ].forEach(
-    function (name) {
-      ak.Rel.prototype.setNonEnumerable(name, Array.prototype[name]);
-    });
-
   //////////////////////////////////////////////////////////////////////////////
   // String methods
   //////////////////////////////////////////////////////////////////////////////
@@ -629,21 +617,6 @@
   };
 
   //////////////////////////////////////////////////////////////////////////////
-  // Rel comparison for equality
-  //////////////////////////////////////////////////////////////////////////////
-
-  ak.Rel.prototype.setNonEnumerable(
-    '__eq__',
-    function (other) {
-      if (!ak.equal(this.length, other.length))
-        return false;
-      for (var i = 0; i < this.length; ++i)
-        if (!ak.equal(ak.items(this[i]).sort(), ak.items(other[i]).sort()))
-          return false;
-      return true;
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
   // Reprs
   //////////////////////////////////////////////////////////////////////////////
 
@@ -667,9 +640,6 @@
   setRepr(Array, function () {
             return '[' + this.map(ak.repr).join(', ') + ']';
           });
-
-
-  setRepr(ak.Rel, Array.prototype.__repr__);
 
 
   setRepr(Date, function () {
