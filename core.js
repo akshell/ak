@@ -85,16 +85,20 @@
   // DB
   //////////////////////////////////////////////////////////////////////////////
 
+  ak.isList = function (x) {
+    return (x &&
+            typeof(x) == 'object' &&
+            typeof(x.length) == 'number' &&
+            x.length % 1 == 0 &&
+            x.length >= 0);
+  };
+
+
   function getArrayLike(args, index) {
     if (args.length != index + 1)
       return Array.prototype.slice.call(args, index);
     var arg = args[index];
-    return ((arg &&
-             typeof(arg) == 'object' &&
-             typeof(arg.length) == 'number' &&
-             arg.length % 1 == 0 &&
-             arg.length >= 0)
-            ? arg : [arg]);
+    return ak.isList(arg) ? arg : [arg];
   }
 
 
