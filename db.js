@@ -32,8 +32,8 @@
 
   var typeRegExp = RegExp(
     ('\\s*(?:' +
-     '(number)|(string)|(boolean|bool)|(date|Date)|' +
-     '(integer|int)|(serial)|(unique)|' +
+     '(number)|(string)|(bool)|(date)|' +
+     '(integer)|(serial)|(unique)|' +
      '(?:foreign\\s|->)\\s*(\\w+)\\.(\\w+)|' +
      'check\\s+(\\(.*\\)|\\S+)|' +
      'default\\s+(\"([^\"\\\\]|\\\\.)*\"|\'(?:[^\'\\\\]|\\\\.)*\'|\\S+)' +

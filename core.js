@@ -78,7 +78,7 @@
 
   ak.number = ak.db._number;
   ak.string = ak.db._string;
-  ak.bool = ak.boolean_ = ak['boolean'] = ak.db._boolean;
+  ak.bool = ak.db._bool;
   ak.date = ak.db._date;
 
   //////////////////////////////////////////////////////////////////////////////

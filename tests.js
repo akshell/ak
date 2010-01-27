@@ -2272,11 +2272,11 @@
                       db.create('X', {x: 'number default 1 default 2'});
                     });
         db.create('Check', {n: 'number check (n != 42)'});
-        db.create('X', {i: 'int default "15" number unique'});
+        db.create('X', {i: 'integer default "15" number unique'});
         db.create(
           'Y',
           {
-            i: 'unique default -1  int',
+            i: 'unique default -1  integer',
             s: ' \t\nserial\t foreign Y.i ->X.i ',
             n: 'number->Check.n default \'42\''
           });
@@ -2299,11 +2299,11 @@
 
       testConstr: function () {
         assertThrow(UsageError, function () { db.create('X', {}, 'invalid'); });
-        db.create('X', {i: 'int', n: 'number', s: 'string'},
+        db.create('X', {i: 'integer', n: 'number', s: 'string'},
                   'unique i , n',
                   ' \tunique[n,s  ]\t',
                   ' check i != 42     ');
-        db.create('Y', {ii: 'int', nn: 'number', ss: 'string'},
+        db.create('Y', {ii: 'integer', nn: 'number', ss: 'string'},
                   ' [ ii , nn ]foreign X[i,n]',
                   '[ss,nn]   ->X  [s  ,n ] ');
         assertThrow(ConstraintError,
