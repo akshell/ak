@@ -364,7 +364,7 @@
         db.create('Y', {});
         assertEqual(items(rv.Y.header), []);
         assertEqual(items(rv.X.header).sort(),
-                    [['b', 'boolean'], ['n', 'number'], ['s', 'string']]);
+                    [['b', 'bool'], ['n', 'number'], ['s', 'string']]);
         assertSame(rv.X.header, rv.X.header);
         rv.Y.drop();
         db.create('Y',
