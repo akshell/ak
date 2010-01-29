@@ -1141,7 +1141,7 @@
       testMin: function () {
         assertSame(min([2, 3, 1, 4]), 1, 'min');
         assertSame(min([1, 2, 3, 4]), 1, 'min with first');
-        assertThrow(Error, function () { min([]); }, 'min on empty');
+        assertThrow(ValueError, function () { min([]); }, 'min on empty');
       },
 
       testMax: function () {
@@ -1151,7 +1151,7 @@
       testReduce: function () {
         assertSame(reduce(operators.add, [1, 2, 3, 4, 5]), 15,
                    'reduce(operators.add)');
-        assertThrow(Error, function () { reduce(operators.add, []); },
+        assertThrow(ValueError, function () { reduce(operators.add, []); },
                     'reduce has thrown Error correctly');
         assertSame(reduce(operators.add, [], 10), 10,
                    'reduce initial value OK empty');
@@ -2062,15 +2062,15 @@
                     function () { route.reverse(function () {}); });
         assertThrow(ReverseError, function () { route.reverse(g, 42); });
         assertThrow(ReverseError, function () { route.reverse(g, 1, 2, 3); });
-        assertThrow(Error, function () { new Route(42); });
-        assertThrow(Error, function () { new Route([f]); });
+        assertThrow(UsageError, function () { new Route(42); });
+        assertThrow(TypeError, function () { new Route([f]); });
       },
 
       testRoot: function () {
         var oldRootRoute = ak.rootRoute;
         delete ak.rootRoute;
-        assertThrow(Error, resolve);
-        assertThrow(Error, reverse);
+        assertThrow(UsageError, resolve);
+        assertThrow(UsageError, reverse);
         function f() {};
         defineRoutes('abc', f);
         assertSame(reverse(f), '/abc');
@@ -2110,11 +2110,6 @@
         return new Response(this._string.length);
       }
     });
-
-
-  function controlError(request, string) {
-    throw Error(string);
-  }
 
 
   var RestTestCase = TestCase.subclass(
@@ -2203,11 +2198,12 @@
       },
 
       testServe: function () {
+        var E = Error.subclass();
         var root = new Route(TestController.page(''),
                              [
                                ['method', TestController.page('Method')],
                                ['upper', TestController.page('Upper')],
-                               ['error', controlError],
+                               ['error', thrower(E())],
                                ['length', LengthController]
                              ]);
         assertSame(defaultServe({path: '/a/b'}, root).status, http.NOT_FOUND);
@@ -2218,7 +2214,7 @@
         assertSame(serve({path: '/abc/', method: 'get'}, root).content, 'abc');
         assertSame(defaultServe({path: '/abc/', method: 'put'}, root).status,
                    http.METHOD_NOT_ALLOWED);
-        assertThrow(Error,
+        assertThrow(E,
                     function () { defaultServe({path: '/abc/error'}, root); });
         assertSame(serve({path: '/abc/method', method: 'PUT'}, root).content,
                    'PUT');

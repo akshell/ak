@@ -94,8 +94,8 @@
   ak.TestCase = Object.subclass(
     function (methodName) {
       if (typeof(this[methodName]) != 'function')
-        throw Error(ak.repr(this) + ' does not have method ' +
-                    ak.repr(methodName));
+        throw ak.UsageError(ak.repr(this) + ' does not have method ' +
+                            ak.repr(methodName));
       this._methodName = methodName;
     },
     {

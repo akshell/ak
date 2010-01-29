@@ -68,8 +68,8 @@
       if (arguments[0] instanceof Array)
         Array.shift(arguments).forEach(this._addChild, this);
       if (arguments.length)
-        throw Error(ak.repr(arguments.callee) +
-                    ' was called with excess or invalid arguments');
+        throw ak.UsageError(ak.repr(arguments.callee) +
+                            ' was called with excess or invalid arguments');
     },
     {
       _addChild: function (child) {
@@ -77,7 +77,7 @@
           if (child instanceof Array)
             child = ak.construct(ak.Route, child);
           else
-            throw Error('Route child could be either Route or Array');
+            throw TypeError('Route child could be either Route or Array');
         }
         child._parent = this;
         this._children.push(child);
@@ -180,9 +180,10 @@
 
   ak.getRootRoute = function () {
     if (!ak.rootRoute)
-      throw Error(ak.repr(arguments.callee.caller) +
-                  ' requested default routing, please define it using ' +
-                  ak.repr(ak.defineRoutes));
+      throw ak.UsageError(
+        ak.repr(arguments.callee.caller) +
+        ' requested default routing, please define it using ' +
+        ak.repr(ak.defineRoutes));
     return ak.rootRoute;
   };
 

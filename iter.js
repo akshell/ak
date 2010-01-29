@@ -47,7 +47,7 @@
           throw ak.NotImplementedError(
             'valid must be defined by Iterator subclass');
         if (!this.valid)
-          throw Error('Iteration on invalid iterator');
+          throw ak.ValueError('Iteration on invalid iterator');
         return this._next();
       },
 
@@ -93,7 +93,8 @@
   function findMinOrMax(cmpValue, iterable) {
     var itr = ak.iter(iterable);
     if (!itr.valid)
-      throw Error((cmpValue == 1 ? 'min' : 'max') + ' argument is empty');
+      throw ak.ValueError(
+        (cmpValue == 1 ? 'min' : 'max') + ' argument is empty');
     var result = itr.next();
     while (itr.valid) {
       var value = itr.next();
@@ -113,7 +114,7 @@
     var result;
     if (arguments.length < 3) {
       if (!itr.valid)
-        throw Error('reduce() of empty sequence with no initial value');
+        throw ak.ValueError('reduce() of empty sequence with no initial value');
       result = itr.next();
     } else {
       result = initial;
