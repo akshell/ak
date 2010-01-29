@@ -471,8 +471,12 @@
         ak._requestApp = testRequestApp;
         var response = requestApp('method', {data: '201\n'});
         assertSame(response.status, 201);
-        assertSame(response.content, '"GET"');
+        assertSame(response.content, '"get"');
         assertEqual(items(response.headers), []);
+        response = requestApp('path', {data: '200\n'});
+        assertSame(response.content, '"/"');
+        response = requestApp('path', {data: '200\n', path: 'a/b'});
+        assertSame(response.content, '"/a/b"');
         response = requestApp('post', {data: '200\n', post: 'hi'});
         assertSame(response.content, '"hi"');
         response = requestApp('get', {data: '200\n'});

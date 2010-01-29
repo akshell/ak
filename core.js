@@ -291,9 +291,12 @@
 
 
   ak.requestApp = function (appName, request) {
+    var path = request.path || '/';
+    if (path[0] != '/')
+      path = '/' + path;
     var realRequest = {
-      method: request.method || 'GET',
-      path: request.path || '',
+      method: request.method || 'get',
+      path: path,
       get: request.get || {},
       post: request.post || {},
       headers: request.headers || {},
@@ -357,18 +360,31 @@
 
 
   ak._main = function (data) {
-    var request = eval('(' + data + ')');
-    request.__proto__ = ak.Request.prototype;
-    request.method = request.method.toLowerCase();
-    request.data = ak._data;
-    request.user = ak._user;
-    request.files = {};
-    // request.fileNames.length and ak._files.length are guaranteed to be equal
+    data = JSON.parse(data);
+    if (!(typeof(data) == 'object' &&
+          typeof(data.method) == 'string' &&
+          typeof(data.path) == 'string' &&
+          typeof(data.get) == 'object' &&
+          typeof(data.post) == 'object' &&
+          typeof(data.headers) == 'object' &&
+          data.fileNames instanceof Array &&
+          data.fileNames.length == ak._files.length))
+      return '400\n\nBad request';
+    var request = {
+      __proto__: ak.Request.prototype,
+      method: request.method.toLowerCase(),
+      path: data.path,
+      fullPath: typeof(data.fullPath) == 'string' ? data.fullPath : data.path,
+      get: data.get,
+      post: data.post,
+      headers: data.headers,
+      data: ak._data,
+      user: ak._user,
+      issuer: ak._issuer,
+      files: {}
+    };
     for (var i = 0; i < ak._files.length; ++i)
-      request.files[request.fileNames[i]] = ak._files[i];
-    delete request.fileNames;
-    request.issuer = ak._issuer;
-
+      request.files[data.fileNames[i]] = ak._files[i];
     var response = __main__(request);
     var headerLines = [];
     for (var name in response.headers)
