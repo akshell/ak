@@ -62,6 +62,7 @@
     [ak.fs, 'write'],
     [ak.fs, 'rename'],
     [ak.fs, 'copyFile'],
+    [ak.db, 'rollback'],
     [ak.db, 'getAdminedApps', ak],
     [ak.db, 'getDevelopedApps', ak],
     [ak.db, 'getAppsByLabel', ak]
