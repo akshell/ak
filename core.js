@@ -197,7 +197,7 @@
 
 
   ak.RelVar = function () {
-    throw new ak.UsageError('RelVar objects should be obtained through ak.rv');
+    throw ak.UsageError('RelVar objects should be obtained through ak.rv');
   };
 
   ak.RelVar.prototype = {
@@ -315,12 +315,12 @@
                                         request.data || '');
     var head = responseString.split('\n\n', 1)[0];
     if (head.length == responseString.length)
-      throw new ak.AppRequestError('Response without a head');
+      throw ak.AppRequestError('Response without a head');
     var content = responseString.substr(head.length + 2);
     var statusString = head.split('\n', 1)[0];
     var status = +statusString;
     if (!status)
-      throw new ak.AppRequestError('Invalid status: "' + statusString + '"');
+      throw ak.AppRequestError('Invalid status: "' + statusString + '"');
     var headersString = head.substr(statusString.length + 1);
     var headers = {};
     if (headersString)
@@ -328,7 +328,7 @@
         function (headerLine) {
           var name = headerLine.split(': ', 1)[0];
           if (name.length == headerLine.length)
-            throw new ak.AppRequestError(
+            throw ak.AppRequestError(
               'Invalid header line: "' + headerLine + '"');
           headers[name] = headerLine.substr(name.length + 2);
         });

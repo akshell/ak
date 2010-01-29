@@ -184,8 +184,8 @@
       if (c !== undefined)
         return c;
     }
-    throw new TypeError(ak.repr(a) + ' and ' + ak.repr(b) +
-                        ' can not be compared');
+    throw TypeError(ak.repr(a) + ' and ' + ak.repr(b) +
+                    ' can not be compared');
   };
 
 
@@ -203,8 +203,8 @@
       if (c !== undefined)
         return c == 0;
     }
-    throw new TypeError(ak.repr(a) + ' and ' + ak.repr(b) +
-                        ' can not be compared for equality');
+    throw TypeError(ak.repr(a) + ' and ' + ak.repr(b) +
+                    ' can not be compared for equality');
   };
 
 
@@ -450,7 +450,7 @@
 
 
   ak.abstract = function () {
-    throw new ak.NotImplementedError();
+    throw ak.NotImplementedError();
   };
 
   //////////////////////////////////////////////////////////////////////////////

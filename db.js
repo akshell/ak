@@ -54,7 +54,7 @@
         ++i;
       if (i < 5) {
         if (type)
-          throw new ak.UsageError(
+          throw ak.UsageError(
             'Type specified more than once in ' + ak.repr(string));
         type = [ak.number, ak.string, ak.bool, ak.date][i - 1];
       } else if (i == 5) {
@@ -70,7 +70,7 @@
       } else {
         ak.assertSame(i, 11);
         if (defaulted)
-          throw new ak.UsageError(
+          throw ak.UsageError(
             'Default specified more than once in ' + ak.repr(string));
         default_ = eval(match[11]);
         defaulted = true;
@@ -80,7 +80,7 @@
       if (integer || serial)
         type = ak.number;
       else
-        throw new ak.UsageError('Type is not specified in ' + ak.repr(string));
+        throw ak.UsageError('Type is not specified in ' + ak.repr(string));
     }
     if (integer)
       type = type.integer();
@@ -114,7 +114,7 @@
   function compileConstr(constrs, string) {
     var match = constrRegExp.exec(string);
     if (!match)
-      throw new ak.UsageError('Invalid constraint format: ' + ak.repr(string));
+      throw ak.UsageError('Invalid constraint format: ' + ak.repr(string));
     if (match[1])
       constrs.check.push(match[1]);
     else if (match[2])

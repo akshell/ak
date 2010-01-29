@@ -34,14 +34,14 @@
   ak.Aspect = Function.subclass(
     function (holder, method, advice) {
       if (typeof(this._apply) != 'function')
-        throw new ak.NotImplementedError(
+        throw ak.NotImplementedError(
           'Aspect subclasses must implement "_apply" method');
       this._holder = holder;
       this._method = method;
       this._advice = advice;
       var source = holder[method];
       if (typeof(source) != 'function')
-        throw new ak.UsageError(
+        throw ak.UsageError(
           'Attempt to advice non-function ' + ak.repr(source));
       if (holder.hasOwnProperty(method)) {
         this._source = source;

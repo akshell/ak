@@ -186,7 +186,7 @@
     case PRIMARY_VARIABLE:
       return new Variable(string.split('.'));
     default:
-      throw new ak.AssertionError();
+      throw ak.AssertionError();
     }
   }
 
@@ -222,7 +222,7 @@
   function makeExpr(string, filters) {
     var match = exprStartRegExp.exec(string);
     if (!match)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         'Expr does not start with primary: ' + ak.repr(string));
     var i = findSignificant(match);
     ak.assert(i != -1);
@@ -233,8 +233,7 @@
     while ((match = ak.nextMatch(re, string, ak.TemplateSyntaxError))) {
       var filter = filters[match[1]];
       if (!filter)
-        throw new ak.TemplateSyntaxError(
-          'Invalid filter: ' + ak.repr(match[1]));
+        throw ak.TemplateSyntaxError('Invalid filter: ' + ak.repr(match[1]));
       var arg = undefined;
       i = findSignificant(match, 2);
       if (i != -1)
@@ -374,17 +373,17 @@
               return new GroupNode(nodes);
             var command = this.token.contents.split(/\s/, 1)[0];
             if (!command)
-              throw new ak.TemplateSyntaxError('Empty block tag');
+              throw ak.TemplateSyntaxError('Empty block tag');
             var compile = this.env.tags[command];
             if (!compile)
-              throw new ak.TemplateSyntaxError(
+              throw ak.TemplateSyntaxError(
                 'Invalid block tag: ' + ak.repr(command));
             nodes.push(compile(this));
             this.parsedNonText = true;
           }
         }
         if (until.length)
-          throw new ak.TemplateSyntaxError('Unclosed tags: ' + until.join(', '));
+          throw ak.TemplateSyntaxError('Unclosed tags: ' + until.join(', '));
         return new GroupNode(nodes);
       },
 
@@ -394,7 +393,7 @@
           if (this.token.kind == $.Token.BLOCK && this.token.contents == end)
             return;
         }
-        throw new ak.TemplateSyntaxError('Unclosed tag: ' + endTag);
+        throw ak.TemplateSyntaxError('Unclosed tag: ' + endTag);
       },
 
       makeExpr: function (string) {
@@ -884,7 +883,7 @@
     var match = (/^for\s+(\w+)\s+in\s+(.*?)(\s+reversed)?$/
                  .exec(parser.token.contents));
     if (!match)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"for" tag should use the format ' +
           '"for <letters, digits or underscores> in <expr> [reversed]": ' +
           ak.repr(parser.token.contents));
@@ -923,7 +922,7 @@
 
   $.defaultTags.extends = function (parser) {
     if (parser.parsedNonText)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"extend" should be the first tag in the template');
     var expr = parser.makeExpr(parser.token.contents.substr(8).trim());
     parser.store.extends = true;
@@ -954,12 +953,12 @@
   $.defaultTags.block = function (parser) {
     var args = parser.token.contents.split(/\s+/);
     if (args.length != 2)
-      throw new ak.TemplateSyntaxError('"block" tag takes one argument');
+      throw ak.TemplateSyntaxError('"block" tag takes one argument');
     var name = args[1];
     parser.store.blocks = parser.store.blocks || {};
     if (name in parser.store.blocks)
-      throw new ak.TemplateSyntaxError('Block with name ' + ak.repr(name) +
-                                       ' appears more than once');
+      throw ak.TemplateSyntaxError(
+        'Block with name ' + ak.repr(name) + ' appears more than once');
     return new BlockNode(name,
                          parser.parse(['endblock', 'endblock ' + name]),
                          parser.store);
@@ -984,17 +983,17 @@
   $.defaultTags.cycle = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length < 2)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"cycle" tag requires at least one argument');
     var name;
     if (args.length == 2) {
       if (!parser.store.cycles)
-        throw new ak.TemplateSyntaxError(
+        throw ak.TemplateSyntaxError(
           'No named cycles defined in template');
       name = args[1];
       var node = parser.store.cycles[name];
       if (!node)
-        throw new ak.TemplateSyntaxError(
+        throw ak.TemplateSyntaxError(
           'Named cycle ' + ak.repr(name) + ' is not defined');
       return node;
     }
@@ -1064,7 +1063,7 @@
   $.defaultTags.firstof = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length < 2)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"firstof" tag requires at least one argument');
     return new FirstOfNode(parser.makeExprs(args.slice(1)));
   };
@@ -1174,13 +1173,13 @@
   $.defaultTags.regroup = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length != 6)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"regroup" tag takes five arguments');
     if (args[2] != 'by')
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         'Second argument to "regroup" must be "by"');
     if (args[4] != 'as')
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         'Next to last argument to "regroup" must be "as"');
     return new RegroupNode(parser.makeExpr(args[1]),
                            parser.makeExpr(args[3]),
@@ -1217,11 +1216,11 @@
   $.defaultTags.templatetag = function (parser) {
     var args = parser.token.contents.split(/\s+/);
     if (args.length != 2)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"templatetag" takes one argument');
     var value = templateTagMapping[args[1]];
     if (!value)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         'Invalid "templatetag" argument: ' + ak.repr(args[1]) +
         '. Must be one of: ' + ak.keys(templateTagMapping).join(', '));
     return new TextNode(value);
@@ -1247,7 +1246,7 @@
   $.defaultTags.widthratio = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length != 4)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"widthratio" tag takes three arguments');
     return new WidthRatioNode(parser.makeExpr(args[1]),
                               parser.makeExpr(args[2]),
@@ -1272,10 +1271,10 @@
   $.defaultTags['with'] = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length != 4)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"with" tag takes three arguments');
     if (args[2] != 'as')
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         'Second argument to "with" must be "as"');
     return new WithNode(parser.makeExpr(args[1]),
                         args[3],
@@ -1316,7 +1315,7 @@
   $.defaultTags.url = function (parser) {
     var args = $.smartSplit(parser.token.contents);
     if (args.length < 2)
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         '"url" takes at least two arguments');
     var exprStrings;
     var as;
@@ -1332,7 +1331,7 @@
     for (var i = 0; i < bits.length; ++i) {
       object = object[bits[i]];
       if (!object)
-        throw new ak.TemplateSyntaxError(
+        throw ak.TemplateSyntaxError(
           'Controller ' + args[1] + ' does not exist');
     }
     if (controllerAndPage[1])
@@ -1372,7 +1371,7 @@
     {
       check: function (cond) {
         if (!cond)
-          throw new ak.TemplateSyntaxError(
+          throw ak.TemplateSyntaxError(
             'Unexpected token ' + ak.repr(this.value) +
             ' in expr ' + ak.repr(this.string) +
             ' position ' + this.pos);
@@ -1491,7 +1490,7 @@
   function parseExpr(string) {
     function require(cond) {
       if (!cond)
-        throw new ak.TemplateSyntaxError(
+        throw ak.TemplateSyntaxError(
           'Expr ' + ak.repr(string) + ' is incomplete');
     }
 
@@ -1548,7 +1547,7 @@
           token.check(binaryExpected);
           fold();
           if (!ops.length)
-            throw new ak.TemplateSyntaxError(
+            throw ak.TemplateSyntaxError(
               'Excess close paren in expr ' + ak.repr(string) +
               ' position ' + token.pos);
           ak.assert(ops[ops.length - 1].arity == 0);
@@ -1560,7 +1559,7 @@
     fold();
     if (ops.length) {
       ak.assert(ops[ops.length - 1].arity == 0);
-      throw new ak.TemplateSyntaxError(
+      throw ak.TemplateSyntaxError(
         'Close paren is missing in expr ' + ak.repr(string));
     }
     require(exprs.length == 1);

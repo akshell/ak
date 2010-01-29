@@ -87,9 +87,9 @@
   ak.Selection.prototype.getOne = function (options) {
     var tuples = this.get(options);
     if (!tuples.length)
-      throw new this.rv.DoesNotExist();
+      throw this.rv.DoesNotExist();
     if (tuples.length > 1)
-      throw new ak.MultipleTuplesError();
+      throw ak.MultipleTuplesError();
     return tuples[0];
   };
 
@@ -111,7 +111,7 @@
         var handleProp = 'handle' + suffix;
         if (this.__proto__.hasOwnProperty(handleProp))
           return this[handleProp].apply(this, this.args);
-        throw new ak.HttpError(
+        throw ak.HttpError(
           'Method ' + this.request.method + ' is not allowed',
           ak.http.METHOD_NOT_ALLOWED);
       }
@@ -161,7 +161,7 @@
       requiringLogin: function (controller) {
         return function (request /* ... */) {
           if (!request.user)
-            throw new ak.LoginRequiredError();
+            throw ak.LoginRequiredError();
           return controller.apply(this, arguments);
         }.wraps(controller);
       }

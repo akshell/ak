@@ -94,8 +94,8 @@
   ak.TestCase = Object.subclass(
     function (methodName) {
       if (typeof(this[methodName]) != 'function')
-        throw new Error(ak.repr(this) + ' does not have method ' +
-                        ak.repr(methodName));
+        throw Error(ak.repr(this) + ' does not have method ' +
+                    ak.repr(methodName));
       this._methodName = methodName;
     },
     {
@@ -303,13 +303,13 @@
       _describeApp: function (name) {
         var result = this.apps[name];
         if (!result)
-          throw new ak.NoSuchAppError('No such test app: ' + ak.repr(name));
+          throw ak.NoSuchAppError('No such test app: ' + ak.repr(name));
         return result;
       },
 
       _checkUserExists: function (user) {
         if (this.users.indexOf(user) == -1)
-          throw new ak.NoSuchUserError('No such test user: ' + ak.repr(user));
+          throw ak.NoSuchUserError('No such test user: ' + ak.repr(user));
       },
 
       _getAdminedApps: function (user) {

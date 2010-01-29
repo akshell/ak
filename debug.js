@@ -39,24 +39,22 @@
 
   ak.assert = function (expr, /* optional */msg) {
     if (!expr)
-      throw new ak.AssertionError('Assertion failed' +
-                                  (msg ? ': ' + msg : ''));
+      throw ak.AssertionError(
+        'Assertion failed' + (msg ? ': ' + msg : ''));
   };
 
 
   ak.assertEqual = function (first, second, /* optional */msg) {
     if (!ak.equal(first, second))
-      throw new ak.AssertionError(prefix(msg) +
-                                  ak.repr(first) + ' <> ' +
-                                  ak.repr(second));
+      throw ak.AssertionError(
+        prefix(msg) + ak.repr(first) + ' <> ' + ak.repr(second));
   };
 
 
   ak.assertSame = function (first, second, /* optional */msg) {
     if (first !== second)
-      throw new ak.AssertionError(prefix(msg) +
-                                  ak.repr(first) + ' !== ' +
-                                  ak.repr(second));
+      throw ak.AssertionError(
+        prefix(msg) + ak.repr(first) + ' !== ' + ak.repr(second));
   };
 
 
@@ -72,15 +70,13 @@
       if (!(error instanceof constructor)) {
         var expected = constructor.__name__ || constructor.name;
         var got = error.constructor.__name__ || error.constructor.name;
-        throw new ak.AssertionError(prefix(msg) +
-                                    'Expected ' +
-                                    expected +
-                                    ' exception, got ' +
-                                    got + ' (' + error + ')');
+        throw ak.AssertionError(
+          prefix(msg) + 'Expected ' + expected +
+          ' exception, got ' + got + ' (' + error + ')');
       }
       return;
     }
-    throw new ak.AssertionError(prefix(msg) + 'Exception was not thrown');
+    throw ak.AssertionError(prefix(msg) + 'Exception was not thrown');
   };
 
 })();

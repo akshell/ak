@@ -46,7 +46,7 @@
       step = arguments[2];
     }
     if (step == 0)
-      throw new TypeError('range() step must not be 0');
+      throw TypeError('range() step must not be 0');
     var result = [];
     for (var i = start; step > 0 ? i < stop : i > stop; i += step)
       result.push(i);
@@ -173,13 +173,13 @@
       return null;
     var match = re.exec(string);
     if (!match)
-      throw new ErrorClass(
+      throw ErrorClass(
         'Could not parse the remainder: ' +
         ak.repr(string.substring(0, doneIndex) + '((' +
                 string.substring(doneIndex) + '))'));
     var startIndex = re.lastIndex - match[0].length;
     if (doneIndex != startIndex)
-      throw new ErrorClass(
+      throw ErrorClass(
         'Could not parse some characters: ' +
         ak.repr(string.substring(0, doneIndex) + '((' +
                 string.substring(doneIndex, startIndex) + '))' +

@@ -1404,7 +1404,7 @@
   normalEnv.load = function (name) {
     var result = baseTemplates[name];
     if (result === undefined)
-      throw new TemplateDoesNotExist(name);
+      throw TemplateDoesNotExist(name);
     return result;
   };
 
@@ -2113,7 +2113,7 @@
 
 
   function controlError(request, string) {
-    throw new Error(string);
+    throw Error(string);
   }
 
 

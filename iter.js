@@ -44,15 +44,15 @@
 
       next: function () {
         if (!('valid' in this))
-          throw new ak.NotImplementedError(
+          throw ak.NotImplementedError(
             'valid must be defined by Iterator subclass');
         if (!this.valid)
-          throw new Error('Iteration on invalid iterator');
+          throw Error('Iteration on invalid iterator');
         return this._next();
       },
 
       _next: function () {
-        throw new ak.NotImplementedError(
+        throw ak.NotImplementedError(
           '_next must be defined by Iterator subclass');
       }
     });
@@ -113,7 +113,7 @@
     var result;
     if (arguments.length < 3) {
       if (!itr.valid)
-        throw new Error('reduce() of empty sequence with no initial value');
+        throw Error('reduce() of empty sequence with no initial value');
       result = itr.next();
     } else {
       result = initial;

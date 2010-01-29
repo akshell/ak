@@ -68,8 +68,8 @@
       if (arguments[0] instanceof Array)
         Array.shift(arguments).forEach(this._addChild, this);
       if (arguments.length)
-        throw new Error(ak.repr(arguments.callee) +
-                        ' was called with excess or invalid arguments');
+        throw Error(ak.repr(arguments.callee) +
+                    ' was called with excess or invalid arguments');
     },
     {
       _addChild: function (child) {
@@ -77,7 +77,7 @@
           if (child instanceof Array)
             child = ak.construct(ak.Route, child);
           else
-            throw new Error('Route child could be either Route or Array');
+            throw Error('Route child could be either Route or Array');
         }
         child._parent = this;
         this._children.push(child);
@@ -118,7 +118,7 @@
       resolve: function (path) {
         var result = this._resolve(path);
         if (!result)
-          throw new ak.ResolveError('Can not resolve path ' + ak.repr(path));
+          throw ak.ResolveError('Can not resolve path ' + ak.repr(path));
         return result;
       },
 
@@ -154,16 +154,16 @@
         }
         var dict = this._reverseDict.get(controller);
         if (!dict)
-          throw new ak.ReverseError(
+          throw ak.ReverseError(
             'Controller ' + ak.repr(controller) + ' is not found');
         var count = arguments.length - 1;
         var route = dict[count];
         if (route === undefined)
-          throw new ak.ReverseError(
+          throw ak.ReverseError(
             'Controller ' + ak.repr(controller) + ' does not accept ' +
             count + ' arguments');
         if (route === null)
-          throw new ak.ReverseError(
+          throw ak.ReverseError(
             'Reverse ambiguity for controller ' + ak.repr(controller) +
             ' with ' + count + ' arguments');
         var parts = [];
@@ -180,9 +180,9 @@
 
   ak.getRootRoute = function () {
     if (!ak.rootRoute)
-      throw new Error(ak.repr(arguments.callee.caller) +
-                      ' requested default routing, please define it using ' +
-                      ak.repr(ak.defineRoutes));
+      throw Error(ak.repr(arguments.callee.caller) +
+                  ' requested default routing, please define it using ' +
+                  ak.repr(ak.defineRoutes));
     return ak.rootRoute;
   };
 
