@@ -539,20 +539,16 @@
       //////////////////////////////////////////////////////////////////////////
 
       testModule: function () {
-        assertSame(repr(ak), '<ak ' + ak.__version__ + '>', 'ak module');
-        var m = new Module('TeSt.module');
-        assert(m instanceof Module, 'module instanceof');
-        assertEqual(repr(m), '<TeSt.module>');
-        assertSame(m.__name__, 'TeSt.module');
-        assertSame(m.__version__, undefined);
-        assertSame(m, TeSt.module);
-        var sm = new Module('TeSt.module.sub.module', '0.1');
-        assertSame(sm.__version__, '0.1');
-        assertEqual(repr(sm), '<TeSt.module.sub.module 0.1>');
-        assertThrow(Error, function () { module(''); });
-        assertThrow(Error, function () { module('TeSt.dont_create..pish'); });
-        assertSame(TeSt.dont_create, undefined);
-        delete TeSt;
+        assertSame(repr(ak), '<ak ' + ak.__version__ + ' module>');
+        assert(ak instanceof ak.Module);
+        assert(db instanceof ak.Module);
+        assert(fs instanceof ak.Module);
+        var m = new Module('test');
+        assertEqual(repr(m), '<test module>');
+        assertSame(m.__name__, 'test');
+        assert(!('__version__' in m));
+        assertSame(repr(new Module('another test', '0.1')),
+                   '<another test 0.1 module>');
       },
 
       testUpdateWithMode: function () {
@@ -745,10 +741,11 @@
       },
 
       testNameFunctions: function () {
-        assertSame(repr(nameFunctions), 'ak.nameFunctions',
-                   'nameFunctions');
+        assertSame(repr(nameFunctions), 'ak.nameFunctions');
         assertSame(repr(template.Filter), 'ak.template.Filter');
         assertSame(repr(Dict.ItemIterator), 'ak.Dict.ItemIterator');
+        assertSame(repr(fs.read), 'ak.fs.read');
+        assertSame(repr(db.rollback), 'ak.db.rollback');
       },
 
       //////////////////////////////////////////////////////////////////////////

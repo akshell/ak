@@ -42,5 +42,7 @@
   ak.include('utils.js');
 
   ak.nameFunctions(ak);
+  ak.nameFunctions(ak.db);
+  ak.nameFunctions(ak.fs);
   return ak;
 })();

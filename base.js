@@ -73,17 +73,6 @@
 
 
   ak.Module = function (name, version) {
-    var components = name.split('.');
-    var package = ak.global;
-    if (components.indexOf('') != -1)
-      throw new Error('Empty module name component');
-    for (var i = 0; i < components.length - 1; ++i) {
-      var component = components[i];
-      if (!(component in package))
-        package[component] = {};
-      package = package[component];
-    }
-    package[components[components.length - 1]] = this;
     this.setNonEnumerable('__name__', name);
     if (version)
       this.setNonEnumerable('__version__', version);
@@ -96,7 +85,7 @@
       __repr__: function () {
         return ('<' + this.__name__ +
                 (this.__version__ ? ' ' + this.__version__ : '') +
-                '>');
+                ' module>');
       },
 
       toString: function () {
@@ -105,14 +94,13 @@
     });
 
 
-  ak.updateWithMode(
-    ak, ak.DONT_ENUM,
-    {
-      __name__: 'ak',
-      __version__: '0.1',
-      __repr__: ak.Module.prototype.__repr__,
-      toString: ak.Module.prototype.toString
-    });
+  (ak.AK.prototype.__proto__ =
+   ak.DB.prototype.__proto__ =
+   ak.FS.prototype.__proto__ = ak.Module.prototype);
+  ak.__version__ = '0.1';
+  ak.__name__ = 'ak';
+  ak.db.__name__ = 'ak.db';
+  ak.fs.__name__ = 'ak.fs';
 
 
   ak.update = function (self, obj/*, ... */) {
@@ -147,7 +135,7 @@
       return 'undefined';
     if (x === null)
       return 'null';
-        if (typeof(x.__repr__) == 'function')
+    if (typeof(x.__repr__) == 'function')
       return x.__repr__();
     return x + '';
   };
