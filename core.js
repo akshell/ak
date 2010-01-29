@@ -335,15 +335,12 @@
   // Request handling
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.defaultHeaders = {'Content-Type': 'text/html; charset=utf-8'};
-
-
   ak.Response = function (content/* = '' */,
                           status/* = 200 */,
-                          headers/* = ak.defaultHeaders */) {
+                          headers/* optional */) {
     this.content = content || '';
     this.status = status || 200;
-    this.headers = headers || ak.defaultHeaders;
+    this.headers = headers || {'Content-Type': 'text/html; charset=utf-8'};
   };
 
 
