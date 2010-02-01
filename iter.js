@@ -126,7 +126,9 @@
 
 
   ak.sum = function (iterable, start/* = 0 */) {
-    return ak.reduce(ak.operators.add, iterable, start || 0);
+    return ak.reduce(function (lhs, rhs) { return lhs + rhs; },
+                     iterable,
+                     start || 0);
   };
 
 
@@ -284,7 +286,7 @@
   ak.FilterIterator = ak.Iterator.subclass(
     function (iterable, pred, self/* = ak.global */) {
       this._itr = ak.iter(iterable);
-      this._pred = pred || ak.operators.truth;
+      this._pred = pred || function (value) { return !!value; };
       this._self = self || ak.global;
       this.valid = true;
       this._findNextItem();
@@ -461,9 +463,9 @@
 
 
   ak.GroupByIterator = ak.Iterator.subclass(
-    function (iterable, keyFunc/* = ak.operators.identity */) {
+    function (iterable, /* optional */keyFunc) {
       this._itr = ak.iter(iterable);
-      this._keyFunc = keyFunc || ak.operators.identity;
+      this._keyFunc = keyFunc || function (value) { return value; };
     },
     {
       get valid() {

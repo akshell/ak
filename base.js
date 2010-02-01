@@ -470,55 +470,5 @@
   RegExp.escape = function (string) {
     return string.replace(specialsRegExp, '\\$&');
   };
-
-  //////////////////////////////////////////////////////////////////////////////
-  // ak.operators
-  //////////////////////////////////////////////////////////////////////////////
-
-  ak.operators = new ak.Module();
-
-  ak.operators.update(
-    {
-      truth: function (a) { return !!a; },
-      not: function (a) { return !a; },
-      identity: function (a) { return a; },
-
-      bitnot: function (a) { return ~a; },
-      neg: function (a) { return -a; },
-
-      add: function (a, b) { return a + b; },
-      sub: function (a, b) { return a - b; },
-      div: function (a, b) { return a / b; },
-      mod: function (a, b) { return a % b; },
-      mul: function (a, b) { return a * b; },
-
-      bitand: function (a, b) { return a & b; },
-      bitor: function (a, b) { return a | b; },
-      xor: function (a, b) { return a ^ b; },
-      lshift: function (a, b) { return a << b; },
-      rshift: function (a, b) { return a >> b; },
-      zrshift: function (a, b) { return a >>> b; },
-
-      eq: function (a, b) { return a == b; },
-      ne: function (a, b) { return a != b; },
-      gt: function (a, b) { return a > b; },
-      ge: function (a, b) { return a >= b; },
-      lt: function (a, b) { return a < b; },
-      le: function (a, b) { return a <= b; },
-
-      seq: function (a, b) { return a === b; },
-      sne: function (a, b) { return a !== b; },
-
-      ceq: function (a, b) { return ak.cmp(a, b) === 0; },
-      cne: function (a, b) { return ak.cmp(a, b) !== 0; },
-      cgt: function (a, b) { return ak.cmp(a, b) == 1; },
-      cge: function (a, b) { return ak.cmp(a, b) != -1; },
-      clt: function (a, b) { return ak.cmp(a, b) == -1; },
-      cle: function (a, b) { return ak.cmp(a, b) != 1; },
-
-      and: function (a, b) { return a && b; },
-      or: function (a, b) { return a || b; },
-      contains: function (a, b) { return b in a; }
-    });
-
+  
 })();

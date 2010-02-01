@@ -43,7 +43,9 @@
       return [+pair[0], pair[1]];
     },
 
-    'string': ak.operators.identity
+    'string': function (pair) {
+      return pair;
+    }
   };
 
 

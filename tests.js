@@ -820,7 +820,6 @@
         assertSame(repr(db), '<module ak.db>');
         assertSame(repr(fs.read), '<function ak.fs.read>');
         assertSame(repr(db.rollback), '<function ak.db.rollback>');
-        assertSame(repr(ak.operators), '<module ak.operators>');
         assertSame(repr(ak.template), '<module ak.template>');
         assertSame(repr(ak.template.Node), '<function ak.template.Node>');
       },
@@ -951,10 +950,13 @@
       },
 
       testReduce: function () {
-        assertSame(reduce(operators.add, [1, 2, 3, 4, 5]), 15);
-        assertThrow(ValueError, reduce, operators.add, []);
-        assertSame(reduce(operators.add, [], 10), 10);
-        assertSame(reduce(operators.add, [1, 2, 3], 10), 16);
+        function add(lhs, rhs) {
+          return lhs + rhs;
+        }
+        assertSame(reduce(add, [1, 2, 3, 4, 5]), 15);
+        assertThrow(ValueError, reduce, add, []);
+        assertSame(reduce(add, [], 10), 10);
+        assertSame(reduce(add, [1, 2, 3], 10), 16);
       },
 
       testSum: function () {
