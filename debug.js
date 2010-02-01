@@ -58,12 +58,9 @@
   };
 
 
-  ak.assertThrow = function (constructor, func, /* optional */msg) {
-    var args = [];
-    for (var i = 2; i < arguments.length; ++i)
-      args.push(arguments[i]);
+  ak.assertThrow = function (constructor, func/* args... */) {
     try {
-      func.apply(ak.global, args);
+      func.apply(ak.global, Array.slice(arguments, 2));
     } catch (error) {
       if (typeof(error) != 'object')
         error = Object(error);
@@ -71,12 +68,12 @@
         var expected = constructor.__name__ || constructor.name;
         var got = error.constructor.__name__ || error.constructor.name;
         throw ak.AssertionError(
-          prefix(msg) + 'Expected ' + expected +
-          ' exception, got ' + got + ' (' + error + ')');
+          'Expected ' + expected + ' exception, ' +
+          'got ' + got + ' (' + error + ')');
       }
       return;
     }
-    throw ak.AssertionError(prefix(msg) + 'Exception was not thrown');
+    throw ak.AssertionError('Exception was not thrown');
   };
 
 })();

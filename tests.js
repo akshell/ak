@@ -43,32 +43,24 @@
 
       testAssert: function () {
         assert(true, 'assert(true)');
-        assertThrow(AssertionError, function () { assert(false); },
-                    'assert(false)');
+        assertThrow(AssertionError, assert, false);
       },
 
       testAssertEqual: function () {
         assertEqual(42, {__eq__: function (other) { return other === 42; }},
                     'assertEqual equal');
-        assertThrow(AssertionError, function () { assertEqual(1, 2); },
-                    'assertEqual not equal');
+        assertThrow(AssertionError, assertEqual, 1, 2);
       },
 
       testAssertSame: function () {
         assertEqual(1, 1, 'assertSame same');
-        assertThrow(AssertionError,
-                    function () { assertSame(null, undefined); },
-                    'assertSame not same');
+        assertThrow(AssertionError, assertSame, null, undefined);
       },
 
       testAssertThrow: function () {
-        assertThrow(Number, thrower(1), 'assertThrow');
-        assertThrow(AssertionError,
-                    function () { assertThrow(Error, thrower(1)); },
-                    'assertThrow throw wrong');
-        assertThrow(AssertionError,
-                    function () { assertThrow(Error, function () {}); },
-                    'assertThrow was not thrown');
+        assertThrow(Number, thrower(1));
+        assertThrow(AssertionError, assertThrow, Error, thrower(1));
+        assertThrow(AssertionError, assertThrow, Error, function () {});
       }
     });
 
@@ -189,7 +181,7 @@
             testError: thrower(1),
             testAssert: partial(assert, false, 'msg1'),
             testAssertEqual: partial(assertEqual, 1, 2, 'msg2'),
-            testAssertThrow: partial(assertThrow, Error, thrower(1), 'msg3')
+            testAssertThrow: partial(assertThrow, Error, thrower(1))
           });
         TC.__name__ = 'test';
         var stream = new Stream();
@@ -275,11 +267,9 @@
         assertEqual(request('ak.getDevelopedApps("user1")'), ['app2', 'app4']);
         assertEqual(request('ak.getDevelopedApps("user2")'), []);
         assertThrow(
-          NoSuchUserError,
-          function () { request('ak.getAdminedApps("no_such_user")'); });
+          NoSuchUserError, request, 'ak.getAdminedApps("no_such_user")');
         assertThrow(
-          NoSuchUserError,
-          function () { request('ak.getDevelopedApps("no_such_user")'); });
+          NoSuchUserError, request, 'ak.getDevelopedApps("no_such_user")');
 
         var context = {};
         assertSame(
@@ -488,11 +478,9 @@
         assertSame(response.content, '["f1", "f2"]\nfile1\nfile2');
         response = requestApp('headers', {data: '200\na: b\nc:  d\n'});
         assertEqual(items(response.headers), [['a', 'b'], ['c', ' d']]);
-        assertThrow(AppRequestError, function () { requestApp('', {}); });
-        assertThrow(AppRequestError,
-                    function () { requestApp('', {data: '!\n'}); });
-        assertThrow(AppRequestError,
-                    function () { requestApp('', {data: '200\na:b\n'}); });
+        assertThrow(AppRequestError, requestApp, '', {});
+        assertThrow(AppRequestError, requestApp, '', {data: '!\n'});
+        assertThrow(AppRequestError, requestApp,'', {data: '200\na:b\n'});
         ak._requestApp = oldRequestApp;
       },
 
@@ -714,16 +702,12 @@
         assertSame(cmp(o, 1), 1, 'custom __cmp__ in first arg');
         assertSame(cmp(1, o), -1, 'custom cmp in second arg');
 
-        assertThrow(TypeError, function () { cmp(null, undefined); },
-                    'cmp(null, undefined)');
-        assertThrow(TypeError, function () { cmp(null, 1); },
-                    'cmp(null, non null)');
-        assertThrow(TypeError, function () { cmp('a', undefined); },
-                    'cmp(non undefined, undefined)');
-        assertThrow(TypeError, function () { cmp(true, "0"); },
-                    'cmp(true, "0")');
-        assertThrow(TypeError, function () { cmp({}, 1); });
-        assertThrow(TypeError, function () { cmp({__cmp__: 42}, 1); });
+        assertThrow(TypeError, cmp, null, undefined);
+        assertThrow(TypeError, cmp, null, 1);
+        assertThrow(TypeError, cmp, 'a', undefined);
+        assertThrow(TypeError, cmp, true, "0");
+        assertThrow(TypeError, cmp, {}, 1);
+        assertThrow(TypeError, cmp, {__cmp__: 42}, 1);
       },
 
       testEqual: function () {
@@ -859,7 +843,7 @@
       },
 
       testAbstract: function () {
-        assertThrow(NotImplementedError, abstract, 'abstract');
+        assertThrow(NotImplementedError, abstract);
       },
 
       testRange: function () {
@@ -868,8 +852,7 @@
         assertEqual(range(4, 7), [4, 5, 6], 'range with start and stop');
         assertEqual(range(4, 7, 2), [4, 6], 'range with start, stop and step');
         assertEqual(range(7, 4, -1), [7, 6, 5], 'range with negative step');
-        assertThrow(TypeError, function () { range(2, 3, 0); },
-                    'range with step=0');
+        assertThrow(TypeError, range, 2, 3, 0);
       },
 
       testZip: function () {
@@ -892,10 +875,8 @@
       },
 
       testThrower: function () {
-        assertThrow(TypeError, thrower(new TypeError('hi')),
-                    'thrower TypeError');
-        assertThrow(Number, thrower(1),
-                    'thrower number');
+        assertThrow(TypeError, thrower(new TypeError('hi')));
+        assertThrow(Number, thrower(1));
       },
 
       testNextMatch: function () {
@@ -903,8 +884,8 @@
         var string = 'x';
         assertSame(nextMatch(re, string)[0], 'x');
         assertSame(nextMatch(re, string), null);
-        assertThrow(SyntaxError, function () { nextMatch(/a/g, 'b'); });
-        assertThrow(SyntaxError, function () { nextMatch(/a/g, 'ba'); });
+        assertThrow(SyntaxError, nextMatch, /a/g, 'b');
+        assertThrow(SyntaxError, nextMatch, /a/g, 'ba');
       },
 
       testTimeSince: function () {
@@ -966,7 +947,7 @@
 
       testIterator: function () {
         var itr = new Iterator();
-        assertThrow(NotImplementedError, bind(itr.next, itr), 'Iterator next');
+        assertThrow(NotImplementedError, bind(itr.next, itr));
         itr.valid = true;
         assertSame(repr(itr), '<valid ak.Iterator>');
       },
@@ -984,7 +965,7 @@
       testMin: function () {
         assertSame(min([2, 3, 1, 4]), 1, 'min');
         assertSame(min([1, 2, 3, 4]), 1, 'min with first');
-        assertThrow(ValueError, function () { min([]); }, 'min on empty');
+        assertThrow(ValueError, min, []);
       },
 
       testMax: function () {
@@ -994,8 +975,7 @@
       testReduce: function () {
         assertSame(reduce(operators.add, [1, 2, 3, 4, 5]), 15,
                    'reduce(operators.add)');
-        assertThrow(ValueError, function () { reduce(operators.add, []); },
-                    'reduce has thrown Error correctly');
+        assertThrow(ValueError, reduce, operators.add, []);
         assertSame(reduce(operators.add, [], 10), 10,
                    'reduce initial value OK empty');
         assertSame(reduce(operators.add, [1, 2, 3], 10), 16,
@@ -1678,14 +1658,12 @@
             assertThrow(TemplateSyntaxError,
                         function () {
                           new Template(test, test, normalEnv);
-                        },
-                        'TemplateSyntaxError in ' + repr(test));
+                        });
           });
         assertThrow(NotImplementedError,
                     function () {
                       new Template('{{ x }}').render({x: abstract});
-                    },
-                    'Exception propagation');
+                    });
       },
 
       testSmartSplit: function () {
@@ -2048,12 +2026,11 @@
         var response = defaultServe({path: '/abc'}, root);
         assertSame(response.status, http.MOVED_PERMANENTLY);
         assertSame(response.headers.Location, '/abc/');
-        assertThrow(ResolveError, function () { serve({path: '/abc'}, root); });
+        assertThrow(ResolveError, serve, {path: '/abc'}, root);
         assertSame(serve({path: '/abc/', method: 'get'}, root).content, 'abc');
         assertSame(defaultServe({path: '/abc/', method: 'put'}, root).status,
                    http.METHOD_NOT_ALLOWED);
-        assertThrow(E,
-                    function () { defaultServe({path: '/abc/error'}, root); });
+        assertThrow(E, defaultServe, {path: '/abc/error'}, root);
         assertSame(serve({path: '/abc/method', method: 'PUT'}, root).content,
                    'PUT');
         assertSame(serve({path: '/abc/upper', method: 'get'}, root).content,
@@ -2094,18 +2071,12 @@
       },
 
       testType: function () {
-        assertThrow(UsageError,
-                    function () { db.create('X', {x: 'unparseble'}); });
-        assertThrow(UsageError,
-                    function () { db.create('X', {x: 'number string'}); });
-        assertThrow(UsageError,
-                    function () { db.create('X', {x: 'number string'}); });
-        assertThrow(UsageError,
-                    function () { db.create('X', {x: 'unique default 1'}); });
-        assertThrow(UsageError,
-                    function () {
-                      db.create('X', {x: 'number default 1 default 2'});
-                    });
+        assertThrow(UsageError, db.create, 'X', {x: 'unparseble'});
+        assertThrow(UsageError, db.create, 'X', {x: 'number string'});
+        assertThrow(UsageError, db.create, 'X', {x: 'number string'});
+        assertThrow(UsageError, db.create, 'X', {x: 'unique default 1'});
+        assertThrow(UsageError, db.create,
+                    'X', {x: 'number default 1 default 2'});
         db.create('Check', {n: 'number check (n != 42)'});
         db.create('X', {i: 'integer default "15" number unique'});
         db.create(
@@ -2133,7 +2104,7 @@
       },
 
       testConstr: function () {
-        assertThrow(UsageError, function () { db.create('X', {}, 'invalid'); });
+        assertThrow(UsageError, db.create, 'X', {}, 'invalid');
         db.create('X', {i: 'integer', n: 'number', s: 'string'},
                   'unique i , n',
                   ' \tunique[n,s  ]\t',
@@ -2238,10 +2209,8 @@
         aspect10.unweave();
         aspect11.unweave();
 
-        assertThrow(UsageError,
-                    function () { weave(Before, C, 'n', function () {}); });
-        assertThrow(NotImplementedError,
-                    function () { weave(Aspect, C, 'f', function () {}); });
+        assertThrow(UsageError, weave, Before, C, 'n', function () {});
+        assertThrow(NotImplementedError, weave, Aspect, C, 'f', function () {});
       },
 
       testWeave: function () {
