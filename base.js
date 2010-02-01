@@ -255,7 +255,7 @@
       return lhs.__cmp__(rhs);
     if (typeof(rhs.__cmp__) == 'function')
       return -rhs.__cmp__(lhs);
-    if (typeof(lhs) in  {'boolean': 1, 'string': 1, 'number': 1} &&
+    if (['boolean', 'string', 'number'].indexOf(typeof(lhs)) != -1 &&
         typeof(rhs) == typeof(lhs))
       return lhs < rhs ? -1 : 1;
     return undefined;
@@ -293,8 +293,7 @@
       if (c !== undefined)
         return c == 0;
     }
-    throw TypeError(ak.repr(lhs) + ' and ' + ak.repr(rhs) +
-                    ' can not be compared for equality');
+    return false;
   };
 
 

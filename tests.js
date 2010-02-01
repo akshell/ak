@@ -778,8 +778,8 @@
         assertEqual([1, 2, 3], [1, 2, 3]);
         assert(!equal([1, 2, 3], [1, 2]));
         assert(!equal([1, 2, 3], [1, 2, 4]));
-        assertThrow(TypeError, function () { equal([], null); });
-        assertThrow(TypeError, function () { equal([], undefined); });
+        assert(!equal([], null));
+        assert(!equal([], undefined));
       },
 
       testStringStartsWith: function () {
