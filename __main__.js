@@ -68,4 +68,4 @@ ak.defineRoutes('',
 __main__ = ak.defaultServe;
 
 
-ak.nameFunctions(this);
+ak.giveNames(this);

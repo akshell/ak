@@ -133,7 +133,7 @@
   var doCreate = ak.db.create;
 
   ak.db.create = function (name, header/*, constrs... */) {
-    header = ak.clone(header);
+    header = {__proto__: header};
     for (var attrName in header) {
       if (typeof(header[attrName]) == 'string')
         header[attrName] = compileType(header[attrName]);

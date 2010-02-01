@@ -78,7 +78,7 @@
       },
 
       get count () {
-        return ak.sum(this._tests.map(ak.attrGetter('count')));
+        return ak.sum(this._tests.map(function (test) { return test.count; }));
       },
 
       toString: function () {
@@ -281,7 +281,7 @@
 
   function makeRequester(method) {
     return function (request) {
-      request = ak.clone(request);
+      request = {__proto__: request};
       request.method = method;
       return this.request(request);
     };
@@ -332,7 +332,7 @@
 
       _substitute: function (name) {
         return weaveAliases(ak.InsteadOf, name,
-                            ak.bind(this['_' + name], this));
+                            ak.bind('_' + name, this));
       },
 
       login: function (user) {
@@ -346,7 +346,7 @@
 
       request: function (request) {
         if (this._user && !('user' in request)) {
-          request = ak.clone(request);
+          request = {__proto__: request};
           request.user = this._user;
         }
         var contexts = {};

@@ -153,8 +153,8 @@
 
   ak.AspectArray = Array.subclass();
 
-  ak.updateWithMode(
-    ak.AspectArray.prototype, ak.DONT_ENUM,
+  ak.AspectArray.prototype.update(
+    ak.HIDDEN,
     {
       unweave: function () {
         return this.map(function (aspect) { return aspect.unweave(); });

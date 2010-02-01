@@ -32,7 +32,7 @@
   ak.include('utils.js');
   ak.include('url.js');
 
-  var $ = ak.template = new ak.Module('ak.template');
+  var $ = ak.template = new ak.Module();
 
   //////////////////////////////////////////////////////////////////////////////
   // Errors
@@ -137,7 +137,7 @@
       this._value = new $.Wrap(value, true);
     },
     {
-      resolve: ak.getter('_value')
+      resolve: function () { return this._value; }
     });
 
 
@@ -285,7 +285,7 @@
       this._string = string;
     },
     {
-      render: ak.getter('_string')
+      render: function () { return this._string; }
     });
 
 
@@ -665,13 +665,6 @@
       },
       {safety: 'always', accept: 'wrap'}),
 
-    ljust: new $.Filter(
-      function (value, arg) {
-        arg = +arg;
-        return isNaN(arg) ? value : value.ljust(arg);
-      },
-      {safety: 'value', accept: 'string'}),
-
     lower: new $.Filter(
       function (value) {
         return value.toLowerCase();
@@ -701,13 +694,6 @@
         return (value.raw + '').replace(re, '');
       },
       {safety: 'both', accept: 'wrap'}),
-
-    rjust: new $.Filter(
-      function (value, arg) {
-        arg = +arg;
-        return isNaN(arg) ? value : value.rjust(arg);
-      },
-      {safety: 'value', accept: 'string'}),
 
     safe: new $.Filter(
       function (value) { return value; },
@@ -862,7 +848,7 @@
           sequence.reverse();
         var bits = [];
         for (var i = 0; i < sequence.length; ++i) {
-          var subcontext = ak.clone(context);
+          var subcontext = {__proto__: context};
           subcontext[this._name] = sequence[i];
           subcontext.forloop = {
             parentloop: context.forloop,
@@ -909,7 +895,7 @@
         var template = ak.getTemplate(this._expr.resolve(context).raw + '',
                                       this._env);
         template.store.blocks = ak.update(template.store.blocks || {},
-                                            this._blocks);
+                                          this._blocks);
         if (this._expr instanceof Constant)
           this._template = template;
         return template;
@@ -1032,7 +1018,7 @@
     },
     {
       render: function (context) {
-        var subcontext = ak.clone(context);
+        var subcontext = {__proto__: context};
         subcontext.contents = this._node.render(context);
         return this._expr.resolve(subcontext) + '';
       }
@@ -1262,7 +1248,7 @@
     },
     {
       render: function (context) {
-        var subcontext = ak.clone(context);
+        var subcontext = {__proto__: context};
         subcontext[this._name] = this._expr.resolve(context);
         return this._node.render(subcontext);
       }
@@ -1613,11 +1599,5 @@
     filters: $.defaultFilters,
     load: $.makeLoadFromCode('/templates')
   };
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Name ak.template functions
-  //////////////////////////////////////////////////////////////////////////////
-
-  ak.nameFunctions($);
 
 })();

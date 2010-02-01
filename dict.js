@@ -101,7 +101,7 @@
             this._undefined = default_;
         } else if (typeof(key) in this._primitives) {
           var object = this._primitives[typeof(key)];
-          result = [key in object, object[key]];
+          result = [object.hasOwnProperty(key), object[key]];
           if (action == DELETE)
             delete object[key];
           else if (action == SET && !result[0])

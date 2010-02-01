@@ -150,9 +150,10 @@
         run(BadTearDownTC);
         assert(tested && setUp && !tearedDown, 'TestCase run BadTearDownTC');
 
-        assertEqual(tr.errors.map(attrGetter(1)), [1, 2, 4], 'TestCase errors');
-        assertEqual(tr.failures.map(attrGetter(1)), [assertionError],
-                    'TestCase failures');
+        assertEqual(tr.errors.map(function (error) { return error[1]; }),
+                    [1, 2, 4]);
+        assertEqual(tr.failures.map(function (failure) { return failure[1]; }),
+                    [assertionError]);
         assertSame(started, stopped, 'TestCase started stopped');
         assertSame(started, 5, 'TestCase started');
       },
@@ -513,49 +514,8 @@
       name: 'base',
 
       //////////////////////////////////////////////////////////////////////////
-      // Object methods tests
+      // Object function and method tests
       //////////////////////////////////////////////////////////////////////////
-
-      testObjectSetProp: function () {
-        var o = {};
-        o.setProp('x', DONT_DELETE, 42);
-        delete o.x;
-        assertSame(o.x, 42, 'setProp');
-      },
-
-      testObjectSetNonEnumerable: function () {
-        var o = {};
-        o.setNonEnumerable('a', 42);
-        assertSame(o.a, 42, 'setNonEnumerable set');
-        assertEqual(items(o), [], 'setNonEnumerable non enumerable');
-      },
-
-      testObjectInstances: function () {
-        assertSame({}.instances(Object.subclass({x: 42})).x, 42);
-      },
-
-      //////////////////////////////////////////////////////////////////////////
-      // Free functions tests
-      //////////////////////////////////////////////////////////////////////////
-
-      testModule: function () {
-        assertSame(repr(ak), '<ak ' + ak.__version__ + ' module>');
-        assert(ak instanceof ak.Module);
-        assert(db instanceof ak.Module);
-        assert(fs instanceof ak.Module);
-        var m = new Module('test');
-        assertEqual(repr(m), '<test module>');
-        assertSame(m.__name__, 'test');
-        assert(!('__version__' in m));
-        assertSame(repr(new Module('another test', '0.1')),
-                   '<another test 0.1 module>');
-      },
-
-      testUpdateWithMode: function () {
-        var o = updateWithMode({}, DONT_ENUM, {a: 1});
-        assertSame(o.a, 1, 'updateWithMode set');
-        assertSame(repr(o), '{}', 'updateWithMode not enumerable');
-      },
 
       testUpdate: function () {
         var obj1 = {a: 1, b: 1};
@@ -566,64 +526,10 @@
         assertSame(obj.a, obj1.a);
         assertSame(obj.b, obj2.b);
         assertSame(obj.c, obj3.c);
-      },
-
-      testUpdateTree: function () {
-        var a = {'foo': {'bar': 12, 'wibble': 13}};
-        var b = {'foo': {'baz': 4, 'bar': 16}, 'bar': 4};
-        updateTree(a, b);
-        var expect = [['bar', 16], ['baz', 4], ['wibble', 13]];
-        var got = items(a.foo);
-        got.sort(cmp);
-        assertEqual(got, expect, 'updateTree merge');
-        assertSame(a.bar, 4, 'updateTree insert');
-
-        var aa = {'foo': {'bar': 12, 'wibble': 13}};
-        var bb = {'foo': {'baz': 4, 'bar': 16}, 'bar': 4};
-
-        var cc = updateTree({}, aa, bb);
-        got = items(cc.foo);
-        got.sort(cmp);
-        assertEqual(got, expect, 'updateTree merge (self is null)');
-        assertSame(cc.bar, 4, 'updateTree insert (self is null)');
-
-        cc = updateTree({}, aa, bb);
-        got = items(cc.foo);
-        got.sort(cmp);
-        assertEqual(got, expect, 'updateTree merge (self is undefined)');
-        assertSame(cc.bar, 4, 'updateTree insert (self is undefined)');
-      },
-
-      testClone: function () {
-        var O = function (value) {
-          this.value = value;
-        };
-        O.prototype.func = function () {
-          return this.value;
-        };
-
-        var o = new O('boring');
-        var p = clone(o);
-        assert(p instanceof O, 'cloned correct inheritance');
-        var q = clone(p);
-        assert(q instanceof O, 'clone-cloned correct inheritance');
-        q.foo = 'bar';
-        assertSame(p.foo, undefined, 'clone-clone is copy-on-write');
-        p.bar = 'foo';
-        assertSame(o.bar, undefined, 'clone is copy-on-write');
-        assertSame(q.bar, 'foo', 'clone-clone has proper delegation');
-        assertSame(p.func(), 'boring', 'clone function calls correct');
-        q.value = 'awesome';
-        assertSame(q.func(), 'awesome', 'clone really does work');
-      },
-
-      testRepr: function () {
-        assertSame(repr(undefined), 'undefined', 'undefined repr');
-        assertSame(repr(null), 'null', 'null repr');
-        var o = {__repr__: function () { return 'hi'; }};
-        assertSame(repr(o), 'hi', 'custom __repr__');
-        o.__repr__ = undefined;
-        assertSame(repr(o), '[object Object]', 'Object without __repr__');
+        update(obj2, READONLY, obj3);
+        obj2.c = obj2.d = 0;
+        assertSame(obj2.c, 0);
+        assertSame(obj2.d, 3);
       },
 
       testItems: function () {
@@ -632,46 +538,6 @@
         var o_items = items(o);
         o_items.sort(cmp);
         assertEqual(o_items, expect, 'items');
-      },
-
-      testCmp: function () {
-        assertSame(cmp(1, 1), 0, 'cmp(1, 1)');
-        assertSame(cmp(Number(1), 1), 0, 'cmp Number');
-        assertSame(cmp(String('hi'), 'hi'), 0, 'cmp String');
-        assertSame(cmp(true, Boolean(true)), 0, 'cmp Boolean');
-        assertSame(cmp(1, 2), -1, 'cmp(1, 2)');
-        var o = {__cmp__: function (other) { return 1; }};
-        assertSame(cmp(o, 1), 1, 'custom __cmp__ in first arg');
-        assertSame(cmp(1, o), -1, 'custom cmp in second arg');
-
-        assertThrow(TypeError, function () { cmp(null, undefined); },
-                    'cmp(null, undefined)');
-        assertThrow(TypeError, function () { cmp(null, 1); },
-                    'cmp(null, non null)');
-        assertThrow(TypeError, function () { cmp('a', undefined); },
-                    'cmp(non undefined, undefined)');
-        assertThrow(TypeError, function () { cmp(true, "0"); },
-                    'cmp(true, "0")');
-        assertThrow(TypeError, function () { cmp({}, 1); });
-        assertThrow(TypeError, function () { cmp({__cmp__: 42}, 1); });
-      },
-
-      testEqual: function () {
-        assert(equal(1, 1), 'equal');
-        assert(!equal(1, 2), 'not equal');
-        assert(equal(1, {__eq__: function () { return true; }}),
-               'equal __eq__ true');
-        assert(!equal({__eq__: function () { return false; }}, 1),
-               'equal __eq__ false');
-        assert(equal({__cmp__: function () { return 1; }},
-                     {__eq__: function () { return true; }}),
-               'equal __cmp__ __eq__');
-      },
-
-      testSetDefault: function () {
-        var a = setDefault({'foo': 'bar'}, {'foo': 'unf'}, {'bar': 'web taco'});
-        assertSame(a.foo, 'bar', 'setDefault worked (skipped existing)');
-        assertSame(a.bar, 'web taco', 'setDefault worked (set non-existing)');
       },
 
       testKeys: function () {
@@ -687,69 +553,45 @@
         assertEqual(got, [-1, 1, 2, 4], 'values');
       },
 
-      testIndicators: function () {
-        assert(indicators.null_(null), 'indicators.null_');
-        assert(indicators.undefined_(undefined), 'indicators.undefined_');
-        assert(indicators.undefinedOrNull(undefined),
-               'indicators.undefinedOrNull undefined');
-        assert(indicators.undefinedOrNull(null),
-               'indicators.undefinedOrNull null');
-        assert(indicators.empty([]), 'indicators.empty');
-        assert(indicators.arrayLike({length: null}),
-               'indicators.arrayLike {length: null}');
-        assert(!indicators.arrayLike(1),
-               'indicators.arrayLike 1');
+      testObjectSet: function () {
+        var o = {};
+        o.set('x', PERMANENT, 42);
+        delete o.x;
+        assertSame(o.x, 42, 'set');
       },
 
-      testCompose: function () {
-        assertSame(compose()(1, 2, 3), 1, 'empty compose');
-        assertSame(compose(function (x) { return x * x; },
-                           function (x) { return x + 1; })(2),
-                   9,
-                   'compose');
+      testObjectSetHidden: function () {
+        var o = {};
+        o.setHidden('a', 42);
+        assertSame(o.a, 42, 'setHidden set');
+        assertEqual(items(o), [], 'setHidden non enumerable');
       },
 
-      testBind: function () {
-        var not_self = {'toString': function () { return 'not self'; }};
-        var self = {'toString': function () { return 'self'; }};
-        var func = function (arg) { return this.toString() + ' ' + arg; };
-        var boundFunc = bind(func, self);
-        not_self.boundFunc = boundFunc;
-
-        assertSame(boundFunc('foo'), 'self foo',
-                   'boundFunc bound to self properly');
-        assertSame(not_self.boundFunc('foo'), 'self foo',
-                   'boundFunc bound to self on another obj');
+      testObjectInstances: function () {
+        assertSame({}.instances(Object.subclass({x: 42})).x, 42);
       },
 
-      testPartial: function () {
-        var p = partial(function (a, b, c, d) { return [a, b, c, d]; }, 1, 2);
-        assertEqual(p(3, 4), [1, 2, 3, 4], 'partial');
-        assertEqual(p(5, 6), [1, 2, 5, 6], 'partial again');
+      testObjectUpdate: function () {
+        var o = {a: 1, b: 2};
+        o.update(READONLY, {b: 3, c: 4});
+        o.b = o.c = 0;
+        assertEqual([o.a, o.b, o.c], [1, 0, 4]);
       },
 
-      testMethod: function () {
-        var o = {f: method(function (self) { return self.x; }), x: 42};
-        assertSame(o.f(), 42);
+      testObjectItems: function () {
+        assertEqual({a: 1, b: 2}.items().sort(), [['a', 1], ['b', 2]]);
       },
 
-      testFactory: function () {
-        var C = Object.subclass(function (x) { this.x = x; });
-        var c = factory(C)(1);
-        assert(c instanceof C, 'factory instanceof');
-        assertSame(c.x, 1, 'factory property');
+      testObjectKeys: function () {
+        assertEqual({a: 1, b: 2}.keys().sort(), ['a', 'b']);
       },
 
-      testNameFunctions: function () {
-        assertSame(repr(nameFunctions), 'ak.nameFunctions');
-        assertSame(repr(template.Filter), 'ak.template.Filter');
-        assertSame(repr(Dict.ItemIterator), 'ak.Dict.ItemIterator');
-        assertSame(repr(fs.read), 'ak.fs.read');
-        assertSame(repr(db.rollback), 'ak.db.rollback');
+      testObjectValues: function () {
+        assertEqual({a: 1, b: 2}.values().sort(), [1, 2]);
       },
 
       //////////////////////////////////////////////////////////////////////////
-      // Function methods tests
+      // Function method tests
       //////////////////////////////////////////////////////////////////////////
 
       testFunctionDecorated: function () {
@@ -793,117 +635,16 @@
       },
 
       //////////////////////////////////////////////////////////////////////////
-      // Error definitions tests
+      // repr() tests
       //////////////////////////////////////////////////////////////////////////
 
-      testErrorMeta: function () {
-        var E = TypeError.subclass(function () { this.x = 42; }, {y: 15});
-        var e = new E(1);
-        assertSame(e.message, '1');
-        assertSame(e.x, 42);
-        assertSame(e.y, 15);
-        assertSame(e.name, 'TypeError');
-        E.__name__ = 'E';
-        assertSame(e.name, 'E');
-        assert(SyntaxError() instanceof SyntaxError);
-        assert(E() instanceof E);
-        assertSame(E('hi').message, 'hi');
-      },
-
-      testAbstract: function () {
-        assertThrow(NotImplementedError, abstract, 'abstract');
-      },
-
-      //////////////////////////////////////////////////////////////////////////
-      // Array methods tests
-      //////////////////////////////////////////////////////////////////////////
-
-      testArrayCmp: function () {
-        assertSame(cmp([], []), 0, 'empty array cmp');
-        assertSame(cmp([1, 2, 3], [1, 2, 3]), 0, 'equal array cmp');
-        assertSame(cmp([1, 2], [1, 2, 3]), -1, 'less len array cmp');
-        assertSame(cmp([1, 2], [1]), 1, 'more len array cmp');
-        assertSame(cmp([1, 2, 3], [1, 2, 4]), -1, 'less item array cmp');
-      },
-
-      testArrayEq: function () {
-        assertEqual([], []);
-        assertEqual([1, 2, 3], [1, 2, 3]);
-        assert(!equal([1, 2, 3], [1, 2]));
-        assert(!equal([1, 2, 3], [1, 2, 4]));
-        assertThrow(TypeError, function () { equal([], null); });
-        assertThrow(TypeError, function () { equal([], undefined); });
-      },
-
-      testArrayFlatten: function () {
-        var flat = [1, '2', 3, [4, [5, [6, 7], 8, [], 9]]].flatten();
-        var expect = [1, '2', 3, 4, 5, 6, 7, 8, 9];
-        assertEqual(flat, expect, 'flatten');
-      },
-
-      testArrayIndex: function () {
-        assertSame([1, 2, 3].index(4), -1, 'index returns -1 on not found');
-        assertSame([1, 2, 3].index(1), 0, 'index returns correct index');
-        assertSame([1, 2, 3].index(1, 1), -1, 'index honors start');
-        assertSame([{__cmp__: function () { return 0; }}].index(1), 0,
-                   'index with custom __cmp__');
-      },
-
-      ////////////////////////////////////////////////////////////////////////////
-      // String methods tests
-      ////////////////////////////////////////////////////////////////////////////
-
-      testStringStartsWith: function () {
-        var str = 'string';
-        assert(str.startsWith('str'), 'startsWith');
-        assert(!str.startsWith('str1'), 'startsWith false');
-        assert(str.startsWith('tr', 1), 'startsWith start');
-        assert(str.startsWith('tr', 1, 3), 'startsWith start end');
-        assert(!str.startsWith('tr', 1, 2), 'startsWith start close end');
-      },
-
-      testStringTrim: function () {
-        assertSame(' hi   '.trim(), 'hi', 'trim hi');
-        assertSame('\n \thello\nthere\t'.trim(), 'hello\nthere',
-                   'trim hello there');
-      },
-
-      testStringTrimLeft: function () {
-        assertSame(' \t\n hi\n '.trimLeft(), 'hi\n ', 'trimLeft');
-      },
-
-      testStringTrimRight: function () {
-        assertSame(' \t\n yo\n\nwuzzup \t '.trimRight(), ' \t\n yo\n\nwuzzup',
-                   'trimRight');
-      },
-
-      testStringLJust: function () {
-        assertSame('abc'.ljust(2), 'abc', 'ljust on bigger');
-        assertSame('abc'.ljust(5), 'abc  ', 'ljust on smaller');
-        assertSame('abc'.ljust(5, '\t'), 'abc\t\t', 'ljust with tab character');
-      },
-
-      testStringRJust: function () {
-        assertSame('abc'.rjust(2), 'abc', 'rjust on bigger');
-        assertSame('abc'.rjust(5), '  abc', 'rjust on smaller');
-        assertSame('abc'.rjust(5, '\t'), '\t\tabc', 'rjust with tab character');
-      },
-
-      ////////////////////////////////////////////////////////////////////////////
-      // Other tests
-      ////////////////////////////////////////////////////////////////////////////
-
-      testDateCmp: function () {
-        var str1 = 'Mon, 03 Aug 2009 14:49:29 GMT';
-        var str2 = 'Mon, 03 Aug 2009 14:49:30 GMT';
-        assertEqual(new Date(str1), new Date(str1), 'Date equal');
-        assertSame(cmp(new Date(str1), new Date(str2)), -1, 'Date less');
-      },
-
-      testRegExpEscape: function () {
-        assertSame(RegExp.escape('[].ab?c|de\\('),
-                   '\\[\\]\\.ab\\?c\\|de\\\\\\(',
-                   'RegExp.escape');
+      testRepr: function () {
+        assertSame(repr(undefined), 'undefined', 'undefined repr');
+        assertSame(repr(null), 'null', 'null repr');
+        var o = {__repr__: function () { return 'hi'; }};
+        assertSame(repr(o), 'hi', 'custom __repr__');
+        o.__repr__ = undefined;
+        assertSame(repr(o), '[object Object]', 'Object without __repr__');
       },
 
       testObjectRepr: function () {
@@ -957,6 +698,115 @@
 
       testRegExpRepr: function () {
         assertSame(repr(/hi/g), '/hi/g');
+      },
+
+      ////////////////////////////////////////////////////////////////////////////
+      // Other tests
+      ////////////////////////////////////////////////////////////////////////////
+
+      testCmp: function () {
+        assertSame(cmp(1, 1), 0, 'cmp(1, 1)');
+        assertSame(cmp(Number(1), 1), 0, 'cmp Number');
+        assertSame(cmp(String('hi'), 'hi'), 0, 'cmp String');
+        assertSame(cmp(true, Boolean(true)), 0, 'cmp Boolean');
+        assertSame(cmp(1, 2), -1, 'cmp(1, 2)');
+        var o = {__cmp__: function (other) { return 1; }};
+        assertSame(cmp(o, 1), 1, 'custom __cmp__ in first arg');
+        assertSame(cmp(1, o), -1, 'custom cmp in second arg');
+
+        assertThrow(TypeError, function () { cmp(null, undefined); },
+                    'cmp(null, undefined)');
+        assertThrow(TypeError, function () { cmp(null, 1); },
+                    'cmp(null, non null)');
+        assertThrow(TypeError, function () { cmp('a', undefined); },
+                    'cmp(non undefined, undefined)');
+        assertThrow(TypeError, function () { cmp(true, "0"); },
+                    'cmp(true, "0")');
+        assertThrow(TypeError, function () { cmp({}, 1); });
+        assertThrow(TypeError, function () { cmp({__cmp__: 42}, 1); });
+      },
+
+      testEqual: function () {
+        assert(equal(1, 1), 'equal');
+        assert(!equal(1, 2), 'not equal');
+        assert(equal(1, {__eq__: function () { return true; }}),
+               'equal __eq__ true');
+        assert(!equal({__eq__: function () { return false; }}, 1),
+               'equal __eq__ false');
+        assert(equal({__cmp__: function () { return 1; }},
+                     {__eq__: function () { return true; }}),
+               'equal __cmp__ __eq__');
+      },
+
+      testModule: function () {
+        assertSame(repr(ak), '<module ak ' + ak.__version__ + '>');
+        assert(ak instanceof ak.Module);
+        assert(db instanceof ak.Module);
+        assert(fs instanceof ak.Module);
+        var m = new Module('test');
+        assertEqual(repr(m), '<module test>');
+        assertSame(m.__name__, 'test');
+        assert(!('__version__' in m));
+        assertSame(repr(new Module('another test', '0.1')),
+                   '<module another test 0.1>');
+      },
+
+      testErrorMeta: function () {
+        var E = TypeError.subclass(function () { this.x = 42; }, {y: 15});
+        var e = new E(1);
+        assertSame(e.message, '1');
+        assertSame(e.x, 42);
+        assertSame(e.y, 15);
+        assertSame(e.name, 'TypeError');
+        E.__name__ = 'E';
+        assertSame(e.name, 'E');
+        assert(SyntaxError() instanceof SyntaxError);
+        assert(E() instanceof E);
+        assertSame(E('hi').message, 'hi');
+      },
+
+      testArrayCmp: function () {
+        assertSame(cmp([], []), 0, 'empty array cmp');
+        assertSame(cmp([1, 2, 3], [1, 2, 3]), 0, 'equal array cmp');
+        assertSame(cmp([1, 2], [1, 2, 3]), -1, 'less len array cmp');
+        assertSame(cmp([1, 2], [1]), 1, 'more len array cmp');
+        assertSame(cmp([1, 2, 3], [1, 2, 4]), -1, 'less item array cmp');
+      },
+
+      testArrayEq: function () {
+        assertEqual([], []);
+        assertEqual([1, 2, 3], [1, 2, 3]);
+        assert(!equal([1, 2, 3], [1, 2]));
+        assert(!equal([1, 2, 3], [1, 2, 4]));
+        assertThrow(TypeError, function () { equal([], null); });
+        assertThrow(TypeError, function () { equal([], undefined); });
+      },
+
+      testStringStartsWith: function () {
+        var str = 'string';
+        assert(str.startsWith('str'));
+        assert(!str.startsWith('str1'));
+        assert(!str.startsWith('long long string'));
+      },
+
+      testStringEndsWith: function () {
+        var str = 'string';
+        assert(str.endsWith('ing'));
+        assert(!str.endsWith('ping'));
+        assert(!str.endsWith('long long string'));
+      },
+
+      testDateCmp: function () {
+        var str1 = 'Mon, 03 Aug 2009 14:49:29 GMT';
+        var str2 = 'Mon, 03 Aug 2009 14:49:30 GMT';
+        assertEqual(new Date(str1), new Date(str1), 'Date equal');
+        assertSame(cmp(new Date(str1), new Date(str2)), -1, 'Date less');
+      },
+
+      testRegExpEscape: function () {
+        assertSame(RegExp.escape('[].ab?c|de\\('),
+                   '\\[\\]\\.ab\\?c\\|de\\\\\\(',
+                   'RegExp.escape');
       }
     });
 
@@ -967,6 +817,50 @@
   var UtilsTestCase = TestCase.subclass(
     {
       name: 'utils',
+
+      testBind: function () {
+        var not_self = {'toString': function () { return 'not self'; }};
+        var self = {'toString': function () { return 'self'; }};
+        var func = function (arg) { return this.toString() + ' ' + arg; };
+        var boundFunc = bind(func, self);
+        not_self.boundFunc = boundFunc;
+        assertSame(boundFunc('foo'), 'self foo',
+                   'boundFunc bound to self properly');
+        assertSame(not_self.boundFunc('foo'), 'self foo',
+                   'boundFunc bound to self on another obj');
+        var object = {x: 42, f: function () { return this.x; }};
+        assertSame(bind('f', object)(), 42);
+      },
+
+      testPartial: function () {
+        var p = partial(function (a, b, c, d) { return [a, b, c, d]; }, 1, 2);
+        assertEqual(p(3, 4), [1, 2, 3, 4], 'partial');
+        assertEqual(p(5, 6), [1, 2, 5, 6], 'partial again');
+      },
+
+      testFactory: function () {
+        var C = Object.subclass(function (x) { this.x = x; });
+        var c = factory(C)(1);
+        assert(c instanceof C, 'factory instanceof');
+        assertSame(c.x, 1, 'factory property');
+      },
+
+      testGiveNames: function () {
+        assertSame(repr(giveNames), '<function ak.giveNames>');
+        assertSame(repr(template.Filter), '<function ak.template.Filter>');
+        assertSame(repr(Dict.ItemIterator), '<function ak.Dict.ItemIterator>');
+        assertSame(repr(fs), '<module ak.fs>');
+        assertSame(repr(db), '<module ak.db>');
+        assertSame(repr(fs.read), '<function ak.fs.read>');
+        assertSame(repr(db.rollback), '<function ak.db.rollback>');
+        assertSame(repr(ak.operators), '<module ak.operators>');
+        assertSame(repr(ak.template), '<module ak.template>');
+        assertSame(repr(ak.template.Node), '<function ak.template.Node>');
+      },
+
+      testAbstract: function () {
+        assertThrow(NotImplementedError, abstract, 'abstract');
+      },
 
       testRange: function () {
         assertEqual(range(), [], 'range without arguments');
@@ -986,57 +880,6 @@
                     'zip on array and string');
         assertEqual(zip([1, 2, 3], [], [4, 5]), [],
                     'zip on three arrays, one of them empty');
-      },
-
-      testCamelize: function () {
-        assertSame(camelize('one'), 'one', 'one word');
-        assertSame(camelize('one-two'), 'oneTwo', 'two words');
-        assertSame(camelize('one-two-three'), 'oneTwoThree', 'three words');
-        assertSame(camelize('1-one'), '1One', 'letter and word');
-        assertSame(camelize('one-'), 'one', 'trailing hyphen');
-        assertSame(camelize('-one'), 'One', 'starting hyphen');
-        assertSame(camelize('o-two'), 'oTwo', 'one character and word');
-      },
-
-      testCounter: function () {
-        var c = counter();
-        assertSame(c(), 0, 'counter starts at 0');
-        assertSame(c(), 1, 'counter increases');
-        c = counter(2);
-        assertSame(c(), 2, 'counter starts at 2');
-        assertSame(c(), 3, 'counter increases');
-      },
-
-      testFlattenArguments: function () {
-        var flat = flattenArguments(1, '2', 3, [4, [5, [6, 7], 8, [], 9]]);
-        var expect = [1, '2', 3, 4, 5, 6, 7, 8, 9];
-        assertEqual(flat, expect, 'flattenArguments');
-      },
-
-      testGetter: function () {
-        assertSame({x: 42, f: getter('x')}.f(), 42, 'getter');
-      },
-
-      testAttrGetter: function () {
-        assertSame(attrGetter('x')({x: 42}), 42, 'attrGetter');
-      },
-
-      testTypeMatcher: function () {
-        var tm = typeMatcher('number', 'object');
-        assert(tm([], {}, 1), 'typeMatcher Array, Object, number');
-        assert(!tm(function () {}), 'typeMatcher Function');
-        assert(!tm('hi'), 'typeMatcher string');
-      },
-
-      testMethodCaller: function () {
-        assertEqual(methodCaller(function () {
-                                   return [this, Array.apply(null, arguments)];
-                                 },
-                                 2, 3)(1),
-                    [1, [2, 3]],
-                    'methodCaller function');
-        var o = {x: 1, f: function (y) { return this.x + y; }};
-        assertSame(methodCaller('f', 2)(o), 3, 'methodCaller name');
       },
 
       testKeyComparator: function () {
@@ -1400,7 +1243,7 @@
     child: '{% extends "parent" %}{% block 1 %}child1{% endblock %}'
   };
 
-  var normalEnv = clone(template.defaultEnv);
+  var normalEnv = {__proto__: template.defaultEnv};
   normalEnv.load = function (name) {
     var result = baseTemplates[name];
     if (result === undefined)
@@ -1409,7 +1252,7 @@
   };
 
 
-  var invalidEnv = clone(normalEnv);
+  var invalidEnv = {__proto__: normalEnv};
   invalidEnv.invalid = 'INVALID';
 
 
@@ -1552,12 +1395,6 @@
      '<br /><br />a<br />b<br /><br />c<br />'],
     ['{{ x|numberLines }}', {x: '\n\na\n\n\nb\n\nc\nd\n\ne\n\nf'},
      ' 1 \n 2 \n 3 a\n 4 \n 5 \n 6 b\n 7 \n 8 c\n 9 d\n10 \n11 e\n12 \n13 f'],
-    ['{{ "<>"|ljust:5 }}', {}, '<>   '],
-    ['{{ x|ljust:5 }}', {x: '<>'}, '&lt;&gt;   '],
-    ['{{ "<>"|ljust:"foo" }}', {}, '<>'],
-    ['{{ "<>"|rjust:5 }}', {}, '   <>'],
-    ['{{ x|rjust:5 }}', {x: '<>'}, '   &lt;&gt;'],
-    ['{{ "<>"|rjust:"foo" }}', {}, '<>'],
     ['{{ 1|pluralize }}', {}, ''],
     ['{{ 2|pluralize }}', {}, 's'],
     ['{{ 2|pluralize:"a,b,c" }}', {}, ''],
@@ -1877,7 +1714,7 @@
       },
 
       testMakeLoadFromCode: function () {
-        var env = clone(template.defaultEnv);
+        var env = {__proto__: template.defaultEnv};
         env.load = template.makeLoadFromCode('/test_data/templates');
         assertSame(getTemplate('child.txt', env).render({x: 42}),
                    '\n42\n\n\n\nfoo\n\n',
@@ -1907,6 +1744,7 @@
         assertSame(m.get(undefined, 42), 42);
         assertSame(m.get(true), undefined);
         assertSame(m.get(null), undefined);
+        assertSame(m.get('hasOwnProperty'), undefined);
         assertSame(m.get({}, 42), 42);
         m.set(undefined, 5);
         assertSame(m.get(undefined), 5);
@@ -2117,7 +1955,7 @@
       name: 'rest',
 
       testRenderToResponse: function () {
-        template.defaultEnv = clone(template.defaultEnv);
+        template.defaultEnv = {__proto__: template.defaultEnv};
         template.defaultEnv.load = function (name) {
           return '{{' + name + '}}';
         };

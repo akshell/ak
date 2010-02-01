@@ -155,8 +155,7 @@
   ak.LoginRequiredError = ak.BaseError.subclass();
 
 
-  ak.update(
-    ak.Controller,
+  ak.Controller.update(
     {
       requiringLogin: function (controller) {
         return function (request /* ... */) {
@@ -180,8 +179,7 @@
   };
 
 
-  ak.update(
-    ak.serve,
+  ak.serve.update(
     {
       protectingFromCSRF: function (serve) {
         return function (request /* ... */) {

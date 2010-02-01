@@ -28,7 +28,7 @@
 
 (function ()
 {
-  ak.include('base.js');
+  ak.include('utils.js');
 
   //////////////////////////////////////////////////////////////////////////////
   // Iterator
@@ -144,9 +144,6 @@
 
 
   ak.every = function (iterable, pred, self/* = ak.global */) {
-    // alternative impl:
-//     var itr = ak.ifilter(iterable, ak.compose(ak.operators.not, pred), self);
-//     return !itr.valid;
     self = self || ak.global;
     var itr = ak.iter(iterable);
     while (itr.valid)
@@ -157,9 +154,6 @@
 
 
   ak.some = function (iterable, pred, self/* = ak.global */) {
-    // alternative impl:
-//     var itr = ak.ifilter(iterable, pred, self);
-//     return itr.valid;
     self = self || ak.global;
     var itr = ak.iter(iterable);
     while (itr.valid)
@@ -521,9 +515,11 @@
     });
 
 
-  Object.prototype.setNonEnumerable('__iter__', function () {
-                                      return new ak.ObjectIterator(this);
-                                    });
+  Object.prototype.setHidden(
+    '__iter__',
+    function () {
+      return new ak.ObjectIterator(this);
+    });
 
   //////////////////////////////////////////////////////////////////////////////
   // ArrayIterator
@@ -546,7 +542,7 @@
 
 
   function makeArrayIterator() { return new ak.ArrayIterator(this); };
-  Array.prototype.setNonEnumerable('__iter__', makeArrayIterator);
-  String.prototype.setNonEnumerable('__iter__', makeArrayIterator);
+  Array.prototype.setHidden('__iter__', makeArrayIterator);
+  String.prototype.setHidden('__iter__', makeArrayIterator);
 
 })();

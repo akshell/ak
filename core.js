@@ -30,12 +30,12 @@
   // Publishing
   //////////////////////////////////////////////////////////////////////////////
 
-  // Property access modes for ak._setObjectProp
+  // Property access attributes for ak.set
   // Could be combined using '|' operator.
-  ak.NONE        = 0;
-  ak.READ_ONLY   = 1 << 0;
-  ak.DONT_ENUM   = 1 << 1;
-  ak.DONT_DELETE = 1 << 2;
+  ak.COMMON    = 0;
+  ak.READONLY  = 1;
+  ak.HIDDEN    = 2;
+  ak.PERMANENT = 4;
 
 
   ak.Script.prototype.run = ak.Script.prototype._run;
@@ -49,7 +49,7 @@
 
 
   [
-    [ak, 'setObjectProp'],
+    [ak, 'set'],
     [ak, 'readCode'],
     [ak, 'hash'],
     [ak, 'construct'],

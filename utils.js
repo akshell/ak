@@ -31,6 +31,49 @@
   ak.include('base.js');
 
 
+  ak.bind = function (func, self) {
+    if (typeof(func) == 'string')
+      func = self[func];
+    return function () {
+      return func.apply(self, arguments);
+    };
+  };
+
+
+  ak.partial = function (func/*, args... */) {
+    var args = Array.slice(arguments, 1);
+    return function () {
+      Array.prototype.unshift.apply(arguments, args);
+      return func.apply(this, arguments);
+    };
+  };
+
+
+  ak.factory = function (constructor) {
+    return function () {
+      return ak.construct(constructor, arguments);
+    };
+  };
+
+
+  ak.giveNames = function (ns) {
+    var prefix = ns.__name__ ? ns.__name__ + '.' : '';
+    for (var key in ns) {
+      var value = ns[key];
+      if ((typeof(value) == 'function' || value instanceof ak.Module) &&
+          !value.__name__) {
+        ak.set(value, '__name__', ak.HIDDEN, prefix + key);
+        arguments.callee(value);
+      }
+    }
+  };
+
+  
+  ak.abstract = function () {
+    throw ak.NotImplementedError();
+  };
+
+
   ak.range = function (/* [start,] stop[, step] */) {
     var start = 0;
     var stop = 0;
@@ -69,74 +112,6 @@
       result.push(item);
     }
     return result;
-  };
-
-
-  ak.camelize = function (selector) {
-    var arr = selector.split('-');
-    for (var i = 1; i < arr.length; ++i)
-      arr[i] = arr[i].charAt(0).toUpperCase() + arr[i].substring(1);
-    return arr.join('');
-  };
-
-
-  ak.counter = function (n/* = 0 */) {
-    n = n || 0;
-    return function () {
-      return n++;
-    };
-  };
-
-
-  ak.flattenArguments = function (/* ... */) {
-    var result = [];
-    var args = Array.slice(arguments);
-    while (args.length) {
-      var x = args.shift();
-      if (ak.indicators.arrayLike(x))
-        for (var i = x.length - 1; i >= 0; --i)
-          args.unshift(x[i]);
-      else
-        result.push(x);
-    }
-    return result;
-  };
-
-
-  ak.getter = function (key) {
-    return function () {
-      return this[key];
-    };
-  };
-
-
-  ak.attrGetter = function (key) {
-    return function (obj) {
-      return obj[key];
-    };
-  };
-
-
-  ak.typeMatcher = function (type/*, ... */) {
-    var types = {};
-    Array.map(arguments, function (arg) { types[arg] = true; });
-    return function () {
-      return Array.every(arguments, function (arg) {
-                           return typeof(arg) in types;
-                         });
-    };
-  };
-
-
-  ak.methodCaller = function (f/*, args... */) {
-    var args = Array.slice(arguments, 1);
-    return (typeof(f) == 'function'
-            ? function (obj) {
-              return f.apply(obj, args);
-            }
-            : function (obj) {
-              return obj[f].apply(obj, args);
-            });
   };
 
 
