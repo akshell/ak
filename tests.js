@@ -47,7 +47,7 @@
       },
 
       testAssertEqual: function () {
-        assertEqual(42, {__eq__: function (other) { return other === 42; }},
+        assertEqual({__eq__: function (other) { return other === 42; }}, 42,
                     'assertEqual equal');
         assertThrow(AssertionError, assertEqual, 1, 2);
       },
@@ -700,20 +700,20 @@
         assertSame(cmp(1, 2), -1, 'cmp(1, 2)');
         var o = {__cmp__: function (other) { return 1; }};
         assertSame(cmp(o, 1), 1, 'custom __cmp__ in first arg');
-        assertSame(cmp(1, o), -1, 'custom cmp in second arg');
+        assertThrow(CmpError, cmp, 1, o);
 
-        assertThrow(TypeError, cmp, null, undefined);
-        assertThrow(TypeError, cmp, null, 1);
-        assertThrow(TypeError, cmp, 'a', undefined);
-        assertThrow(TypeError, cmp, true, "0");
-        assertThrow(TypeError, cmp, {}, 1);
-        assertThrow(TypeError, cmp, {__cmp__: 42}, 1);
+        assertThrow(CmpError, cmp, null, undefined);
+        assertThrow(CmpError, cmp, null, 1);
+        assertThrow(CmpError, cmp, 'a', undefined);
+        assertThrow(CmpError, cmp, true, "0");
+        assertThrow(CmpError, cmp, {}, 1);
+        assertThrow(CmpError, cmp, {__cmp__: 42}, 1);
       },
 
       testEqual: function () {
         assert(equal(1, 1), 'equal');
         assert(!equal(1, 2), 'not equal');
-        assert(equal(1, {__eq__: function () { return true; }}),
+        assert(equal({__eq__: function () { return true; }}, 1),
                'equal __eq__ true');
         assert(!equal({__eq__: function () { return false; }}, 1),
                'equal __eq__ false');

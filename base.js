@@ -141,7 +141,7 @@
       subclass: function (/* [constructor] [, prototype] */) {
         var self = this;
         var constructor = (typeof(arguments[0]) == 'function'
-                           ? Array.shift(arguments)
+                           ? Array.prototype.shift.call(arguments)
                            : (this === Object
                               ? function () {}
                               : function () { self.apply(this, arguments); }));
@@ -162,6 +162,49 @@
         return false;
       }
     });
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Errors
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.ErrorMeta = Function.subclass(
+    {
+      subclass: function (/* arguments */) {
+        var constructor = Function.prototype.subclass.apply(this, arguments);
+        var result = function (message) {
+          if (!(this instanceof arguments.callee))
+            return ak.construct(arguments.callee, arguments);
+          Error.captureStackTrace(this);
+          if (arguments.length && !this.message)
+            this.message = message + '';
+          constructor.apply(this, arguments);
+          return undefined;
+        }.wraps(constructor);
+        result.prototype.__defineGetter__(
+          'name',
+          function () {
+            return this.constructor.__name__ || this.__proto__.name;
+          });
+        return result;
+      }
+    });
+
+
+  [
+    Error,
+    EvalError,
+    RangeError,
+    ReferenceError,
+    SyntaxError,
+    TypeError,
+    URIError,
+    ak.BaseError,
+    ak.UsageError
+  ].forEach(function (constructor) { constructor.instances(ak.ErrorMeta); });
+
+
+  ak.NotImplementedError = ak.BaseError.subclass();
+  ak.ValueError = ak.BaseError.subclass();
 
   //////////////////////////////////////////////////////////////////////////////
   // repr()
@@ -237,70 +280,77 @@
   // cmp() and equal()
   //////////////////////////////////////////////////////////////////////////////
 
-  function removeWrapper(value) {
-    if (typeof(value) != 'object')
-      return value;
-    if (value instanceof Number)
-      return +value;
-    if (value instanceof String)
-      return value + '';
-    if (value instanceof Boolean)
-      return !!value;
-    return value;
-  }
+  ak.CmpError = TypeError.subclass(
+    function (lhs, rhs) {
+      this.message = (
+        ak.repr(lhs) + ' and ' + ak.repr(rhs) + ' are incomparable');
+    });
 
 
-  function doCmp(lhs, rhs) {
-    if (typeof(lhs.__cmp__) == 'function')
-      return lhs.__cmp__(rhs);
-    if (typeof(rhs.__cmp__) == 'function')
-      return -rhs.__cmp__(lhs);
-    if (['boolean', 'string', 'number'].indexOf(typeof(lhs)) != -1 &&
-        typeof(rhs) == typeof(lhs))
-      return lhs < rhs ? -1 : 1;
-    return undefined;
+  function hasMethod(value, name) {
+    return (value !== undefined && value !== null &&
+            typeof(value[name]) == 'function');
   }
 
 
   ak.cmp = function (lhs, rhs) {
-    lhs = removeWrapper(lhs);
-    rhs = removeWrapper(rhs);
     if (lhs === rhs)
       return 0;
-    if (lhs !== null && lhs !== undefined &&
-        rhs !== null && rhs !== undefined) {
-      var c = doCmp(lhs, rhs);
-      if (c !== undefined)
-        return c;
-    }
-    throw TypeError(ak.repr(lhs) + ' and ' + ak.repr(rhs) +
-                    ' can not be compared');
+    if (hasMethod(lhs, '__cmp__'))
+      return lhs.__cmp__(rhs);
+    if (hasMethod(rhs, '__cmp__'))
+      return -rhs.__cmp__(lhs);
+    throw ak.CmpError(lhs, rhs);
   };
 
 
   ak.equal = function (lhs, rhs) {
-    lhs = removeWrapper(lhs);
-    rhs = removeWrapper(rhs);
     if (lhs === rhs)
       return true;
-    if (lhs !== null && lhs !== undefined &&
-        rhs !== null && rhs !== undefined) {
-      if (typeof(lhs.__eq__) == 'function')
-        return lhs.__eq__(rhs);
-      if (typeof(rhs.__eq__) == 'function')
-        return rhs.__eq__(lhs);
-      var c = doCmp(lhs, rhs);
-      if (c !== undefined)
-        return c == 0;
+    if (hasMethod(lhs, '__eq__'))
+      return lhs.__eq__(rhs);
+    if (hasMethod(rhs, '__eq__'))
+      return rhs.__eq__(lhs);
+    try {
+      return ak.cmp(lhs, rhs) == 0;
+    } catch (error) {
+      if (!(error instanceof ak.CmpError)) throw error;
+      return false;
     }
-    return false;
   };
+
+
+  [
+    ['number', Number],
+    ['string', String],
+    ['boolean', Boolean]
+  ].forEach(
+    function (pair) {
+      pair[1].prototype.update(
+        ak.HIDDEN,
+        {
+          __cmp__: function (other) {
+            if (!(typeof(other) == pair[0] || other instanceof pair[1]))
+              throw ak.CmpError(this, other);
+            return (this == other
+                    ? 0
+                    : this < other ? -1 : 1);
+          },
+
+          __eq__: function (other) {
+            return ((typeof(other) == pair[0] || other instanceof pair[1]) &&
+                    this == other);
+          }
+        });
+    });
 
 
   Array.prototype.update(
     ak.HIDDEN,
     {
       __cmp__: function (other) {
+        if (!ak.isList(other))
+          throw CmpError(this, other);
         var lenCmp = ak.cmp(this.length, other.length);
         var count = lenCmp == -1 ? this.length : other.length;
         for (var i = 0; i < count; ++i) {
@@ -312,6 +362,8 @@
       },
 
       __eq__: function (other) {
+        if (!ak.isList(other))
+          return false;
         if (this.length != other.length)
           return false;
         for (var i = 0; i < this.length; ++i)
@@ -326,7 +378,7 @@
     '__cmp__',
     function (other) {
       if (!(other instanceof Date))
-        throw TypeError('Date object could be compared only to Date object');
+        throw ak.CmpError(this, other);
       return ak.cmp(this.getTime(), other.getTime());
     });
 
@@ -366,46 +418,6 @@
   //////////////////////////////////////////////////////////////////////////////
   // Misc
   //////////////////////////////////////////////////////////////////////////////
-
-  ak.ErrorMeta = Function.subclass(
-    {
-      subclass: function (/* arguments */) {
-        var constructor = Function.prototype.subclass.apply(this, arguments);
-        var result = function (message) {
-          if (!(this instanceof arguments.callee))
-            return ak.construct(arguments.callee, arguments);
-          Error.captureStackTrace(this);
-          if (arguments.length && !this.message)
-            this.message = message + '';
-          constructor.apply(this, arguments);
-          return undefined;
-        }.wraps(constructor);
-        result.prototype.__defineGetter__(
-          'name',
-          function () {
-            return this.constructor.__name__ || this.__proto__.name;
-          });
-        return result;
-      }
-    });
-
-
-  [
-    Error,
-    EvalError,
-    RangeError,
-    ReferenceError,
-    SyntaxError,
-    TypeError,
-    URIError,
-    ak.BaseError,
-    ak.UsageError
-  ].forEach(function (constructor) { constructor.instances(ak.ErrorMeta); });
-
-
-  ak.NotImplementedError = ak.BaseError.subclass();
-  ak.ValueError = ak.BaseError.subclass();
-  
 
   [
     'concat',
