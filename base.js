@@ -398,9 +398,11 @@
     ak.HIDDEN,
     {
       __repr__: function () {
-        return ('<module ' + this.__name__ +
-                (this.__version__ ? ' ' + this.__version__ : '') +
-                '>');
+        return (this.__name__
+                ? ('<module ' + this.__name__ +
+                   (this.__version__ ? ' ' + this.__version__ : '') +
+                   '>')
+                : '<anonymous module>');
       },
 
       toString: function () {

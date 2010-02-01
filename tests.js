@@ -718,6 +718,7 @@
         assert(!('__version__' in m));
         assertSame(repr(new Module('another test', '0.1')),
                    '<module another test 0.1>');
+        assertSame(repr(new Module()), '<anonymous module>');
       },
 
       testErrorMeta: function () {
