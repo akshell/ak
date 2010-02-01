@@ -36,24 +36,21 @@
       name: 'debug',
 
       testAssertionError: function () {
-        assertSame(new AssertionError('hi') + '',
-                   'ak.AssertionError: hi',
-                   'AssertionError');
+        assertSame(new AssertionError('hi') + '', 'ak.AssertionError: hi');
       },
 
       testAssert: function () {
-        assert(true, 'assert(true)');
+        assert(true);
         assertThrow(AssertionError, assert, false);
       },
 
       testAssertEqual: function () {
-        assertEqual({__eq__: function (other) { return other === 42; }}, 42,
-                    'assertEqual equal');
+        assertEqual({__eq__: function (other) { return other === 42; }}, 42);
         assertThrow(AssertionError, assertEqual, 1, 2);
       },
 
       testAssertSame: function () {
-        assertEqual(1, 1, 'assertSame same');
+        assertEqual(1, 1);
         assertThrow(AssertionError, assertSame, null, undefined);
       },
 
@@ -74,18 +71,18 @@
 
       testTestResult: function () {
         var tr = new TestResult();
-        assert(tr.wasSuccessful, 'TestResult wasSuccessful 1');
+        assert(tr.wasSuccessful);
         tr.startTest(1);
         tr.addSuccess(1);
-        assert(tr.wasSuccessful, 'TestResult wasSuccessful 2');
+        assert(tr.wasSuccessful);
         tr.startTest(2);
         tr.addError(2, 'error');
         tr.startTest(3);
         tr.addFailure(3, 'failure');
-        assertSame(tr.testsRun, 3, 'TestResult testsRun');
-        assertEqual(tr.errors, [[2, 'error']], 'TestResult errors');
-        assertEqual(tr.failures, [[3, 'failure']], 'TestResult failures');
-        assert(!tr.wasSuccessful, 'TestResult wasSuccessful 3');
+        assertSame(tr.testsRun, 3);
+        assertEqual(tr.errors, [[2, 'error']]);
+        assertEqual(tr.failures, [[3, 'failure']]);
+        assert(!tr.wasSuccessful);
       },
 
       testTestCase: function () {
@@ -114,54 +111,53 @@
 
 
         var tc = new TC('f');
-        assertSame(tc.count, 1, 'TestCase count');
-        assertSame(tc + '', 'f', 'TestCase toString');
+        assertSame(tc.count, 1);
+        assertSame(tc + '', 'f');
         tc.name = 'test';
-        assertSame(repr(tc), '<TestCase f(test)>', 'TestCase repr');
+        assertSame(repr(tc), '<TestCase f(test)>');
 
         run(TC);
-        assert(tested && setUp && tearedDown, 'TestCase run TC');
+        assert(tested && setUp && tearedDown);
         tested = setUp = tearedDown = false;
 
         var BadSetUpTC = TC.subclass({setUp: thrower(1)});
         run(BadSetUpTC);
-        assert(!tested && !setUp && !tearedDown, 'TestCase run BadSetUpTC');
+        assert(!tested && !setUp && !tearedDown);
 
         var ErrorTC = TC.subclass({f: thrower(2)});
         run(ErrorTC);
-        assert(!tested && setUp && tearedDown, 'TestCase run ErrorTC');
+        assert(!tested && setUp && tearedDown);
         setUp = tearedDown = false;
 
         var assertionError = new AssertionError(3);
         var FailureTC = TC.subclass({f: thrower(assertionError)});
         run(FailureTC);
-        assert(!tested && setUp && tearedDown, 'TestCase run FailureTC');
+        assert(!tested && setUp && tearedDown);
         setUp = tearedDown = false;
 
         var BadTearDownTC = TC.subclass({tearDown: thrower(4)});
         run(BadTearDownTC);
-        assert(tested && setUp && !tearedDown, 'TestCase run BadTearDownTC');
+        assert(tested && setUp && !tearedDown);
 
         assertEqual(tr.errors.map(function (error) { return error[1]; }),
                     [1, 2, 4]);
         assertEqual(tr.failures.map(function (failure) { return failure[1]; }),
                     [assertionError]);
-        assertSame(started, stopped, 'TestCase started stopped');
-        assertSame(started, 5, 'TestCase started');
+        assertSame(started, stopped);
+        assertSame(started, 5);
       },
 
       testTestSuite: function () {
         var TC = TestCase.subclass({f: function () {}, g: function () {}});
         var ts = new TestSuite([new TC('f'), new TC('g')]);
         ts.addTest(new TC('f'));
-        assertSame(ts.count, 3, 'TestSuite count');
+        assertSame(ts.count, 3);
         assertSame(repr(ts),
-                   'TestSuite([<TestCase f>, <TestCase g>, <TestCase f>])',
-                   'TestSuite repr');
-        assertSame(ts + '', 'f, g, f', 'TestSuite toString');
+                   'TestSuite([<TestCase f>, <TestCase g>, <TestCase f>])');
+        assertSame(ts + '', 'f, g, f');
         var tr = new TestResult();
         ts.run(tr);
-        assertSame(tr.testsRun, 3, 'TestSuite run');
+        assertSame(tr.testsRun, 3);
       },
 
       testTextTestResult: function () {
@@ -171,7 +167,7 @@
         ttr.addError();
         ttr.addFailure();
         ttr.addSuccess();
-        assertSame(stream.read(), 'hi ERROR\n FAIL\n ok\n', 'TextTestResult');
+        assertSame(stream.read(), 'hi ERROR\n FAIL\n ok\n');
       },
 
       testTextTestRunner: function () {
@@ -220,7 +216,7 @@
       testRunTestSuite: function () {
         var suite = TestCase.subclass({test: function () {}}).loadSuite();
         var stream = new Stream();
-        assert(runTestSuite(suite, stream), 'test');;
+        assert(runTestSuite(suite, stream));;
       },
 
       testTestClient: function () {
@@ -525,34 +521,34 @@
         var expect = [['a', 1], ['b', 2]];
         var o_items = items(o);
         o_items.sort(cmp);
-        assertEqual(o_items, expect, 'items');
+        assertEqual(o_items, expect);
       },
 
       testKeys: function () {
         var a = keys({a: 1, b: 2, c: 3});
         a.sort(cmp);
-        assertEqual(a, ['a', 'b', 'c'], 'keys');
+        assertEqual(a, ['a', 'b', 'c']);
       },
 
       testValues: function () {
         var o = {a: 1, b: 2, c: 4, d: -1};
         var got = values(o);
         got.sort(cmp);
-        assertEqual(got, [-1, 1, 2, 4], 'values');
+        assertEqual(got, [-1, 1, 2, 4]);
       },
 
       testObjectSet: function () {
         var o = {};
         o.set('x', PERMANENT, 42);
         delete o.x;
-        assertSame(o.x, 42, 'set');
+        assertSame(o.x, 42);
       },
 
       testObjectSetHidden: function () {
         var o = {};
         o.setHidden('a', 42);
-        assertSame(o.a, 42, 'setHidden set');
-        assertEqual(items(o), [], 'setHidden non enumerable');
+        assertSame(o.a, 42);
+        assertEqual(items(o), []);
       },
 
       testObjectInstances: function () {
@@ -627,61 +623,53 @@
       //////////////////////////////////////////////////////////////////////////
 
       testRepr: function () {
-        assertSame(repr(undefined), 'undefined', 'undefined repr');
-        assertSame(repr(null), 'null', 'null repr');
+        assertSame(repr(undefined), 'undefined');
+        assertSame(repr(null), 'null');
         var o = {__repr__: function () { return 'hi'; }};
-        assertSame(repr(o), 'hi', 'custom __repr__');
+        assertSame(repr(o), 'hi');
         o.__repr__ = undefined;
-        assertSame(repr(o), '[object Object]', 'Object without __repr__');
+        assertSame(repr(o), '[object Object]');
       },
 
       testObjectRepr: function () {
         assertSame(repr({}), '{}', '{} repr');
-        assertSame(repr({a: 1, b: "c"}), '{a: 1, b: "c"}',
-                   'complex object repr');
+        assertSame(repr({a: 1, b: "c"}), '{a: 1, b: "c"}');
       },
 
       testArrayRepr: function () {
-        assertSame(repr([]), '[]', '[] repr', 'empty array cmp');
-        assertSame(repr([1, "a", [2, 3]]), '[1, "a", [2, 3]]',
-                   'complex array repr');
+        assertSame(repr([]), '[]', '[] repr');
+        assertSame(repr([1, "a", [2, 3]]), '[1, "a", [2, 3]]');
       },
 
       testDateRepr: function () {
         var str = 'Mon, 03 Aug 2009 14:49:29 GMT';
-        assertSame(repr(new Date(str)), str, 'Date repr');
+        assertSame(repr(new Date(str)), str);
       },
 
       testFunctionRepr: function () {
         function f(a, b) {}
-        assertSame(repr(f), 'function f(a, b) {...}', 'function repr');
-        assertSame(repr(function () { return 42; }), 'function () {...}',
-                   'anonymous function repr');
+        assertSame(repr(f), 'function f(a, b) {...}');
+        assertSame(repr(function () { return 42; }), 'function () {...}');
       },
 
       testStringRepr: function () {
-        assertSame(repr(""), '""', 'empty string repr');
-        assertSame(repr('foo"\f\b\n\t\v\r'),
-                   '"foo\\"\\f\\b\\n\\t\\v\\r"',
-                   'string repr');
+        assertSame(repr(""), '""');
+        assertSame(repr('foo"\f\b\n\t\v\r'), '"foo\\"\\f\\b\\n\\t\\v\\r"');
       },
 
       testNumberRepr: function () {
-        assertSame(repr(42), '42', 'number repr');
+        assertSame(repr(42), '42');
       },
 
       testBooleanRepr: function () {
-        assertSame(repr(true), 'true', 'true repr');
-        assertSame(repr(false), 'false', 'false repr');
+        assertSame(repr(true), 'true');
+        assertSame(repr(false), 'false');
       },
 
       testErrorRepr: function () {
-        assertSame(repr(new Error()), 'Error()',
-                   'Error repr without message');
-        assertSame(repr(new Error('hello')), 'Error("hello")',
-                   'Error repr with message');
-        assertEqual(repr(new TypeError([1, 2])), 'TypeError("1,2")',
-                    'Error repr with strange message');
+        assertSame(repr(new Error()), 'Error()');
+        assertSame(repr(new Error('hello')), 'Error("hello")');
+        assertEqual(repr(new TypeError([1, 2])), 'TypeError("1,2")');
       },
 
       testRegExpRepr: function () {
@@ -693,13 +681,13 @@
       ////////////////////////////////////////////////////////////////////////////
 
       testCmp: function () {
-        assertSame(cmp(1, 1), 0, 'cmp(1, 1)');
-        assertSame(cmp(Number(1), 1), 0, 'cmp Number');
-        assertSame(cmp(String('hi'), 'hi'), 0, 'cmp String');
-        assertSame(cmp(true, Boolean(true)), 0, 'cmp Boolean');
-        assertSame(cmp(1, 2), -1, 'cmp(1, 2)');
+        assertSame(cmp(1, 1), 0);
+        assertSame(cmp(Number(1), 1), 0);
+        assertSame(cmp(String('hi'), 'hi'), 0);
+        assertSame(cmp(true, Boolean(true)), 0);
+        assertSame(cmp(1, 2), -1);
         var o = {__cmp__: function (other) { return 1; }};
-        assertSame(cmp(o, 1), 1, 'custom __cmp__ in first arg');
+        assertSame(cmp(o, 1), 1);
         assertThrow(CmpError, cmp, 1, o);
 
         assertThrow(CmpError, cmp, null, undefined);
@@ -711,15 +699,12 @@
       },
 
       testEqual: function () {
-        assert(equal(1, 1), 'equal');
-        assert(!equal(1, 2), 'not equal');
-        assert(equal({__eq__: function () { return true; }}, 1),
-               'equal __eq__ true');
-        assert(!equal({__eq__: function () { return false; }}, 1),
-               'equal __eq__ false');
+        assert(equal(1, 1));
+        assert(!equal(1, 2));
+        assert(equal({__eq__: function () { return true; }}, 1));
+        assert(!equal({__eq__: function () { return false; }}, 1));
         assert(equal({__cmp__: function () { return 1; }},
-                     {__eq__: function () { return true; }}),
-               'equal __cmp__ __eq__');
+                     {__eq__: function () { return true; }}));
       },
 
       testModule: function () {
@@ -750,11 +735,11 @@
       },
 
       testArrayCmp: function () {
-        assertSame(cmp([], []), 0, 'empty array cmp');
-        assertSame(cmp([1, 2, 3], [1, 2, 3]), 0, 'equal array cmp');
-        assertSame(cmp([1, 2], [1, 2, 3]), -1, 'less len array cmp');
-        assertSame(cmp([1, 2], [1]), 1, 'more len array cmp');
-        assertSame(cmp([1, 2, 3], [1, 2, 4]), -1, 'less item array cmp');
+        assertSame(cmp([], []), 0);
+        assertSame(cmp([1, 2, 3], [1, 2, 3]), 0);
+        assertSame(cmp([1, 2], [1, 2, 3]), -1);
+        assertSame(cmp([1, 2], [1]), 1);
+        assertSame(cmp([1, 2, 3], [1, 2, 4]), -1);
       },
 
       testArrayEq: function () {
@@ -783,14 +768,13 @@
       testDateCmp: function () {
         var str1 = 'Mon, 03 Aug 2009 14:49:29 GMT';
         var str2 = 'Mon, 03 Aug 2009 14:49:30 GMT';
-        assertEqual(new Date(str1), new Date(str1), 'Date equal');
-        assertSame(cmp(new Date(str1), new Date(str2)), -1, 'Date less');
+        assertEqual(new Date(str1), new Date(str1));
+        assertSame(cmp(new Date(str1), new Date(str2)), -1);
       },
 
       testRegExpEscape: function () {
         assertSame(RegExp.escape('[].ab?c|de\\('),
-                   '\\[\\]\\.ab\\?c\\|de\\\\\\(',
-                   'RegExp.escape');
+                   '\\[\\]\\.ab\\?c\\|de\\\\\\(');
       }
     });
 
@@ -808,25 +792,23 @@
         var func = function (arg) { return this.toString() + ' ' + arg; };
         var boundFunc = bind(func, self);
         not_self.boundFunc = boundFunc;
-        assertSame(boundFunc('foo'), 'self foo',
-                   'boundFunc bound to self properly');
-        assertSame(not_self.boundFunc('foo'), 'self foo',
-                   'boundFunc bound to self on another obj');
+        assertSame(boundFunc('foo'), 'self foo');
+        assertSame(not_self.boundFunc('foo'), 'self foo');
         var object = {x: 42, f: function () { return this.x; }};
         assertSame(bind('f', object)(), 42);
       },
 
       testPartial: function () {
         var p = partial(function (a, b, c, d) { return [a, b, c, d]; }, 1, 2);
-        assertEqual(p(3, 4), [1, 2, 3, 4], 'partial');
-        assertEqual(p(5, 6), [1, 2, 5, 6], 'partial again');
+        assertEqual(p(3, 4), [1, 2, 3, 4]);
+        assertEqual(p(5, 6), [1, 2, 5, 6]);
       },
 
       testFactory: function () {
         var C = Object.subclass(function (x) { this.x = x; });
         var c = factory(C)(1);
-        assert(c instanceof C, 'factory instanceof');
-        assertSame(c.x, 1, 'factory property');
+        assert(c instanceof C);
+        assertSame(c.x, 1);
       },
 
       testGiveNames: function () {
@@ -847,31 +829,29 @@
       },
 
       testRange: function () {
-        assertEqual(range(), [], 'range without arguments');
-        assertEqual(range(3), [0, 1, 2], 'range with stop');
-        assertEqual(range(4, 7), [4, 5, 6], 'range with start and stop');
-        assertEqual(range(4, 7, 2), [4, 6], 'range with start, stop and step');
-        assertEqual(range(7, 4, -1), [7, 6, 5], 'range with negative step');
+        assertEqual(range(), []);
+        assertEqual(range(3), [0, 1, 2]);
+        assertEqual(range(4, 7), [4, 5, 6]);
+        assertEqual(range(4, 7, 2), [4, 6]);
+        assertEqual(range(7, 4, -1), [7, 6, 5]);
         assertThrow(TypeError, range, 2, 3, 0);
       },
 
       testZip: function () {
-        assertEqual(zip(), [], 'zip without arguments');
-        assertEqual(zip([1, 2, 3]), [[1], [2], [3]], 'zip on one array');
-        assertEqual(zip([1, 2, 3], [4, 5]), [[1, 4], [2, 5]], 'zip on two array');
-        assertEqual(zip([1, 2], 'abc'), [[1, 'a'], [2, 'b']],
-                    'zip on array and string');
-        assertEqual(zip([1, 2, 3], [], [4, 5]), [],
-                    'zip on three arrays, one of them empty');
+        assertEqual(zip(), []);
+        assertEqual(zip([1, 2, 3]), [[1], [2], [3]]);
+        assertEqual(zip([1, 2, 3], [4, 5]), [[1, 4], [2, 5]]);
+        assertEqual(zip([1, 2], 'abc'), [[1, 'a'], [2, 'b']]);
+        assertEqual(zip([1, 2, 3], [], [4, 5]), []);
       },
 
       testKeyComparator: function () {
         var a1 = {'a': 1, 'b': 2, 'c': 2};
         var a2 = {'a': 2, 'b': 1, 'c': 2};
-        assertSame(keyComparator('a')(a1, a2), -1, 'keyComparator 1 lt');
-        assertSame(keyComparator('c')(a1, a2), 0, 'keyComparator 1 eq');
-        assertSame(keyComparator('c', 'b')(a1, a2), 1, 'keyComparator 2 eq gt');
-        assertSame(keyComparator('c', 'a')(a1, a2), -1, 'keyComparator 2 eq lt');
+        assertSame(keyComparator('a')(a1, a2), -1);
+        assertSame(keyComparator('c')(a1, a2), 0);
+        assertSame(keyComparator('c', 'b')(a1, a2), 1);
+        assertSame(keyComparator('c', 'a')(a1, a2), -1);
       },
 
       testThrower: function () {
@@ -930,19 +910,16 @@
 
       testIter: function () {
         var itr = iter([]);
-        assertSame(iter(itr), itr, 'iter from Iterator');
-        assert(iter({__iter__: 42}) instanceof InvalidIterator,
-               'iter from non iterable object');
-        assert(iter(undefined)  instanceof InvalidIterator,
-               'iter from undefined');
-        assert(iter(null)  instanceof InvalidIterator,
-               'iter from null');
+        assertSame(iter(itr), itr);
+        assert(iter({__iter__: 42}) instanceof InvalidIterator);
+        assert(iter(undefined)  instanceof InvalidIterator);
+        assert(iter(null)  instanceof InvalidIterator);
       },
 
       testArray: function () {
         var a = [1, 2, 3];
-        assertEqual(array(iter(a)), a, 'array on iterator');
-        assertEqual(array(a), a, 'array on Array');
+        assertEqual(array(iter(a)), a);
+        assertEqual(array(a), a);
       },
 
       testIterator: function () {
@@ -953,60 +930,57 @@
       },
 
       testInvalidIterator: function () {
-        assert(!(new InvalidIterator()).valid, 'InvalidIterator');
+        assert(!(new InvalidIterator()).valid);
       },
 
       testAdvance: function () {
         var itr = iter([1, 2, 3, 4]);
         advance(itr, 3);
-        assertSame(itr.next(), 4, 'advance');
+        assertSame(itr.next(), 4);
       },
 
       testMin: function () {
-        assertSame(min([2, 3, 1, 4]), 1, 'min');
-        assertSame(min([1, 2, 3, 4]), 1, 'min with first');
+        assertSame(min([2, 3, 1, 4]), 1);
+        assertSame(min([1, 2, 3, 4]), 1);
         assertThrow(ValueError, min, []);
       },
 
       testMax: function () {
-        assertSame(max([2, 3, 1, 4, 0]), 4, 'max');
+        assertSame(max([2, 3, 1, 4, 0]), 4);
       },
 
       testReduce: function () {
-        assertSame(reduce(operators.add, [1, 2, 3, 4, 5]), 15,
-                   'reduce(operators.add)');
+        assertSame(reduce(operators.add, [1, 2, 3, 4, 5]), 15);
         assertThrow(ValueError, reduce, operators.add, []);
-        assertSame(reduce(operators.add, [], 10), 10,
-                   'reduce initial value OK empty');
-        assertSame(reduce(operators.add, [1, 2, 3], 10), 16,
-                   'reduce initial value OK populated');
+        assertSame(reduce(operators.add, [], 10), 10);
+        assertSame(reduce(operators.add, [1, 2, 3], 10), 16);
       },
 
       testSum: function () {
-        assertEqual(sum(range(10)), 45, 'sum');
-        assertEqual(sum([]), 0, 'sum on empty without start');
-        assertEqual(sum([], 4), 4, 'sum on empty with start');
-        assertEqual(sum([1, 2], 4), 7, 'sum with start');
+        assertEqual(sum(range(10)), 45);
+        assertEqual(sum([]), 0);
+        assertEqual(sum([], 4), 4);
+        assertEqual(sum([1, 2], 4), 7);
       },
 
       testExhaust: function () {
         var itr = iter([1, 2, 3]);
         exhaust(itr);
-        assert(!itr.valid, 'exhaust');
+        assert(!itr.valid);
         exhaust(itr);
-        assert(!itr.valid, 'exhaust again');
+        assert(!itr.valid);
         itr = iter([]);
         exhaust(itr);
-        assert(!itr.valid, 'exhaust on empty');
+        assert(!itr.valid);
       },
 
       testForEach: function () {
         var s = 0;
         function f(x) { s += x; }
         forEach([1, 2, 3], f);
-        assertSame(s, 6, 'forEach');
+        assertSame(s, 6);
         forEach([], f);
-        assertSame(s, 6, 'forEach on empty');
+        assertSame(s, 6);
         var object = {s: 0};
         forEach([1, 2, 3], function (x) { this.s += x; }, object);
         assertSame(object.s, 6);
@@ -1014,82 +988,71 @@
 
       testEvery: function () {
         function f (x) { return x < 5; }
-        assert(!every([1, 2, 3, 4, 5, 4], f), 'every false');
-        assert(every([1, 2, 3, 4, 4], f), 'every true');
-        assert(every([], f), 'every on empty');
+        assert(!every([1, 2, 3, 4, 5, 4], f));
+        assert(every([1, 2, 3, 4, 4], f));
+        assert(every([], f));
         assert(every([1, 2, 3], function (x) { return x < this.m; }, {m: 5}));
       },
 
       testSome: function () {
         function f (x) { return x < 5; }
-        assert(some([10, 2, 3, 4, 4], f), 'some true');
-        assert(!some([5, 6, 7, 8, 9], f), 'some false');
-        assert(some([5, 6, 7, 8, 4], f), 'some true again');
-        assert(!some([], f), 'some on empty');
+        assert(some([10, 2, 3, 4, 4], f));
+        assert(!some([5, 6, 7, 8, 9], f));
+        assert(some([5, 6, 7, 8, 4], f));
+        assert(!some([], f));
         assert(some([1, 2, 3], function (x) { return x % this.d; }, {d: 2}));
       },
 
       testSorted: function () {
-        assertEqual(sorted([3, 2, 1]), [1, 2, 3], 'sorted default');
+        assertEqual(sorted([3, 2, 1]), [1, 2, 3]);
         var a = sorted(['aaa', 'bb', 'c'], keyComparator('length'));
-        assertEqual(a, ['c', 'bb', 'aaa'], 0, 'sorted custom');
+        assertEqual(a, ['c', 'bb', 'aaa'], 0);
       },
 
       testReversed: function () {
-        assertEqual(reversed(range(4)), [3, 2, 1, 0], 'reversed iterator');
-        assertEqual(reversed([5, 6, 7]), [7, 6, 5], 'reversed array');
+        assertEqual(reversed(range(4)), [3, 2, 1, 0]);
+        assertEqual(reversed([5, 6, 7]), [7, 6, 5]);
       },
 
       testISlice: function () {
         var a = [1, 2, 3, 4, 5, 6];
-        assertEqual(array(islice(a)), a, 'islice without borders');
-        assertEqual(array(islice(a, 4)), [5, 6],
-                    'islice with start');
-        assertEqual(array(islice(a, undefined, 3)), [1, 2, 3],
-                    'islice with stop');
-        assertEqual(array(islice(a, 2, 4)), [3, 4],
-                    'islice with start and stop');
-        assertEqual(array(islice(a, 4, 10)), [5, 6],
-                    'islice with start and big stop');
+        assertEqual(array(islice(a)), a);
+        assertEqual(array(islice(a, 4)), [5, 6]);
+        assertEqual(array(islice(a, undefined, 3)), [1, 2, 3]);
+        assertEqual(array(islice(a, 2, 4)), [3, 4]);
+        assertEqual(array(islice(a, 4, 10)), [5, 6]);
       },
 
       testCount: function () {
-        assertEqual(array(islice(count(), 0, 3)), [0, 1, 2],
-                   'count without argument');
-        assertEqual(array(islice(count(2), 0, 2)), [2, 3],
-                   'count without argument');
+        assertEqual(array(islice(count(), 0, 3)), [0, 1, 2]);
+        assertEqual(array(islice(count(2), 0, 2)), [2, 3]);
       },
 
       testCycle: function () {
         assertEqual(array(islice(cycle([1, 2, 3]), 0, 8)),
-                    [1, 2, 3, 1, 2, 3, 1, 2],
-                    'cycle');
-        assert(!cycle([]).valid, 'cycle on empty');
+                    [1, 2, 3, 1, 2, 3, 1, 2]);
+        assert(!cycle([]).valid);
       },
 
       testRepeat: function () {
         assertEqual(array(repeat(1, 3)), [1, 1, 1], 'repeat');
-        assertEqual(array(islice(repeat(1), 0, 3)), [1, 1, 1],
-                    'infinite repeat');
+        assertEqual(array(islice(repeat(1), 0, 3)), [1, 1, 1]);
       },
 
       testIZip: function () {
         assertEqual(array(izip([1, 2, 3], [4, 5], [6, 7, 8])),
-                    [[1, 4, 6], [2, 5, 7]],
-                    'izip');
-        assert(!izip([1], []).valid, 'izip on empty');
+                    [[1, 4, 6], [2, 5, 7]]);
+        assert(!izip([1], []).valid);
       },
 
       testFilter: function () {
         function isEven(x) { return x % 2 == 0; };
         assertEqual(array(filter([1, 2, 3, 4, 5, 6], isEven)),
-                    [2, 4, 6],
-                    'filter');
-        assert(!filter([1, 3, 5], isEven).valid, 'invalid filter');
-        assert(!filter([], isEven).valid, 'filter on empty');
+                    [2, 4, 6]);
+        assert(!filter([1, 3, 5], isEven).valid);
+        assert(!filter([], isEven).valid);
         assertEqual(array(filter([2, 3, 4, 5, 6, 7], isEven)),
-                    [2, 4, 6],
-                    'another filter');
+                    [2, 4, 6]);
         assertEqual(array(filter([1, 3, 6, 7],
                                  function (x) { return x % this.d; },
                                  {d: 3})),
@@ -1099,7 +1062,7 @@
       testMap: function () {
         function square(x) { return x * x; }
         assertEqual(array(map([1, 2, 3], square)), [1, 4, 9], 'map');
-        assert(!map([], square).valid, 'map on empty');
+        assert(!map([], square).valid);
         assertEqual(array(map([1, 2, 3],
                               function (x) { return x * this.m; },
                               {m: 2})),
@@ -1107,53 +1070,41 @@
       },
 
       testChain: function () {
-        assertEqual(array(chain([1, 2], [], [3, 4], [], [])), [1, 2, 3, 4],
-                    'chain');
-        assert(!chain([], []).valid, 'chain on empties');
-        assert(!chain().valid, 'chain without arguments');
+        assertEqual(array(chain([1, 2], [], [3, 4], [], [])), [1, 2, 3, 4]);
+        assert(!chain([], []).valid);
+        assert(!chain().valid);
       },
 
       testTakeWhile: function () {
         function isPositive(x) { return x > 0; }
-        assertEqual(array(takeWhile([1, 2, 0], isPositive)), [1, 2],
-                    'takeWhile');
-        assertEqual(array(takeWhile([1, 2, 3], isPositive)), [1, 2, 3],
-                    'takeWhile always true');
-        assertEqual(array(takeWhile([-1, 2, 3], isPositive)), [],
-                    'takeWhile false at once');
-        assertEqual(array(takeWhile([], isPositive)), [],
-                    'takeWhile on empty');
+        assertEqual(array(takeWhile([1, 2, 0], isPositive)), [1, 2]);
+        assertEqual(array(takeWhile([1, 2, 3], isPositive)), [1, 2, 3]);
+        assertEqual(array(takeWhile([-1, 2, 3], isPositive)), []);
+        assertEqual(array(takeWhile([], isPositive)), []);
       },
 
       testDropWhile: function () {
         function isPositive(x) { return x > 0; }
-        assertEqual(array(dropWhile([1, 2, 0, 3], isPositive)), [0, 3],
-                    'dropWhile');
-        assertEqual(array(dropWhile([0, 3], isPositive)), [0, 3],
-                    'dropWhile from first');
-        assertEqual(array(dropWhile([3, 0], isPositive)), [0],
-                    'dropWhile from last');
-        assertEqual(array(dropWhile([1, 2, 3], isPositive)), [],
-                    'dropWhile always false');
-        assertEqual(array(dropWhile([], isPositive)), [],
-                    'dropWhile on empty');
+        assertEqual(array(dropWhile([1, 2, 0, 3], isPositive)), [0, 3]);
+        assertEqual(array(dropWhile([0, 3], isPositive)), [0, 3]);
+        assertEqual(array(dropWhile([3, 0], isPositive)), [0]);
+        assertEqual(array(dropWhile([1, 2, 3], isPositive)), []);
+        assertEqual(array(dropWhile([], isPositive)), []);
       },
 
       testTee: function () {
         var a = [0, 1, 2, 3, 4];
         var c = tee(a, 3);
-        assertEqual(array(c[0]), array(c[1]), 'tee(..., 3) p0 == p1');
-        assertEqual(array(c[2]), a, 'tee(..., 3) p2 == fixed');
+        assertEqual(array(c[0]), array(c[1]));
+        assertEqual(array(c[2]), a);
       },
 
       testGroupBy: function () {
         assertEqual(array(groupBy([0, 0, 0, 1, 2, 2, 3])),
-                    [[0, [0, 0, 0]], [1, [1]], [2, [2, 2]], [3, [3]]],
-                    'groupBy on Array');
+                    [[0, [0, 0, 0]], [1, [1]], [2, [2, 2]], [3, [3]]]);
         assertEqual(array(groupBy('aabb')),
-                    [['a', ['a', 'a']], ['b', ['b', 'b']]],
-                    'groupBy on string');
-        assertEqual(array(groupBy([])), [], 'groupBy on empty');
+                    [['a', ['a', 'a']], ['b', ['b', 'b']]]);
+        assertEqual(array(groupBy([])), []);
       },
 
       testObjectIterator: function () {
@@ -1162,17 +1113,16 @@
         lst.sort(cmp);
         var expect = items(o);
         expect.sort(cmp);
-        assertEqual(lst, expect, 'ObjectIterator');
+        assertEqual(lst, expect);
       },
 
       testArrayIterator: function () {
         var itr = iter([1, 2]);
-        assertSame(itr.valid && itr.next(), 1, 'array iteration first');
-        assertSame(itr.valid && itr.next(), 2, 'array iteration second');
+        assertSame(itr.valid && itr.next(), 1);
+        assertSame(itr.valid && itr.next(), 2);
         assertSame(repr(itr), '<invalid ak.ArrayIterator>');
-        assert(!itr.valid, 'array iteration stop');
-        assertEqual(array(iter('abc')), ['a', 'b', 'c'],
-                    'ArrayIterator for String');
+        assert(!itr.valid);
+        assertEqual(array(iter('abc')), ['a', 'b', 'c']);
       }
     });
 
@@ -1187,27 +1137,27 @@
       testStream: function () {
         var s = new Stream();
         s.write('hello');
-        assertSame(s.read(4), 'hell', 'Stream read 1');
-        assertSame(s.read(), 'o', 'Stream read 2');
-        assertSame(s.read(), undefined, 'Stream read 3');
+        assertSame(s.read(4), 'hell');
+        assertSame(s.read(), 'o');
+        assertSame(s.read(), undefined);
         s.write('there');
         s.write('are');
         s.write('some');
         s.write('words');
-        assertSame(s.read(6), 'therea', 'Stream read 4');
-        assertSame(s.read(2), 're', 'Stream read 5');
-        assertSame(s.read(), 'somewords', 'Stream read 5');
+        assertSame(s.read(6), 'therea');
+        assertSame(s.read(2), 're');
+        assertSame(s.read(), 'somewords');
         s.writeLine('line');
         s.writeLine('another');
         s.writeLine('splited\nline');
-        assertSame(s.readLine(), 'line', 'Stream readLine 1');
-        assertSame(s.read(10), 'another\nsp', 'Stream readLine read');
-        assertSame(s.readLine(), 'lited', 'Stream readLine 2');
-        assertSame(s.readLine(), 'line', 'Stream readLine 3');
-        assertSame(s.readLine(), undefined, 'Stream readLine 4');
+        assertSame(s.readLine(), 'line');
+        assertSame(s.read(10), 'another\nsp');
+        assertSame(s.readLine(), 'lited');
+        assertSame(s.readLine(), 'line');
+        assertSame(s.readLine(), undefined);
         s.writeLine('1\n2');
         s.write(3);
-        assertEqual(array(s), ['1', '2', '3'], 'Stream array');
+        assertEqual(array(s), ['1', '2', '3']);
       }
     });
 
@@ -1669,34 +1619,23 @@
       testSmartSplit: function () {
         var smartSplit = template.smartSplit;
         assertEqual(smartSplit('This is "a person\'s" test.'),
-                    ['This', 'is', '"a person\'s"', 'test.'],
-                    'smartSplit 1');
+                    ['This', 'is', '"a person\'s"', 'test.']);
         assertEqual(smartSplit("Another 'person\\'s' test."),
-                    ['Another', "'person\\'s'", 'test.'],
-                    'smartSplit 2');
+                    ['Another', "'person\\'s'", 'test.']);
         assertEqual(smartSplit('A "\\"funky\\" style" test.'),
-                    ['A', '"\\"funky\\" style"', 'test.'],
-                    'smartSplit 3');
+                    ['A', '"\\"funky\\" style"', 'test.']);
         assertEqual(smartSplit('""|default:"hello world" 42'),
-                    ['""|default:"hello world"', '42'],
-                    'smartSplit 4');
-        assertEqual(smartSplit('"'),
-                    ['"'],
-                    'smartSplit 5');
-        assertEqual(smartSplit('hi'),
-                    ['hi'],
-                    'smartSplit 6');
-        assertEqual(smartSplit(' \t'),
-                    [],
-                    'smartSplit 7');
+                    ['""|default:"hello world"', '42']);
+        assertEqual(smartSplit('"'), ['"']);
+        assertEqual(smartSplit('hi'), ['hi']);
+        assertEqual(smartSplit(' \t'), []);
       },
 
       testMakeLoadFromCode: function () {
         var env = {__proto__: template.defaultEnv};
         env.load = template.makeLoadFromCode('/test_data/templates');
         assertSame(getTemplate('child.txt', env).render({x: 42}),
-                   '\n42\n\n\n\nfoo\n\n',
-                   'loadFromCode');
+                   '\n42\n\n\n\nfoo\n\n');
       }
     });
 
