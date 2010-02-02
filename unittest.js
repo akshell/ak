@@ -28,7 +28,6 @@
 {
   ak.include('utils.js');
   ak.include('stream.js');
-  ak.include('debug.js');
   ak.include('aspect.js');
 
   //////////////////////////////////////////////////////////////////////////////

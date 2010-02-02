@@ -28,40 +28,6 @@
 (function () { with (ak.use('ak'))
 {
   //////////////////////////////////////////////////////////////////////////////
-  // debug tests
-  //////////////////////////////////////////////////////////////////////////////
-
-  var DebugTestCase = TestCase.subclass(
-    {
-      name: 'debug',
-
-      testAssertionError: function () {
-        assertSame(new AssertionError('hi') + '', 'ak.AssertionError: hi');
-      },
-
-      testAssert: function () {
-        assert(true);
-        assertThrow(AssertionError, assert, false);
-      },
-
-      testAssertEqual: function () {
-        assertEqual({__eq__: function (other) { return other === 42; }}, 42);
-        assertThrow(AssertionError, assertEqual, 1, 2);
-      },
-
-      testAssertSame: function () {
-        assertEqual(1, 1);
-        assertThrow(AssertionError, assertSame, null, undefined);
-      },
-
-      testAssertThrow: function () {
-        assertThrow(Number, thrower(1));
-        assertThrow(AssertionError, assertThrow, Error, thrower(1));
-        assertThrow(AssertionError, assertThrow, Error, function () {});
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
   // unittest tests
   //////////////////////////////////////////////////////////////////////////////
 
@@ -674,6 +640,35 @@
 
       testRegExpRepr: function () {
         assertSame(repr(/hi/g), '/hi/g');
+      },
+
+      //////////////////////////////////////////////////////////////////////////
+      // Debug tool tests
+      //////////////////////////////////////////////////////////////////////////
+
+      testAssertionError: function () {
+        assertSame(new AssertionError('hi') + '', 'ak.AssertionError: hi');
+      },
+
+      testAssert: function () {
+        assert(true);
+        assertThrow(AssertionError, assert, false);
+      },
+
+      testAssertEqual: function () {
+        assertEqual({__eq__: function (other) { return other === 42; }}, 42);
+        assertThrow(AssertionError, assertEqual, 1, 2);
+      },
+
+      testAssertSame: function () {
+        assertEqual(1, 1);
+        assertThrow(AssertionError, assertSame, null, undefined);
+      },
+
+      testAssertThrow: function () {
+        assertThrow(Number, thrower(1));
+        assertThrow(AssertionError, assertThrow, Error, thrower(1));
+        assertThrow(AssertionError, assertThrow, Error, function () {});
       },
 
       ////////////////////////////////////////////////////////////////////////////
@@ -2182,7 +2177,6 @@
 
   return loadSuite(
     [
-      DebugTestCase,
       UnittestTestCase,
       CoreTestCase,
       BaseTestCase,

@@ -27,7 +27,6 @@
 (function ()
 {
   ak.include('dict.js');
-  ak.include('debug.js');
   ak.include('http.js');
 
 

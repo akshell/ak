@@ -418,7 +418,58 @@
   ak.__name__ = 'ak';
 
   //////////////////////////////////////////////////////////////////////////////
-  // Misc
+  // Debug tools
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.AssertionError = ak.BaseError.subclass();
+
+
+  function prefix(msg) {
+    return msg ? msg + ': ' : '';
+  }
+
+
+  ak.assert = function (expr, /* optional */msg) {
+    if (!expr)
+      throw ak.AssertionError(
+        'Assertion failed' + (msg ? ': ' + msg : ''));
+  };
+
+
+  ak.assertEqual = function (first, second, /* optional */msg) {
+    if (!ak.equal(first, second))
+      throw ak.AssertionError(
+        prefix(msg) + ak.repr(first) + ' <> ' + ak.repr(second));
+  };
+
+
+  ak.assertSame = function (first, second, /* optional */msg) {
+    if (first !== second)
+      throw ak.AssertionError(
+        prefix(msg) + ak.repr(first) + ' !== ' + ak.repr(second));
+  };
+
+
+  ak.assertThrow = function (constructor, func/* args... */) {
+    try {
+      func.apply(ak.global, Array.slice(arguments, 2));
+    } catch (error) {
+      if (typeof(error) != 'object')
+        error = Object(error);
+      if (!(error instanceof constructor)) {
+        var expected = constructor.__name__ || constructor.name;
+        var got = error.constructor.__name__ || error.constructor.name;
+        throw ak.AssertionError(
+          'Expected ' + expected + ' exception, ' +
+          'got ' + got + ' (' + error + ')');
+      }
+      return;
+    }
+    throw ak.AssertionError('Exception was not thrown');
+  };
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Array functions
   //////////////////////////////////////////////////////////////////////////////
 
   [
@@ -449,6 +500,9 @@
         });
     });
 
+  //////////////////////////////////////////////////////////////////////////////
+  // String methods
+  //////////////////////////////////////////////////////////////////////////////
 
   String.prototype.update(
     ak.HIDDEN,
@@ -462,11 +516,14 @@
       }
     });
 
+  //////////////////////////////////////////////////////////////////////////////
+  // RegExp Escaping
+  //////////////////////////////////////////////////////////////////////////////
 
   var specialsRegExp = new RegExp('[.*+?|()\\[\\]{}\\\\]', 'g');
 
   RegExp.escape = function (string) {
     return string.replace(specialsRegExp, '\\$&');
   };
-  
+
 })();

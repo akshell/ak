@@ -27,7 +27,6 @@
 (function ()
 {
   ak.include('base.js');
-  ak.include('debug.js');
 
 
   var typeRegExp = RegExp(
