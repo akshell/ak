@@ -422,7 +422,6 @@
   //////////////////////////////////////////////////////////////////////////////
 
   [
-    'concat',
     'every',
     'filter',
     'indexOf',
@@ -438,7 +437,6 @@
     'some',
     'sort',
     'splice',
-    'toString',
     'unshift'
   ].forEach(
     function (name) {
