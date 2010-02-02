@@ -424,40 +424,40 @@
   ak.AssertionError = ak.BaseError.subclass();
 
 
-  function prefix(msg) {
-    return msg ? msg + ': ' : '';
+  function prefix(message) {
+    return message ? message + ': ' : '';
   }
 
 
-  ak.assert = function (expr, /* optional */msg) {
-    if (!expr)
+  ak.assert = function (value, /* optional */message) {
+    if (!value)
       throw ak.AssertionError(
-        'Assertion failed' + (msg ? ': ' + msg : ''));
+        'Assertion failed' + (message ? ': ' + message : ''));
   };
 
 
-  ak.assertEqual = function (first, second, /* optional */msg) {
-    if (!ak.equal(first, second))
+  ak.assertEqual = function (lhs, rhs, /* optional */message) {
+    if (!ak.equal(lhs, rhs))
       throw ak.AssertionError(
-        prefix(msg) + ak.repr(first) + ' <> ' + ak.repr(second));
+        prefix(message) + ak.repr(lhs) + ' <> ' + ak.repr(rhs));
   };
 
 
-  ak.assertSame = function (first, second, /* optional */msg) {
-    if (first !== second)
+  ak.assertSame = function (lhs, rhs, /* optional */message) {
+    if (lhs !== rhs)
       throw ak.AssertionError(
-        prefix(msg) + ak.repr(first) + ' !== ' + ak.repr(second));
+        prefix(message) + ak.repr(lhs) + ' !== ' + ak.repr(rhs));
   };
 
 
-  ak.assertThrow = function (constructor, func/* args... */) {
+  ak.assertThrow = function (errorClass, func/* args... */) {
     try {
       func.apply(ak.global, Array.slice(arguments, 2));
     } catch (error) {
       if (typeof(error) != 'object')
         error = Object(error);
-      if (!(error instanceof constructor)) {
-        var expected = constructor.__name__ || constructor.name;
+      if (!(error instanceof errorClass)) {
+        var expected = errorClass.__name__ || errorClass.name;
         var got = error.constructor.__name__ || error.constructor.name;
         throw ak.AssertionError(
           'Expected ' + expected + ' exception, ' +
