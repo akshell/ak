@@ -893,6 +893,14 @@
         assertSame(timeUntil(new Date('fdsa'),
                              new Date('14 Feb 2000 09:32:00')),
                    '0 seconds');
+      },
+
+      testStream: function () {
+        var s = new Stream();
+        s.write('string', 42, false);
+        s.write({});
+        assertSame(s.read(), 'string42false[object Object]');
+        assertSame(s.read(), '');
       }
     });
 
@@ -1122,41 +1130,6 @@
         assertSame(repr(itr), '<invalid ak.ArrayIterator>');
         assert(!itr.valid);
         assertEqual(array(iter('abc')), ['a', 'b', 'c']);
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
-  // stream tests
-  //////////////////////////////////////////////////////////////////////////////
-
-  var StreamTestCase = TestCase.subclass(
-    {
-      name: 'stream',
-
-      testStream: function () {
-        var s = new Stream();
-        s.write('hello');
-        assertSame(s.read(4), 'hell');
-        assertSame(s.read(), 'o');
-        assertSame(s.read(), undefined);
-        s.write('there');
-        s.write('are');
-        s.write('some');
-        s.write('words');
-        assertSame(s.read(6), 'therea');
-        assertSame(s.read(2), 're');
-        assertSame(s.read(), 'somewords');
-        s.writeLine('line');
-        s.writeLine('another');
-        s.writeLine('splited\nline');
-        assertSame(s.readLine(), 'line');
-        assertSame(s.read(10), 'another\nsp');
-        assertSame(s.readLine(), 'lited');
-        assertSame(s.readLine(), 'line');
-        assertSame(s.readLine(), undefined);
-        s.writeLine('1\n2');
-        s.write(3);
-        assertEqual(array(s), ['1', '2', '3']);
       }
     });
 
@@ -2183,7 +2156,6 @@
       BaseTestCase,
       UtilsTestCase,
       IterTestCase,
-      StreamTestCase,
       TemplateTestCase,
       DictTestCase,
       HttpTestCase,

@@ -27,7 +27,6 @@
 (function ()
 {
   ak.include('utils.js');
-  ak.include('stream.js');
   ak.include('aspect.js');
 
   //////////////////////////////////////////////////////////////////////////////
@@ -186,17 +185,17 @@
 
       addError: function (test, error) {
         ak.TestResult.prototype.addError.call(this, test, error);
-        this._stream.writeLine(' ERROR');
+        this._stream.write(' ERROR\n');
       },
 
       addFailure: function (test, error) {
         ak.TestResult.prototype.addFailure.call(this, test, error);
-        this._stream.writeLine(' FAIL');
+        this._stream.write(' FAIL\n');
       },
 
       addSuccess: function (test) {
         ak.TestResult.prototype.addSuccess.call(this, test);
-        this._stream.writeLine(' ok');
+        this._stream.write(' ok\n');
       }
     });
 

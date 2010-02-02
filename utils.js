@@ -205,4 +205,32 @@
     return ak.timeSince(now || new Date(), date);
   };
 
+
+  ak.Stream = Object.subclass(
+    function () {
+      this._strings = [];
+    },
+    {
+      write: function (/* values... */) {
+        for (var i = 0; i < arguments.length; ++i)
+          this._strings.push(arguments[i] + '');
+      },
+
+      read: function () {
+        var result = this._strings.join('');
+        this._strings = [];
+        return result;
+      }
+    });
+
+
+  ak.out = new ak.Stream();
+
+
+  ak.dump = function (/* values... */) {
+    ak.out.write('\n');
+    for (var i = 0; i < arguments.length; ++i)
+      ak.out.write(ak.repr(arguments[i]) + '\n');
+  };
+
 })();
