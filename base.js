@@ -394,20 +394,14 @@
   };
 
 
-  ak.Module.prototype.update(
-    ak.HIDDEN,
-    {
-      __repr__: function () {
-        return (this.__name__
-                ? ('<module ' + this.__name__ +
-                   (this.__version__ ? ' ' + this.__version__ : '') +
-                   '>')
-                : '<anonymous module>');
-      },
-
-      toString: function () {
-        return this.__repr__();
-      }
+  ak.Module.prototype.setHidden(
+    '__repr__',
+    function () {
+      return (this.__name__
+              ? ('<module ' + this.__name__ +
+                 (this.__version__ ? ' ' + this.__version__ : '') +
+                 '>')
+              : '<anonymous module>');
     });
 
 

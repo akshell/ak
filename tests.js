@@ -704,6 +704,7 @@
 
       testModule: function () {
         assertSame(repr(ak), '<module ak ' + ak.__version__ + '>');
+        assertSame(ak + '', '[object AK]');
         assert(ak instanceof ak.Module);
         assert(db instanceof ak.Module);
         assert(fs instanceof ak.Module);
