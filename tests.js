@@ -27,6 +27,13 @@
 // 'with' is used here in order to ensure that ak namespace is used correctly
 (function () { with (ak.use('ak'))
 {
+  // May be this function should be in utils.
+  function thrower (error) {
+    return function () {
+      throw error;
+    };
+  }
+
   //////////////////////////////////////////////////////////////////////////////
   // unittest tests
   //////////////////////////////////////////////////////////////////////////////
@@ -832,15 +839,6 @@
         assertEqual(zip([1, 2, 3], [4, 5]), [[1, 4], [2, 5]]);
         assertEqual(zip([1, 2], 'abc'), [[1, 'a'], [2, 'b']]);
         assertEqual(zip([1, 2, 3], [], [4, 5]), []);
-      },
-
-      testKeyComparator: function () {
-        var a1 = {'a': 1, 'b': 2, 'c': 2};
-        var a2 = {'a': 2, 'b': 1, 'c': 2};
-        assertSame(keyComparator('a')(a1, a2), -1);
-        assertSame(keyComparator('c')(a1, a2), 0);
-        assertSame(keyComparator('c', 'b')(a1, a2), 1);
-        assertSame(keyComparator('c', 'a')(a1, a2), -1);
       },
 
       testThrower: function () {

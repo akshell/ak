@@ -67,6 +67,14 @@
   };
 
 
+  ak.sum = function (list, start/* = 0 */) {
+    var result = arguments.length > 1 ? start : 0;
+    for (var i = 0; i < list.length; ++i)
+      result += list[i];
+    return result;
+  };
+
+
   ak.range = function (/* [start,] stop[, step] */) {
     var start = 0;
     var stop = 0;
@@ -90,7 +98,7 @@
   };
 
 
-  ak.zip = function (/* arrays */) {
+  ak.zip = function (/* lists... */) {
     if (arguments.length == 0)
       return [];
     var length = arguments[0].length;
@@ -108,46 +116,20 @@
   };
 
 
-  ak.keyComparator = function (key/* ... */) {
-    // fast-path for single key comparisons
-    if (arguments.length == 1)
-      return function (a, b) {
-        return ak.cmp(a[key], b[key]);
-      };
-    var keys = Array.slice(arguments);
-    return function (a, b) {
-      for (var i = 0; i < keys.length; ++i) {
-        var key = keys[i];
-        var c = ak.cmp(a[key], b[key]);
-        if (c)
-          return c;
-      }
-      return 0;
-    };
-  };
-
-
-  ak.thrower = function (error) {
-    return function () {
-      throw error;
-    };
-  };
-
-
-  ak.nextMatch = function (re, string, ErrorClass/* = SyntaxError */) {
-    ErrorClass = ErrorClass || SyntaxError;
+  ak.nextMatch = function (re, string, errorClass/* = SyntaxError */) {
+    errorClass = errorClass || SyntaxError;
     var doneIndex = re.lastIndex;
     if (doneIndex == string.length)
       return null;
     var match = re.exec(string);
     if (!match)
-      throw ErrorClass(
+      throw errorClass(
         'Could not parse the remainder: ' +
         ak.repr(string.substring(0, doneIndex) + '((' +
                 string.substring(doneIndex) + '))'));
     var startIndex = re.lastIndex - match[0].length;
     if (doneIndex != startIndex)
-      throw ErrorClass(
+      throw errorClass(
         'Could not parse some characters: ' +
         ak.repr(string.substring(0, doneIndex) + '((' +
                 string.substring(doneIndex, startIndex) + '))' +
@@ -196,14 +178,6 @@
 
   ak.timeUntil = function (date, now/* = new Date() */) {
     return ak.timeSince(now || new Date(), date);
-  };
-
-
-  ak.sum = function (list, start/* = 0 */) {
-    var result = arguments.length > 1 ? start : 0;
-    for (var i = 0; i < list.length; ++i)
-      result += list[i];
-    return result;
   };
 
 
