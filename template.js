@@ -433,11 +433,12 @@
   // defaultFilters
   //////////////////////////////////////////////////////////////////////////////
 
-  function sortObjects(iterable, key) {
-    return ak.sorted(iterable,
-                     function (a, b) {
-                       return ak.cmp(a[key], b[key]);
-                     });
+  function sortObjects(list, key) {
+    var result = Array.slice(list);
+    return result.sort(
+      function (a, b) {
+        return ak.cmp(a[key], b[key]);
+      });
   }
 
 
@@ -546,12 +547,11 @@
 
     escapeJavaScript: new $.Filter(
       function (value) {
-        return ak.reduce(
-          function (string, replacement) {
-            return string.replace(replacement[0], replacement[1]);
-          },
-          jsEscapes,
-          value);
+        jsEscapes.forEach(
+          function (replacement) {
+            value = value.replace(replacement[0], replacement[1]);
+          });
+        return value;
       },
       {accept: 'string'}),
 
@@ -840,12 +840,13 @@
     {
       render: function (context) {
         var sequence = this._expr.resolve(context).raw;
-        if (!(sequence instanceof Array))
-          sequence = ak.array(sequence);
-        if (!sequence.length)
+        if (!sequence || !sequence.length)
           return this._emptyNode ? this._emptyNode.render(context) : '';
-        if (this._reversed)
-          sequence.reverse();
+        if (this._reversed) {
+          if (typeof(sequence) == 'string' || sequence instanceof String)
+            sequence = sequence.split('');
+          Array.reverse(sequence);
+        }
         var bits = [];
         for (var i = 0; i < sequence.length; ++i) {
           var subcontext = {__proto__: context};
@@ -953,13 +954,14 @@
 
   var CycleNode = $.Node.subclass(
     function (exprs, env) {
-      this._itr = ak.cycle(exprs);
+      this._exprs = exprs;
       this._env = env;
+      this._index = 0;
     },
     {
       render: function (context) {
-        ak.assert(this._itr.valid);
-        var value = this._itr.next().resolve(context);
+        var value = this._exprs[this._index].resolve(context);
+        this._index = (this._index + 1) % this._exprs.length;
         return (value.raw === undefined || value.raw === null
                 ? this._env.invalid
                 : value + '');
@@ -1125,51 +1127,6 @@
   $.defaultTags.include = function (parser) {
     return new IncludeNode(parser.makeExpr(parser.token.contents.substr(8)),
                            parser.env);
-  };
-
-
-  var RegroupNode = $.Node.subclass(
-    function (targetExpr, keyExpr, name) {
-      this._targetExpr = targetExpr;
-      this._keyExpr = keyExpr;
-      this._name = name;
-    },
-    {
-      render: function (context) {
-        var target = this._targetExpr.resolve(context).raw;
-        var itr = ak.iter(target);
-        var keyExpr = this._keyExpr;
-        context[this._name] = (
-          itr.valid
-          ? (ak.array(
-               ak.map(
-                 ak.groupBy(
-                   itr,
-                   function (v) {
-                     return keyExpr.resolve(v).raw;
-                   }),
-                 function (pair) {
-                   return {grouper: pair[0], list: pair[1]};
-                 })))
-          : []);
-        return '';
-      }
-    });
-
-  $.defaultTags.regroup = function (parser) {
-    var args = $.smartSplit(parser.token.contents);
-    if (args.length != 6)
-      throw ak.TemplateSyntaxError(
-        '"regroup" tag takes five arguments');
-    if (args[2] != 'by')
-      throw ak.TemplateSyntaxError(
-        'Second argument to "regroup" must be "by"');
-    if (args[4] != 'as')
-      throw ak.TemplateSyntaxError(
-        'Next to last argument to "regroup" must be "as"');
-    return new RegroupNode(parser.makeExpr(args[1]),
-                           parser.makeExpr(args[3]),
-                           args[5]);
   };
 
 

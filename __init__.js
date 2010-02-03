@@ -31,7 +31,6 @@
   ak.include('core.js');
   ak.include('db.js');
   ak.include('http.js');
-  ak.include('iter.js');
   ak.include('rest.js');
   ak.include('template.js');
   ak.include('unittest.js');

@@ -1000,235 +1000,6 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // iter tests
-  //////////////////////////////////////////////////////////////////////////////
-
-  var IterTestCase = TestCase.subclass(
-    {
-      name: 'iter',
-
-      testIter: function () {
-        var itr = iter([]);
-        assertSame(iter(itr), itr);
-        assert(iter({__iter__: 42}) instanceof InvalidIterator);
-        assert(iter(undefined)  instanceof InvalidIterator);
-        assert(iter(null)  instanceof InvalidIterator);
-      },
-
-      testArray: function () {
-        var a = [1, 2, 3];
-        assertEqual(array(iter(a)), a);
-        assertEqual(array(a), a);
-      },
-
-      testIterator: function () {
-        var itr = new Iterator();
-        assertThrow(NotImplementedError, bind(itr.next, itr));
-        itr.valid = true;
-        assertSame(repr(itr), '<valid ak.Iterator>');
-      },
-
-      testInvalidIterator: function () {
-        assert(!(new InvalidIterator()).valid);
-      },
-
-      testAdvance: function () {
-        var itr = iter([1, 2, 3, 4]);
-        advance(itr, 3);
-        assertSame(itr.next(), 4);
-      },
-
-      testMin: function () {
-        assertSame(min([2, 3, 1, 4]), 1);
-        assertSame(min([1, 2, 3, 4]), 1);
-        assertThrow(ValueError, min, []);
-      },
-
-      testMax: function () {
-        assertSame(max([2, 3, 1, 4, 0]), 4);
-      },
-
-      testReduce: function () {
-        function add(lhs, rhs) {
-          return lhs + rhs;
-        }
-        assertSame(reduce(add, [1, 2, 3, 4, 5]), 15);
-        assertThrow(ValueError, reduce, add, []);
-        assertSame(reduce(add, [], 10), 10);
-        assertSame(reduce(add, [1, 2, 3], 10), 16);
-      },
-
-      testSum: function () {
-        assertEqual(sum(range(10)), 45);
-        assertEqual(sum([]), 0);
-        assertEqual(sum([], 4), 4);
-        assertEqual(sum([1, 2], 4), 7);
-      },
-
-      testExhaust: function () {
-        var itr = iter([1, 2, 3]);
-        exhaust(itr);
-        assert(!itr.valid);
-        exhaust(itr);
-        assert(!itr.valid);
-        itr = iter([]);
-        exhaust(itr);
-        assert(!itr.valid);
-      },
-
-      testForEach: function () {
-        var s = 0;
-        function f(x) { s += x; }
-        forEach([1, 2, 3], f);
-        assertSame(s, 6);
-        forEach([], f);
-        assertSame(s, 6);
-        var object = {s: 0};
-        forEach([1, 2, 3], function (x) { this.s += x; }, object);
-        assertSame(object.s, 6);
-      },
-
-      testEvery: function () {
-        function f (x) { return x < 5; }
-        assert(!every([1, 2, 3, 4, 5, 4], f));
-        assert(every([1, 2, 3, 4, 4], f));
-        assert(every([], f));
-        assert(every([1, 2, 3], function (x) { return x < this.m; }, {m: 5}));
-      },
-
-      testSome: function () {
-        function f (x) { return x < 5; }
-        assert(some([10, 2, 3, 4, 4], f));
-        assert(!some([5, 6, 7, 8, 9], f));
-        assert(some([5, 6, 7, 8, 4], f));
-        assert(!some([], f));
-        assert(some([1, 2, 3], function (x) { return x % this.d; }, {d: 2}));
-      },
-
-      testSorted: function () {
-        assertEqual(sorted([3, 2, 1]), [1, 2, 3]);
-        var a = sorted(['aaa', 'bb', 'c'], keyComparator('length'));
-        assertEqual(a, ['c', 'bb', 'aaa'], 0);
-      },
-
-      testReversed: function () {
-        assertEqual(reversed(range(4)), [3, 2, 1, 0]);
-        assertEqual(reversed([5, 6, 7]), [7, 6, 5]);
-      },
-
-      testISlice: function () {
-        var a = [1, 2, 3, 4, 5, 6];
-        assertEqual(array(islice(a)), a);
-        assertEqual(array(islice(a, 4)), [5, 6]);
-        assertEqual(array(islice(a, undefined, 3)), [1, 2, 3]);
-        assertEqual(array(islice(a, 2, 4)), [3, 4]);
-        assertEqual(array(islice(a, 4, 10)), [5, 6]);
-      },
-
-      testCount: function () {
-        assertEqual(array(islice(count(), 0, 3)), [0, 1, 2]);
-        assertEqual(array(islice(count(2), 0, 2)), [2, 3]);
-      },
-
-      testCycle: function () {
-        assertEqual(array(islice(cycle([1, 2, 3]), 0, 8)),
-                    [1, 2, 3, 1, 2, 3, 1, 2]);
-        assert(!cycle([]).valid);
-      },
-
-      testRepeat: function () {
-        assertEqual(array(repeat(1, 3)), [1, 1, 1], 'repeat');
-        assertEqual(array(islice(repeat(1), 0, 3)), [1, 1, 1]);
-      },
-
-      testIZip: function () {
-        assertEqual(array(izip([1, 2, 3], [4, 5], [6, 7, 8])),
-                    [[1, 4, 6], [2, 5, 7]]);
-        assert(!izip([1], []).valid);
-      },
-
-      testFilter: function () {
-        function isEven(x) { return x % 2 == 0; };
-        assertEqual(array(filter([1, 2, 3, 4, 5, 6], isEven)),
-                    [2, 4, 6]);
-        assert(!filter([1, 3, 5], isEven).valid);
-        assert(!filter([], isEven).valid);
-        assertEqual(array(filter([2, 3, 4, 5, 6, 7], isEven)),
-                    [2, 4, 6]);
-        assertEqual(array(filter([1, 3, 6, 7],
-                                 function (x) { return x % this.d; },
-                                 {d: 3})),
-                    [1, 7]);
-      },
-
-      testMap: function () {
-        function square(x) { return x * x; }
-        assertEqual(array(map([1, 2, 3], square)), [1, 4, 9], 'map');
-        assert(!map([], square).valid);
-        assertEqual(array(map([1, 2, 3],
-                              function (x) { return x * this.m; },
-                              {m: 2})),
-                    [2, 4, 6]);
-      },
-
-      testChain: function () {
-        assertEqual(array(chain([1, 2], [], [3, 4], [], [])), [1, 2, 3, 4]);
-        assert(!chain([], []).valid);
-        assert(!chain().valid);
-      },
-
-      testTakeWhile: function () {
-        function isPositive(x) { return x > 0; }
-        assertEqual(array(takeWhile([1, 2, 0], isPositive)), [1, 2]);
-        assertEqual(array(takeWhile([1, 2, 3], isPositive)), [1, 2, 3]);
-        assertEqual(array(takeWhile([-1, 2, 3], isPositive)), []);
-        assertEqual(array(takeWhile([], isPositive)), []);
-      },
-
-      testDropWhile: function () {
-        function isPositive(x) { return x > 0; }
-        assertEqual(array(dropWhile([1, 2, 0, 3], isPositive)), [0, 3]);
-        assertEqual(array(dropWhile([0, 3], isPositive)), [0, 3]);
-        assertEqual(array(dropWhile([3, 0], isPositive)), [0]);
-        assertEqual(array(dropWhile([1, 2, 3], isPositive)), []);
-        assertEqual(array(dropWhile([], isPositive)), []);
-      },
-
-      testTee: function () {
-        var a = [0, 1, 2, 3, 4];
-        var c = tee(a, 3);
-        assertEqual(array(c[0]), array(c[1]));
-        assertEqual(array(c[2]), a);
-      },
-
-      testGroupBy: function () {
-        assertEqual(array(groupBy([0, 0, 0, 1, 2, 2, 3])),
-                    [[0, [0, 0, 0]], [1, [1]], [2, [2, 2]], [3, [3]]]);
-        assertEqual(array(groupBy('aabb')),
-                    [['a', ['a', 'a']], ['b', ['b', 'b']]]);
-        assertEqual(array(groupBy([])), []);
-      },
-
-      testObjectIterator: function () {
-        var o = {a: 1, b: 2};
-        var lst = array(iter(o));
-        lst.sort(cmp);
-        var expect = items(o);
-        expect.sort(cmp);
-        assertEqual(lst, expect);
-      },
-
-      testArrayIterator: function () {
-        var itr = iter([1, 2]);
-        assertSame(itr.valid && itr.next(), 1);
-        assertSame(itr.valid && itr.next(), 2);
-        assertSame(repr(itr), '<invalid ak.ArrayIterator>');
-        assert(!itr.valid);
-        assertEqual(array(iter('abc')), ['a', 'b', 'c']);
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
   // template tests
   //////////////////////////////////////////////////////////////////////////////
 
@@ -1453,12 +1224,12 @@
     [('{% for x in "abc" %}' +
       '{% for y in "123" %}{{ forloop.parentloop.counter }}{% endfor %}' +
       '{% endfor %}'),
-      {},
-      '111222333'],
-    ['{% for x in y %}{{ x }}{% endfor %}',
-     {y: {__iter__: function () { return iter([1, 2, 3]);}}},
-     '123'],
+     {},
+     '111222333'],
     ['{% for n in "123" reversed %}{{ n }}{% endfor %}', {}, '321'],
+    ['{% for n in s reversed %}{{ n }}{% endfor %}',
+     {s: new String('123')},
+     '321'],
     ['{% extends "hello" %}', {}, 'hello world'],
     ['{% extends x %}', {x: 'hello'}, 'hello world'],
     ['say {% extends "hello" %} yo!', {}, 'say hello world'],
@@ -1509,28 +1280,6 @@
     ['{% for x in "12" %}{% include "hello" %}{% endfor %}', {},
      'hello worldhello world'],
     ['{% include x %}', {x: 'hello'}, 'hello world'],
-    [('{% regroup data by bar as grouped %}' +
-      '{% for group in grouped %}' +
-      '{{ group.grouper }}:' +
-      '{% for item in group.list %}' +
-      '{{ item.foo }}' +
-      '{% endfor %},' +
-      '{% endfor %}'),
-     {data: [{foo:'c', bar:1},
-             {foo:'d', bar:1},
-             {foo:'a', bar:2},
-             {foo:'b', bar:2},
-             {foo:'x', bar:3}]},
-     '1:cd,2:ab,3:x,'],
-    [('{% regroup data by bar as grouped %}' +
-      '{% for group in grouped %}' +
-      '{{ group.grouper }}:' +
-      '{% for item in group.list %}' +
-      '{{ item.foo }}' +
-      '{% endfor %},' +
-      '{% endfor %}'),
-     {},
-     ''],
     ['{% spaceless %}<b> <i> hi  </i>\t </b>\t{% endspaceless %}', {},
      '<b><i> hi  </i></b>\t'],
     ['{% templatetag openblock %}', {}, '{%'],
@@ -2139,7 +1888,6 @@
       CoreTestCase,
       BaseTestCase,
       UtilsTestCase,
-      IterTestCase,
       TemplateTestCase,
       HttpTestCase,
       UrlTestCase,

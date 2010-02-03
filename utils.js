@@ -68,7 +68,7 @@
     }
   };
 
-  
+
   ak.abstract = function () {
     throw ak.NotImplementedError();
   };
@@ -203,6 +203,14 @@
 
   ak.timeUntil = function (date, now/* = new Date() */) {
     return ak.timeSince(now || new Date(), date);
+  };
+
+
+  ak.sum = function (list, start/* = 0 */) {
+    var result = arguments.length > 1 ? start : 0;
+    for (var i = 0; i < list.length; ++i)
+      result += list[i];
+    return result;
   };
 
 
