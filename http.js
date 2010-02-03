@@ -44,6 +44,8 @@
 
 
   ak.http = {
+    __proto__: ak.Module.prototype,
+
     // informational
     CONTINUE: 100,
     SWITCHING_PROTOCOLS: 101,
