@@ -233,4 +233,139 @@
       ak.out.write(ak.repr(arguments[i]) + '\n');
   };
 
+
+  ak.Dict = Object.subclass(
+    function () {
+      this._table = {};
+    },
+    {
+      clear: function () {
+        this._table = {};
+      },
+
+      _getLoc: function (key) {
+        var hash = ak.hash(key);
+        var array = this._table[hash];
+        if (!array)
+          return {hash: hash};
+        for (var i = 0; i < array.length; ++i)
+          if (array[i][0] === key)
+            return {hash: hash, array: array, index: i};
+        return {hash: hash, array: array};
+      },
+
+      set: function (key, value) {
+        var loc = this._getLoc(key);
+        if (!loc.array)
+          this._table[loc.hash] = [[key, value]];
+        else if (loc.index === undefined)
+          loc.array.push([key, value]);
+        else
+          loc.array[loc.index][1] = value;
+      },
+
+      get: function (key, default_/* = undefined */) {
+        var loc = this._getLoc(key);
+        return loc.index === undefined ? default_ : loc.array[loc.index][1];
+      },
+
+      has: function (key) {
+        return this._getLoc(key).index !== undefined;
+      },
+
+      setDefault: function (key, default_/* = undefined */) {
+        var loc = this._getLoc(key);
+        if (loc.index !== undefined)
+          return loc.array[loc.index][1];
+        if (loc.array)
+          loc.array.push([key, default_]);
+        else
+          this._table[loc.hash] = [[key, default_]];
+        return default_;
+      },
+
+      pop: function (key, default_/* = undefined */) {
+        var loc = this._getLoc(key);
+        if (loc.index === undefined)
+          return default_;
+        var result = loc.array[loc.index][1];
+        if (loc.array.length == 1)
+          delete this._table[loc.hash];
+        else
+          loc.array.splice(loc.index);
+        return result;
+      },
+
+      popItem: function () {
+        var hash;
+        for (hash in this._table)
+          break;
+        if (hash === undefined)
+          return undefined;
+        var array = this._table[hash];
+        var result = array[0];
+        if (array.length == 1)
+          delete this._table[hash];
+        else
+          array.shift();
+        return result;
+      },
+
+      map: function (func, self/* = ak.global */) {
+        self = self || ak.global;
+        var result = [];
+        for (var hash in this._table) {
+          var array = this._table[hash];
+          for (var i = 0; i < array.length; ++i)
+            result.push(func.call(self, array[i][0], array[i][1]));
+        }
+        return result;
+      },
+
+      items: function () {
+        return this.map(function (key, value) { return [key, value]; });
+      },
+
+      keys: function () {
+        return this.map(function (key, value) { return key; });
+      },
+
+      values: function () {
+        return this.map(function (key, value) { return value; });
+      },
+
+      __eq__: function (other) {
+        if (!(other instanceof ak.Dict &&
+              ak.keys(this._table).length == ak.keys(other._table).length))
+          return false;
+        for (var hash in this._table) {
+          var thisArray = this._table[hash];
+          var otherArray = other._table[hash];
+          if (!otherArray || thisArray.length != otherArray.length)
+            return false;
+          for (var i = 0; i < thisArray.length; ++i) {
+            for (var j = 0;; ++j) {
+              if (j == otherArray.length)
+                return false;
+              if (otherArray[j][0] === thisArray[i][0]) {
+                if (ak.equal(otherArray[j][1], thisArray[i][1]))
+                  break;
+                else
+                  return false;
+              }
+            }
+          }
+        }
+        return true;
+      },
+
+      __repr__: function () {
+        return ('{' +
+                this.map(
+                  function (key, value) {
+                    return ak.repr(key) + ': ' + ak.repr(value);
+                  }).join(', ') +
+                '}');
+      }
+    });
 })();

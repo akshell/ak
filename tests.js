@@ -811,7 +811,6 @@
       testGiveNames: function () {
         assertSame(repr(giveNames), '<function ak.giveNames>');
         assertSame(repr(template.Filter), '<function ak.template.Filter>');
-        assertSame(repr(Dict.ItemIterator), '<function ak.Dict.ItemIterator>');
         assertSame(repr(fs), '<module ak.fs>');
         assertSame(repr(db), '<module ak.db>');
         assertSame(repr(fs.read), '<function ak.fs.read>');
@@ -901,6 +900,102 @@
         s.write({});
         assertSame(s.read(), 'string42false[object Object]');
         assertSame(s.read(), '');
+      },
+
+      testDict: function () {
+        var oldHash = ak.hash;
+        ak.hash = function (object) {
+          return object ? object.hash || 0 : 0;
+        };
+
+        var d1 = new Dict();
+        var o1 = {hash: 0};
+        assertSame(d1.get(o1), undefined);
+        d1.set(o1, 1);
+        assertSame(d1.get(o1), 1);
+        assertSame(d1.get(null, 42), 42);
+        assertSame(d1.setDefault(null, 0), 0);
+        assertSame(d1.get(null), 0);
+        var o2 = {hash: 0};
+        assertSame(d1.get(o2), undefined);
+        d1.set(o2, 2);
+        var d2 = new Dict();
+        d2.set(o2, 2);
+        d2.set(null, 0);
+        d2.set(o1, 1);
+        assertEqual(d1, d2);
+        assertEqual(d2.popItem(), [o2, 2]);
+        assertSame(d1.pop(o2), 2);
+        assertEqual(d1, d2);
+        d2.clear();
+        assertSame(d2.popItem(), undefined);
+        d2.set('string', 0);
+        assertEqual(d2.popItem(), ['string', 0]);
+        assertEqual(d2, new Dict());
+        d1.set(null, 42);
+        assertSame(d1.setDefault(null), 42);
+        assert(d1.has(null));
+        assert(!d1.has(undefined));
+        assertSame(d1.setDefault(undefined, null), null);
+        assertSame(d1.setDefault(undefined, 1), null);
+        var o3 = {hash: 1};
+        assertSame(d1.get(o3), undefined);
+        assertSame(d1.setDefault(o3, 3), 3);
+        assertSame(d1.get(o3), 3);
+        assertSame(d1.pop({}, 42), 42);
+        assertSame(d1.pop(o3), 3);
+        assert(!d1.has(o3));
+
+        var d3 = new Dict();
+        d3.set(null, 0);
+        d3.set(undefined, 1);
+        d3.set(0, 2);
+        d3.set('', 3);
+        d3.set(o1, 4);
+        d3.set(o3, 5);
+        var o4 = {hash: 1};
+        d3.set(o4, 6);
+        var o5 = {hash: 2};
+        d3.set(o5, 7);
+        assertEqual(d3.items(),
+                    [
+                      [null, 0],
+                      [undefined, 1],
+                      [0, 2],
+                      ["", 3],
+                      [o1, 4],
+                      [o3, 5],
+                      [o4, 6],
+                      [o5, 7]
+                    ]);
+        assertEqual(d3.keys(),
+                    [null, undefined, 0, "", o1, o3, o4, o5]);
+        assertEqual(d3.values(), range(8));
+        assertSame(
+          repr(d3),
+          ('{null: 0, undefined: 1, 0: 2, "": 3, {hash: 0}: 4,' +
+           ' {hash: 1}: 5, {hash: 1}: 6, {hash: 2}: 7}'));
+
+        var d4 = new Dict();
+        assert(!equal(d3, d4));
+        assert(!equal(d3, 42));
+        d4.set(undefined, 1);
+        d4.set(0, 2);
+        d4.set('', 3);
+        d4.set(o1, 4);
+        d4.set(o3, 5);
+        d4.set(o4, 6);
+        d4.set(o5, 7);
+        assert(!equal(d3, d4));
+        d4.set(1, 0);
+        assert(!equal(d3, d4));
+        d4.pop(1);
+        d4.set(null, '0');
+        assert(!equal(d3, d4));
+        d4.set(null, 0);
+        assert(equal(d3, d4));
+
+        ak.hash = oldHash;
       }
     });
 
@@ -1612,117 +1707,6 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // dict tests
-  //////////////////////////////////////////////////////////////////////////////
-
-  var DictTestCase = TestCase.subclass(
-    {
-      name: 'dict',
-
-      testDict: function () {
-        var oldHash = ak.hash;
-        ak.hash = function (object) {
-          return object ? object.hash || 0 : 0;
-        };
-
-        var m = new Dict({1: 'one', 'undefined': 2, 'true': 3, 'null': 4});
-        assertSame(m.get('1'), 'one');
-        assertSame(m.get('undefined'), 2);
-        assertSame(m.get('true'), 3);
-        assertSame(m.get(1), undefined);
-        assertSame(m.get(undefined, 42), 42);
-        assertSame(m.get(true), undefined);
-        assertSame(m.get(null), undefined);
-        assertSame(m.get('hasOwnProperty'), undefined);
-        assertSame(m.get({}, 42), 42);
-        m.set(undefined, 5);
-        assertSame(m.get(undefined), 5);
-        m.set(null, 6);
-        assertSame(m.get(null), 6);
-        var o1 = {hash: 1};
-        m.set(o1, 6);
-        m.set(o1, 7);
-        assertSame(m.get(o1), 7);
-        assertSame(m.get({}, 42), 42);
-        var o2 = {hash: 1};
-        m.set(o2, 8);
-        assertSame(m.get(o2), 8);
-        assertSame(m.get({hash: 1}), undefined);
-        var o3 = {hash: 2};
-        m.set(o3, 9);
-        assertSame(m.get(o3), 9);
-        m.set(1, 1);
-        assertSame(m.get(1), 1);
-        m.set(true, 1);
-        assertSame(m.get(true), 1);
-        assertSame(repr(m),
-                   ('{undefined: 5, null: 6, {hash: 1}: 7, {hash: 1}: 8, ' +
-                    '{hash: 2}: 9, true: 1, 1: 1, "1": "one", ' +
-                    '"undefined": 2, "true": 3, "null": 4}'));
-        assertSame(m + '',
-                   ('undefined 5,null 6,[object Object] 7,' +
-                    '[object Object] 8,[object Object] 9,true 1,' +
-                    '1 1,1 one,undefined 2,true 3,null 4'));
-        assertEqual(m.items(),
-                    [
-                      [undefined, 5],
-                      [null, 6],
-                      [o1, 7],
-                      [o2, 8],
-                      [o3, 9],
-                      [true, 1],
-                      [1, 1],
-                      ["1", "one"],
-                      ["undefined", 2],
-                      ["true", 3],
-                      ["null", 4]
-                    ]);
-        assertEqual(m.keys(),
-                    [undefined, null, o1, o2, o3,
-                     true, 1, "1", "undefined", "true", "null"]);
-        assertEqual(m.values(), [5, 6, 7, 8, 9, 1, 1, "one", 2, 3, 4]);
-        var m1 = m.copy();
-        var m2 = new Dict(m1);
-        assertEqual(m, m2);
-        assertSame(m1.pop(o2), 8);
-        assertSame(m2.pop(o2), 8);
-        assert(!equal(m, m1));
-        assertEqual(m1, m2);
-        assertSame(m1.pop(undefined), 5);
-        assertSame(m1.pop(undefined, 42), 42);
-        assertSame(m1.pop(o3), 9);
-        assertSame(m1.get(o3, 42), 42);
-        m1.update(m2);
-        assertEqual(m1, m2);
-        m.update(m2);
-        assert(!equal(m, m2));
-        assertEqual(m.popItem(), [undefined, 5]);
-        assertEqual(m.popItem(), [null, 6]);
-        assertEqual(m.popItem(), [o1, 7]);
-        assertEqual(m.popItem(), [o2, 8]);
-        assertEqual(m.popItem(), [o3, 9]);
-        assertEqual(m.popItem(), [true, 1]);
-        assertEqual(m.popItem(), [1, 1]);
-        assertEqual(m.popItem(), ['1', 'one']);
-        assertEqual(m.popItem(), ['undefined', 2]);
-        m.clear();
-        assertSame(m.popItem(), undefined);
-        assertEqual(m.items(), []);
-        assertSame(m.setDefault(undefined, 1), 1);
-        assertSame(m.setDefault(undefined, 42), 1);
-        assertSame(m.setDefault(1, 2), 2);
-        assertSame(m.setDefault(1, 42), 2);
-        assertSame(m.setDefault(o1, 3), 3);
-        assertSame(m.setDefault(o1, 42), 3);
-        assertSame(m.setDefault(o2, 4), 4);
-        assertSame(m.setDefault(o2, 42), 4);
-        assertSame(repr(m.iterValues()), '<valid ak.Dict.ValueIterator>');
-
-        ak.hash = oldHash;
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
   // http tests
   //////////////////////////////////////////////////////////////////////////////
 
@@ -2157,7 +2141,6 @@
       UtilsTestCase,
       IterTestCase,
       TemplateTestCase,
-      DictTestCase,
       HttpTestCase,
       UrlTestCase,
       RestTestCase,
