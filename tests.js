@@ -802,13 +802,6 @@
         assertEqual(p(5, 6), [1, 2, 5, 6]);
       },
 
-      testFactory: function () {
-        var C = Object.subclass(function (x) { this.x = x; });
-        var c = factory(C)(1);
-        assert(c instanceof C);
-        assertSame(c.x, 1);
-      },
-
       testGiveNames: function () {
         assertSame(repr(giveNames), '<function ak.giveNames>');
         assertSame(repr(template.Filter), '<function ak.template.Filter>');

@@ -49,13 +49,6 @@
   };
 
 
-  ak.factory = function (constructor) {
-    return function () {
-      return ak.construct(constructor, arguments);
-    };
-  };
-
-
   ak.giveNames = function (ns) {
     var prefix = ns.__name__ ? ns.__name__ + '.' : '';
     for (var key in ns) {
