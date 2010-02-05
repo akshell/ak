@@ -1845,8 +1845,9 @@
         aspect10.unweave();
         aspect11.unweave();
 
-        assertThrow(UsageError, weave, Before, C, 'n', function () {});
-        assertThrow(NotImplementedError, weave, Aspect, C, 'f', function () {});
+        assertThrow(TypeError, weave, Before, C, 'n', function () {});
+        weave(Aspect, C, 'f', function () {});
+        assertThrow(NotImplementedError, function () { c.f(); });
       },
 
       testWeave: function () {

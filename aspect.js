@@ -32,25 +32,22 @@
 
 
   ak.Aspect = Function.subclass(
-    function (holder, method, advice) {
-      if (typeof(this._apply) != 'function')
-        throw ak.NotImplementedError(
-          'Aspect subclasses must implement "_apply" method');
+    function (holder, name, advice) {
       this._holder = holder;
-      this._method = method;
+      this._name = name;
       this._advice = advice;
-      var source = holder[method];
+      var source = holder[name];
       if (typeof(source) != 'function')
-        throw ak.UsageError(
+        throw TypeError(
           'Attempt to advice non-function ' + ak.repr(source));
-      if (holder.hasOwnProperty(method)) {
+      if (holder.hasOwnProperty(name)) {
         this._source = source;
         this._setSourceOwner(this);
       }
       if ('__name__' in source)
         this.__name__ = source.__name__;
       this.prototype = source.prototype;
-      holder[method] = this;
+      holder[name] = this;
     },
     {
       enabled: true,
@@ -61,21 +58,26 @@
       },
 
       _getSource: function () {
-        return this._source || this._holder.__proto__[this._method];
+        return this._source || this._holder.__proto__[this._name];
       },
 
-      applySource: function (self, args) {
+      _apply: function () {
+        throw ak.NotImplementedError(
+          'Aspect subclasses must implement "_apply" method');
+      },
+
+      _applySource: function (self, args) {
         return this._getSource().apply(self, args);
       },
 
-      callSource: function (self /* ... */) {
-        return this.applySource(self, Array.slice(arguments, 1));
+      callSource: function (self/* args... */) {
+        return this._applySource(self, Array.slice(arguments, 1));
       },
 
       apply: function (self, args) {
         return (this.enabled
                 ? this._apply(self, args)
-                : this.applySource(self, args));
+                : this._applySource(self, args));
       },
 
       unweave: function () {
@@ -84,11 +86,11 @@
           this._setSourceOwner(this._owner);
         } else if (this._source) {
           this._setSourceOwner(undefined);
-          this._holder[this._method] = this._source;
+          this._holder[this._name] = this._source;
         } else {
-          delete this._holder[this._method];
+          delete this._holder[this._name];
         }
-        return this._holder[this._method];
+        return this._holder[this._name];
       }
     });
 
@@ -96,8 +98,8 @@
   ak.Before = ak.Aspect.subclass(
     {
       _apply: function (self, args) {
-        this._advice.call(self, args, this._method);
-        return this.applySource(self, args);
+        this._advice.call(self, args, this._name);
+        return this._applySource(self, args);
       }
     });
 
@@ -105,8 +107,8 @@
   ak.After = ak.Aspect.subclass(
     {
       _apply: function (self, args) {
-        var result = this.applySource(self, args);
-        return this._advice.call(self, result, args, this._method);
+        var result = this._applySource(self, args);
+        return this._advice.call(self, result, args, this._name);
       }
     });
 
@@ -115,9 +117,9 @@
     {
       _apply: function (self, args) {
         try {
-          return this.applySource(self, args);
+          return this._applySource(self, args);
         } catch (error) {
-          return this._advice.call(self, error, args, this._method);
+          return this._advice.call(self, error, args, this._name);
         }
       }
     });
@@ -127,9 +129,9 @@
     {
       _apply: function (self, args) {
         try {
-          return this.applySource(self, args);
+          return this._applySource(self, args);
         } finally {
-          this._advice.call(self, args, this._method);
+          this._advice.call(self, args, this._name);
         }
       }
     });
@@ -138,7 +140,7 @@
   ak.Around = ak.Aspect.subclass(
     {
       _apply: function (self, args) {
-        return this._advice.call(self, this._getSource(), args, this._method);
+        return this._advice.call(self, this._getSource(), args, this._name);
       }
     });
 
@@ -170,31 +172,28 @@
     });
 
 
-  function weaveOne(AspectClass, holder, method, advice) {
-    var result = function (/* arguments */) {
+  function weaveOne(aspectClass, holder, name, advice) {
+    var result = function () {
       return arguments.callee.apply(this, arguments);
-    }.instances(AspectClass);
-    AspectClass.call(result, holder, method, advice);
+    }.instances(aspectClass);
+    aspectClass.call(result, holder, name, advice);
     return result;
   };
 
 
-  ak.weave = function (AspectClass, holder, method, advice,
+  ak.weave = function (aspectClass, holder, names, advice,
                        directly/* = false */) {
     if (!directly && typeof(holder) == 'function')
       holder = holder.prototype;
-    var methods;
-    if (method instanceof Array)
-      methods = method;
-    else if (method instanceof RegExp)
-      methods = ak.keys(holder).filter(
-        function (name) { return method.test(name); });
-    return (methods
-            ? methods.map(
-              function (method) {
-                return weaveOne(AspectClass, holder, method, advice);
-              }).instances(ak.AspectArray)
-            : weaveOne(AspectClass, holder, method, advice));
+    if (names instanceof RegExp)
+      names = ak.keys(holder).filter(
+        function (name) { return names.test(name); });
+    return (typeof(names) == 'string'
+            ? weaveOne(aspectClass, holder, names, advice)
+            : Array.map(names,
+                        function (name) {
+                          return weaveOne(aspectClass, holder, name, advice);
+                        }).instances(ak.AspectArray));
   };
 
 })();
