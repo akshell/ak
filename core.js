@@ -373,7 +373,7 @@
       return '400\n\nBad request';
     var request = {
       __proto__: ak.Request.prototype,
-      method: request.method.toLowerCase(),
+      method: data.method.toLowerCase(),
       path: data.path,
       fullPath: typeof(data.fullPath) == 'string' ? data.fullPath : data.path,
       get: data.get,
