@@ -1749,11 +1749,11 @@
       testConstr: function () {
         assertThrow(UsageError, db.create, 'X', {}, 'invalid');
         db.create('X', {i: 'integer', n: 'number', s: 'string'},
-                  'unique i , n',
+                  'unique [ i , n]',
                   ' \tunique[n,s  ]\t',
                   ' check i != 42     ');
         db.create('Y', {ii: 'integer', nn: 'number', ss: 'string'},
-                  ' [ ii , nn ]foreign X[i,n]',
+                  ' [ ii , nn ]-> X[i,n]',
                   '[ss,nn]   ->X  [s  ,n ] ');
         assertThrow(ConstraintError,
                     function () { rv.X.insert({i: 42, n: 0, s: ''}); });

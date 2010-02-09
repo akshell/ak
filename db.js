@@ -99,14 +99,12 @@
   }
 
 
-  var fieldListString = '\\s*((?:\\w+\\s*,\\s*)*\\w+)\\s*';
-  var multiFieldString = '\\[' + fieldListString + '\\]';
+  var multiAttrString = '\\[\\s*((?:\\w+\\s*,\\s*)*\\w+)\\s*\\]';
   var constrRegExp = RegExp(
     '^\\s*(?:' +
     'check\\s+(.*?)|' +
-    'unique\\s*(?:\\s' + fieldListString + '|' + multiFieldString + ')|' +
-    multiFieldString + '\\s*(?:foreign\\s|->)\\s*(\\w+)\\s*' +
-    multiFieldString +
+    'unique\\s*' + multiAttrString + '|' +
+    multiAttrString + '\\s*->\\s*(\\w+)\\s*' + multiAttrString +
     ')\\s*$');
   var sepRegExp = /\s*,\s*/;
 
@@ -118,13 +116,11 @@
       constrs.check.push(match[1]);
     else if (match[2])
       constrs.unique.push(match[2].split(sepRegExp));
-    else if (match[3])
-      constrs.unique.push(match[3].split(sepRegExp));
     else
       constrs.foreign.push([
-                             match[4].split(sepRegExp),
-                             match[5],
-                             match[6].split(sepRegExp)
+                             match[3].split(sepRegExp),
+                             match[4],
+                             match[5].split(sepRegExp)
                            ]);
   }
 
