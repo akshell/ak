@@ -280,7 +280,7 @@
   // cmp() and equal()
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.CmpError = TypeError.subclass(
+  ak.CmpError = ak.BaseError.subclass(
     function (lhs, rhs) {
       this.message = (
         ak.repr(lhs) + ' and ' + ak.repr(rhs) + ' are incomparable');
