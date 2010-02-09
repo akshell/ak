@@ -38,16 +38,16 @@
   // unittest tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var UnittestTestCase = TestCase.subclass(
+  ak.UnittestTestCase = TestCase.subclass(
     {
       name: 'unittest',
 
       testTestResult: function () {
         var tr = new TestResult();
-        assert(tr.wasSuccessful);
+        assert(tr.wasSuccessful());
         tr.startTest(1);
         tr.addSuccess(1);
-        assert(tr.wasSuccessful);
+        assert(tr.wasSuccessful());
         tr.startTest(2);
         tr.addError(2, 'error');
         tr.startTest(3);
@@ -55,7 +55,7 @@
         assertSame(tr.testsRun, 3);
         assertEqual(tr.errors, [[2, 'error']]);
         assertEqual(tr.failures, [[3, 'failure']]);
-        assert(!tr.wasSuccessful);
+        assert(!tr.wasSuccessful());
       },
 
       testTestCase: function () {
@@ -84,10 +84,12 @@
 
 
         var tc = new TC('f');
-        assertSame(tc.count, 1);
+        assertSame(tc.countTestCases(), 1);
         assertSame(tc + '', 'f');
         tc.name = 'test';
-        assertSame(repr(tc), '<TestCase f(test)>');
+        assertSame(repr(tc), '<TestCase f>');
+        TC.__name__ = 'TC';
+        assertSame(repr(tc), '<TC f>');
 
         run(TC);
         assert(tested && setUp && tearedDown);
@@ -124,18 +126,16 @@
         var TC = TestCase.subclass({f: function () {}, g: function () {}});
         var ts = new TestSuite([new TC('f'), new TC('g')]);
         ts.addTest(new TC('f'));
-        assertSame(ts.count, 3);
-        assertSame(repr(ts),
-                   'TestSuite([<TestCase f>, <TestCase g>, <TestCase f>])');
-        assertSame(ts + '', 'f, g, f');
+        assertSame(ts.countTestCases(), 3);
+        assertSame(repr(ts), '<TestSuite f, g, f>');
         var tr = new TestResult();
         ts.run(tr);
         assertSame(tr.testsRun, 3);
       },
 
-      testTextTestResult: function () {
+      testStreamTestResult: function () {
         var stream = new Stream();
-        var ttr = new TextTestResult(stream);
+        var ttr = new StreamTestResult(stream);
         ttr.startTest('hi');
         ttr.addError();
         ttr.addFailure();
@@ -143,7 +143,33 @@
         assertSame(stream.read(), 'hi ERROR\n FAIL\n ok\n');
       },
 
-      testTextTestRunner: function () {
+      testLoadTestSuite: function () {
+        var ts = new TestSuite();
+        assertSame(loadTestSuite(ts), ts);
+        var TC = TestCase.subclass(
+          {
+            name: 'TC',
+            test1: function () {},
+            test2: function () {},
+            func: function () {},
+            test3: 42
+          });
+        assertSame(repr(loadTestSuite(new TC('test1'))),
+                   '<TestSuite test1(TC)>');
+        assertSame(repr(loadTestSuite(TC)),
+                   '<TestSuite test1(TC), test2(TC)>');
+        var m = new Module();
+        m.ts = new TestSuite([new TC('func')]);
+        m.tc = new TC('test1');
+        m.TC = TC;
+        assertSame(loadTestSuite(m) + '',
+                   'test1(TC), test2(TC), test1(TC), func(TC)');
+        assertSame(loadTestSuite([m, new TC('test2')]) + '',
+                   'test1(TC), test2(TC), test1(TC), func(TC), test2(TC)');
+        assertThrow(TypeError, loadTestSuite, 42);
+      },
+
+      testRunTestViaStream: function () {
         var TC = TestCase.subclass(
           {
             testOk: function () {},
@@ -154,7 +180,7 @@
           });
         TC.__name__ = 'test';
         var stream = new Stream();
-        (new TextTestRunner(stream)).run(TC.loadSuite());
+        runTestViaStream(loadTestSuite(TC), stream);
         assert(stream.read().startsWith(
                  'testAssert(test) FAIL\n' +
                  'testAssertEqual(test) FAIL\n' +
@@ -165,52 +191,25 @@
                  'TextTestRunner');
       },
 
-      testLoadSuite: function () {
-        assertSame(TestCase.subclass(
-                     {
-                       name: 'n',
-                       test1: function () {},
-                       test2: function () {},
-                       test3: 42
-                     }).loadSuite() + '',
-                   'test1(n), test2(n)');
-        assertSame(TestCase.subclass(
-                     {
-                       name: 'n',
-                       f: function () {},
-                       g: function () {}
-                     }).loadSuite(['f', 'g']) + '',
-                   'f(n), g(n)');
-        assertSame(loadSuite([TestCase.subclass({test1: function () {}}),
-                              TestCase.subclass({test2: function () {}})]) + '',
-                   'test1, test2');
-      },
-
-      testRunTestSuite: function () {
-        var suite = TestCase.subclass({test: function () {}}).loadSuite();
-        var stream = new Stream();
-        assert(runTestSuite(suite, stream));;
-      },
-
       testTestClient: function () {
-        var client = new TestClient(
-          ['user1', 'user2'],
-          {
-            app1: {
-              admin: 'user1'
-            },
-            app2: {
-              admin: 'user2',
-              developers: ['user1']
-            },
-            app3: {
-              admin: 'user1'
-            },
-            app4: {
-              admin: 'user2',
-              developers: ['user1']
-            }
-          });
+        var users = ['user1', 'user2'];
+        var apps = {
+          app1: {
+            admin: 'user1'
+          },
+          app2: {
+            admin: 'user2',
+            developers: ['user1']
+          },
+          app3: {
+            admin: 'user1'
+          },
+          app4: {
+            admin: 'user2',
+            developers: ['user1']
+          }
+        };
+        var client = new TestClient(users, apps);
         var aspect = weave(InsteadOf, global, '__main__',
                            function (request) { return eval(request.data); });
         function request(data) {
@@ -224,14 +223,20 @@
         assertSame(client.request({user: 'user2', data: 'request.user'}),
                    'user2');
         client.logout();
-        assertSame(request('request.user'), undefined);
+        assertSame(request('request.user'), '');
+        assertSame(request('request.method'), 'get');
+        assertSame(request('request.path'), '/');
+        assertSame(request('typeof(request.get)'), 'object');
+        assertSame(request('typeof(request.post)'), 'object');
+        assertSame(request('typeof(request.headers)'), 'object');
+        assertSame(request('typeof(request.files)'), 'object');
 
         assertSame(client.get({data: 'request.method'}), 'get');
         assertSame(client.put({data: 'request.method'}), 'put');
         assertSame(client.post({data: 'request.method'}), 'post');
         assertSame(client.del({data: 'request.method'}), 'delete');
 
-        assertSame(request('ak.describeApp("app1")'), client.apps.app1);
+        assertSame(request('ak.describeApp("app1")'), apps.app1);
         assertEqual(request('ak.getAdminedApps("user1")'), ['app1', 'app3']);
         assertEqual(request('ak.getDevelopedApps("user1")'), ['app2', 'app4']);
         assertEqual(request('ak.getDevelopedApps("user2")'), []);
@@ -269,7 +274,7 @@
   }
 
 
-  var CoreTestCase = TestCase.subclass(
+  ak.CoreTestCase = TestCase.subclass(
     {
       name: 'core',
 
@@ -466,7 +471,7 @@
   // base tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var BaseTestCase = TestCase.subclass(
+  ak.BaseTestCase = TestCase.subclass(
     {
       name: 'base',
 
@@ -710,9 +715,11 @@
       },
 
       testModule: function () {
+        assertSame(repr(global), '<module ak.global>');
         assertSame(repr(ak), '<module ak ' + ak.__version__ + '>');
         assertSame(repr(ak.http), '<module ak.http>');
         assertSame(ak + '', '[object AK]');
+        assert(global instanceof ak.Module);
         assert(ak instanceof ak.Module);
         assert(db instanceof ak.Module);
         assert(fs instanceof ak.Module);
@@ -787,7 +794,7 @@
   // utils tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var UtilsTestCase = TestCase.subclass(
+  ak.UtilsTestCase = TestCase.subclass(
     {
       name: 'utils',
 
@@ -1373,7 +1380,7 @@
   ];
 
 
-  var TemplateTestCase = TestCase.subclass(
+  ak.TemplateTestCase = TestCase.subclass(
     {
       name: 'template',
 
@@ -1451,7 +1458,7 @@
   // http tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var HttpTestCase = TestCase.subclass(
+  ak.HttpTestCase = TestCase.subclass(
     {
       name: 'http',
 
@@ -1465,7 +1472,7 @@
   // url tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var UrlTestCase = TestCase.subclass(
+  ak.UrlTestCase = TestCase.subclass(
     {
       name: 'url',
 
@@ -1564,7 +1571,7 @@
     });
 
 
-  var RestTestCase = TestCase.subclass(
+  ak.RestTestCase = TestCase.subclass(
     {
       name: 'rest',
 
@@ -1698,7 +1705,7 @@
   // db tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var DbTestCase = TestCase.subclass(
+  ak.DbTestCase = TestCase.subclass(
     {
       name: 'db',
 
@@ -1760,7 +1767,7 @@
   // aspect tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var AspectTestCase = TestCase.subclass(
+  ak.AspectTestCase = TestCase.subclass(
     {
       name: 'aspect',
 
@@ -1870,23 +1877,5 @@
         assertSame(f.f2(), 2);
       }
     });
-
-  //////////////////////////////////////////////////////////////////////////////
-  // suite
-  //////////////////////////////////////////////////////////////////////////////
-
-  return loadSuite(
-    [
-      UnittestTestCase,
-      CoreTestCase,
-      BaseTestCase,
-      UtilsTestCase,
-      TemplateTestCase,
-      HttpTestCase,
-      UrlTestCase,
-      RestTestCase,
-      DbTestCase,
-      AspectTestCase
-    ]);
 
 }})();

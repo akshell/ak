@@ -405,7 +405,8 @@
     });
 
 
-  (ak.AK.prototype.__proto__ =
+  (ak.Global.prototype.__proto__ =
+   ak.AK.prototype.__proto__ =
    ak.DB.prototype.__proto__ =
    ak.FS.prototype.__proto__ = ak.Module.prototype);
   ak.__version__ = '0.1';

@@ -40,7 +40,7 @@
       this.testsRun = 0;
     },
     {
-      get wasSuccessful () {
+      wasSuccessful: function () {
         return this.errors.length == 0 && this.failures.length == 0;
       },
 
@@ -54,8 +54,8 @@
         this.errors.push([test, error]);
       },
 
-      addFailure: function (test, error) {
-        this.failures.push([test, error]);
+      addFailure: function (test, failure) {
+        this.failures.push([test, failure]);
       },
 
       addSuccess: function (test) {}
@@ -63,7 +63,7 @@
 
 
   ak.TestSuite = Object.subclass(
-    function (tests) {
+    function (tests/* = [] */) {
       this._tests = tests || [];
     },
     {
@@ -75,16 +75,24 @@
         this._tests.push(test);
       },
 
-      get count () {
-        return ak.sum(this._tests.map(function (test) { return test.count; }));
+      countTestCases: function () {
+        return ak.sum(
+          this._tests.map(function (test) { return test.countTestCases(); }));
       },
 
       toString: function () {
-        return this._tests.join(', ');
+        var strings = [];
+        this._tests.forEach(
+          function (test) {
+            var string = test + '';
+            if (string)
+              strings.push(string);
+          });
+        return strings.join(', ');
       },
 
       __repr__: function () {
-        return 'TestSuite([' + this._tests.map(ak.repr).join(', ') + '])';
+        return '<TestSuite ' + this + '>';
       }
     });
 
@@ -92,23 +100,27 @@
   ak.TestCase = Object.subclass(
     function (methodName) {
       if (typeof(this[methodName]) != 'function')
-        throw ak.UsageError(ak.repr(this) + ' does not have method ' +
-                            ak.repr(methodName));
+        throw ak.UsageError(
+          'Test method ' + ak.repr(methodName) + ' not found');
       this._methodName = methodName;
     },
     {
-      count: 1,
+      countTestCases: function () {
+        return 1;
+      },
+
+      setUp: function () {},
+
+      tearDown: function () {},
 
       run: function (result) {
         result.startTest(this);
         try {
-          if (typeof(this.setUp) == 'function') {
-            try {
-              this.setUp();
-            } catch (error) {
-              result.addError(this, error);
-              return;
-            }
+          try {
+            this.setUp();
+          } catch (error) {
+            result.addError(this, error);
+            return;
           }
           var ok = false;
           try {
@@ -120,13 +132,11 @@
             else
               result.addError(this, error);
           }
-          if (typeof(this.tearDown) == 'function') {
-            try {
-              this.tearDown();
-            } catch (error) {
-              result.addError(this, error);
-              ok = false;
-            }
+          try {
+            this.tearDown();
+          } catch (error) {
+            result.addError(this, error);
+            ok = false;
           }
           if (ok)
             result.addSuccess(this);
@@ -144,35 +154,13 @@
       },
 
       __repr__: function () {
-        return '<TestCase ' + this.toString() + '>';
+        return ('<' + (this.constructor.__name__ || 'TestCase') +
+                ' ' + this._methodName + '>');
       }
     });
 
 
-  ak.TestCase.instances(
-    ak.TestCaseMeta = Function.subclass(
-      {
-        loadSuite: function (/* optional */methodNames) {
-          if (!methodNames) {
-            methodNames = [];
-            for (var name in this.prototype)
-              if (name.substr(0, 4) == 'test' &&
-                  typeof(this.prototype[name]) == 'function')
-                methodNames.push(name);
-            methodNames.sort();
-          }
-          var result = new ak.TestSuite();
-          methodNames.forEach(
-            function (methodName) {
-              result.addTest(new this(methodName));
-            },
-            this);
-          return result;
-        }
-      }));
-
-
-  ak.TextTestResult = ak.TestResult.subclass(
+  ak.StreamTestResult = ak.TestResult.subclass(
     function (stream) {
       ak.TestResult.call(this);
       this._stream = stream;
@@ -199,6 +187,49 @@
       }
     });
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Functions
+  //////////////////////////////////////////////////////////////////////////////
+
+  function doLoadTestSuite(source) {
+    if (source instanceof ak.TestSuite)
+      return source;
+    if (source instanceof ak.TestCase)
+      return new ak.TestSuite([source]);
+    if (typeof(source) == 'function' && source.subclassOf(ak.TestCase)) {
+      var testMethodNames = [];
+      for (var name in source.prototype) {
+        if (name.startsWith('test') &&
+            typeof(source.prototype[name]) == 'function')
+          testMethodNames.push(name);
+      }
+      return new ak.TestSuite(
+        testMethodNames.sort().map(
+          function (name) { return new source(name); }));
+    }
+    return null;
+  }
+
+
+  ak.loadTestSuite = function (source) {
+    var result = doLoadTestSuite(source);
+    if (result)
+      return result;
+    if (source instanceof ak.Module) {
+      result = new ak.TestSuite();
+      ak.keys(source).sort().forEach(
+        function (name) {
+          var suite = doLoadTestSuite(source[name]);
+          if (suite)
+            result.addTest(suite);
+        });
+      return result;
+    }
+    if (ak.isList(source))
+      return new ak.TestSuite(Array.map(source, arguments.callee));
+    throw TypeError('Can not load TestSuite from ' + ak.repr(source));
+  };
+
 
   function getErrorDescription(error) {
     return (error && error.stack
@@ -207,72 +238,55 @@
   }
 
 
-  ak.TextTestRunner = Object.subclass(
-    function (stream) {
-      this._stream = stream;
-    },
-    {
-      run: function (test) {
-        var result = new ak.TextTestResult(this._stream);
-        var stream = this._stream;
-        test.run(result);
-        result.errors.forEach(
-          function (error) {
-            stream.write('=====\nERROR: ' + error[0] + '\n' +
-                         getErrorDescription(error[1]) + '\n');
-          });
-        result.failures.forEach(
-          function (failure) {
-            stream.write('=====\nFAIL: ' + failure[0] + '\n' +
-                         getErrorDescription(failure[1]) + '\n');
-          });
-        stream.write('-----\n' + 'Ran ' + test.count + ' tests\n');
-        if (result.wasSuccessful) {
-          stream.write('OK');
-        } else {
-          stream.write('FAILED (');
-          if (result.failures.length)
-            stream.write('failures=' + result.failures.length);
-          if (result.errors.length) {
-            if (result.failures.length)
-              stream.write(', ');
-            stream.write('errors=' + result.errors.length);
-          }
-          stream.write(')');
-        }
-        return result.wasSuccessful;
+  ak.runTestViaStream = function (test, stream/* = ak.out */) {
+    stream = stream || ak.out;
+    var result = new ak.StreamTestResult(stream);
+    test.run(result);
+    result.errors.forEach(
+      function (error) {
+        stream.write('=====\nERROR: ' + error[0] + '\n' +
+                     getErrorDescription(error[1]) + '\n');
+      });
+    result.failures.forEach(
+      function (failure) {
+        stream.write('=====\nFAIL: ' + failure[0] + '\n' +
+                     getErrorDescription(failure[1]) + '\n');
+      });
+    stream.write('-----\n' + 'Ran ' + test.countTestCases() + ' tests\n');
+    if (result.wasSuccessful()) {
+      stream.write('OK');
+    } else {
+      stream.write('FAILED (');
+      if (result.failures.length)
+        stream.write('failures=' + result.failures.length);
+      if (result.errors.length) {
+        if (result.failures.length)
+          stream.write(', ');
+        stream.write('errors=' + result.errors.length);
       }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Free functions
-  //////////////////////////////////////////////////////////////////////////////
-
-  ak.loadSuite = function (TestCases) {
-    return new ak.TestSuite(
-      TestCases.map(
-        function (TC) {
-          return TC.loadSuite();
-        }));
+      stream.write(')');
+    }
+    return result;
   };
 
 
-  ak.runTestSuite = function (suite, stream/* = ak.out */) {
-    var runner = new ak.TextTestRunner(stream || ak.out);
-    return runner.run(suite);
+  ak.test = function (source/* = ak.global */, stream/* = ak.out */) {
+    stream = stream || ak.out;
+    ak.runTestViaStream(ak.loadTestSuite(source || ak.global), stream);
+    return stream.read();
   };
 
   //////////////////////////////////////////////////////////////////////////////
   // TestClient
   //////////////////////////////////////////////////////////////////////////////
 
-  function weaveAliases(AspectClass, method, advice) {
+  function weaveAliases(aspectClass, method, advice) {
     var holders = [ak];
     if (ak.global[method] === ak[method])
       holders.push(ak.global);
     return holders.map(
       function (holder) {
-        return ak.weave(AspectClass, holder, method, advice);
+        return ak.weave(aspectClass, holder, method, advice);
       });
   }
 
@@ -288,33 +302,33 @@
 
   ak.TestClient = Object.subclass(
     function (users/* = [] */, apps/* = {} */) {
-      this.users = users || [];
-      this.apps = apps || {};
-      for (var name in this.apps) {
-        var app = this.apps[name];
+      this._users = users || [];
+      this._apps = apps || {};
+      for (var name in this._apps) {
+        var app = this._apps[name];
         app.name = name;
         app.developers = app.developers || [];
-        app.developers.unshift(app.admin);
       }
+      this._user = '';
     },
     {
       _describeApp: function (name) {
-        var result = this.apps[name];
+        var result = this._apps[name];
         if (!result)
           throw ak.NoSuchAppError('No such test app: ' + ak.repr(name));
         return result;
       },
 
       _checkUserExists: function (user) {
-        if (this.users.indexOf(user) == -1)
+        if (this._users.indexOf(user) == -1)
           throw ak.NoSuchUserError('No such test user: ' + ak.repr(user));
       },
 
       _getAdminedApps: function (user) {
         this._checkUserExists(user);
         var result = [];
-        for (var name in this.apps)
-          if (this.apps[name].admin == user)
+        for (var name in this._apps)
+          if (this._apps[name].admin == user)
             result.push(name);
         return result;
       },
@@ -322,8 +336,8 @@
       _getDevelopedApps: function (user) {
         this._checkUserExists(user);
         var result = [];
-        for (var name in this.apps)
-          if (this.apps[name].developers.indexOf(user) > 0)
+        for (var name in this._apps)
+          if (this._apps[name].developers.indexOf(user) != -1)
             result.push(name);
         return result;
       },
@@ -339,14 +353,22 @@
       },
 
       logout: function () {
-        delete this._user;
+        this._user = '';
       },
 
       request: function (request) {
-        if (this._user && !('user' in request)) {
-          request = {__proto__: request};
-          request.user = this._user;
-        }
+        request = {__proto__: request};
+        ak.update(
+          request,
+          {
+            user: request.user || this._user,
+            method: request.method || 'get',
+            path: request.path || '/',
+            get: request.get || {},
+            post: request.post || {},
+            headers: request.headers || {},
+            files: request.files || {}
+          });
         var contexts = {};
         var aspects = [].concat(
           this._substitute('describeApp'),

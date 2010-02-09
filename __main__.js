@@ -27,11 +27,6 @@
 
 var suite = ak.include('tests.js');
 
-function test() {
-  ak.runTestSuite(suite);
-  return ak.out.read();
-}
-
 
 var HelloController = ak.Controller.subclass(
   function (request, name) {
