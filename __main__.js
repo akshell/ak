@@ -29,13 +29,9 @@ var suite = ak.include('tests.js');
 
 
 var HelloController = ak.Controller.subclass(
-  function (request, name) {
-    ak.Controller.call(this, request);
-    this._name = name;
-  },
   {
-    get: function () {
-      return ak.renderToResponse('hello.html', {name: this._name});
+    get: function (request, name) {
+      return ak.renderToResponse('hello.html', {name: name});
     }
   });
 

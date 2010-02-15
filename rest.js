@@ -98,9 +98,9 @@
   //////////////////////////////////////////////////////////////////////////////
 
   ak.Controller = Object.subclass(
-    function (request) {
+    function (request/* ... */) {
       this.request = request;
-      this.args = [request];
+      this.args = Array.slice(arguments);
     },
     {
       respond: function (page/* = '' */) {
@@ -189,7 +189,7 @@
             return new ak.Response(
               'Cross Site Request Forgery detected. Request aborted.',
               ak.http.FORBIDDEN);
-          ak.template.defaultTags.csrfToken.value = request.csrfToken;
+          ak.template.env.tags.csrfToken.value = request.csrfToken;
           return serve.apply(this, arguments);
         };
       },

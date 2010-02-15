@@ -824,7 +824,7 @@
         assertSame(repr(fs.read), '<function ak.fs.read>');
         assertSame(repr(db.rollback), '<function ak.db.rollback>');
         assertSame(repr(ak.template), '<module ak.template>');
-        assertSame(repr(ak.template.Node), '<function ak.template.Node>');
+        assertSame(repr(ak.template.Filter), '<function ak.template.Filter>');
       },
 
       testAbstract: function () {
@@ -995,6 +995,10 @@
         assert(equal(d3, d4));
 
         ak.hash = oldHash;
+      },
+
+      testEscapeHTML: function () {
+        assertSame(escapeHTML('&<>"\''), '&amp;&lt;&gt;&quot;&#39;');
       }
     });
 
@@ -1002,25 +1006,16 @@
   // template tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var baseTemplates = {
-    hello: 'hello world',
-    foo: '{% block foo %}foo{% endblock %}',
-    parent: ('{% block 1 %}parent1{% endblock%} ' +
-             '{% block 2 %}parent2{% endblock %}'),
-    child: '{% extends "parent" %}{% block 1 %}child1{% endblock %}'
+  var testEnv = {__proto__: template.env};
+  testEnv.load = function (name) {
+    return {
+      hello: 'hello world',
+      foo: '{% block foo %}foo{% endblock %}',
+      parent: ('{% block 1 %}parent1{% endblock%} ' +
+               '{% block 2 %}parent2{% endblock %}'),
+      child: '{% extends "parent" %}{% block 1 %}child1{% endblock %}'
+    }[name];
   };
-
-  var normalEnv = {__proto__: template.defaultEnv};
-  normalEnv.load = function (name) {
-    var result = baseTemplates[name];
-    if (result === undefined)
-      throw TemplateDoesNotExist(name);
-    return result;
-  };
-
-
-  var invalidEnv = {__proto__: normalEnv};
-  invalidEnv.invalid = 'INVALID';
 
 
   ak._TestController = Controller.subclass();
@@ -1052,11 +1047,11 @@
     ['foo{# }} #}', {}, 'foo'],
     ['foo{# { #}', {}, 'foo'],
     ['foo{# } #}', {}, 'foo'],
-    ['{{ x|upper }}', {x: 'Hi'}, 'HI'],
-    ['{{ "hello"|upper }}', {}, 'HELLO'],
-    ['{{ x|upper }}', {x: 15}, '15'],
-    ['{{ x|upper|lower }}', {x: 'Hi'}, 'hi'],
-    ['{{ x|removeTags:"b i"|upper|lower }}',
+    ['{{ x|toUpperCase }}', {x: 'Hi'}, 'HI'],
+    ['{{ "hello"|toUpperCase }}', {}, 'HELLO'],
+    ['{{ x|toUpperCase }}', {x: 15}, '15'],
+    ['{{ x|toUpperCase|toLowerCase }}', {x: 'Hi'}, 'hi'],
+    ['{{ x|removeTags:"b i"|toUpperCase|toLowerCase }}',
      {x: '<b><i>Yes</i></b>'},
      'yes'],
     ['{{ "<>"|removeTags }}', {}, '<>'],
@@ -1098,7 +1093,7 @@
     ['{{ "a|b|c"|cut:"|" }}', {}, 'abc'],
     ['{{ x|defaultIfUndefined:42 }}', {}, '42'],
     ['{{ undefined|defaultIfUndefined:42 }}', {'undefined': 1}, '42'],
-    ['{{ null|defaultIfUndefined:42 }}', {}, ''],
+    ['{{ null|defaultIfUndefined:42 }}', {}, 'null'],
     ['{{ null|defaultIfNull:42 }}', {}, '42'],
     ['{{ x|defaultIfNull:42 }}', {}, ''],
     ['{{ "hi"|defaultIfNull:42 }}', {}, 'hi'],
@@ -1130,7 +1125,7 @@
     ['{{ 1500|formatFileSize }}', {}, '1.5 KB'],
     ['{{ 1500000|formatFileSize }}', {}, '1.4 MB'],
     ['{{ 1500000000|formatFileSize }}', {}, '1.4 GB'],
-    ['{{ null|first }}', {}, ''],
+    ['{{ null|first }}', {}, 'null'],
     ['{{ undefined|first }}', {}, ''],
     ['{{ "abc"|first }}', {}, 'a'],
     ['{{ x|first }}', {x: [1, 2, 3]}, '1'],
@@ -1151,15 +1146,15 @@
     ['{{ "<>;&?;/"|encodeURIComponent }}', {}, '%3C%3E%3B%26%3F%3B%2F'],
     ['{{ "abc"|last }}', {}, 'c'],
     ['{{ x|last }}', {x: [1, 2, 3]}, '3'],
-    ['{{ true|last }}', {}, ''],
-    ['{{ 42|last }}', {}, ''],
-    ['{{ x|paragraph }}', {x: 'x&\ny'}, '<p>x&amp;<br />y</p>'],
-    ['{{ x|safe|paragraph }}', {x: 'x&\ny'}, '<p>x&<br />y</p>'],
+    ['{{ true|last }}', {}, 'true'],
+    ['{{ 42|last }}', {}, '42'],
+    ['{{ x|paragraph }}', {x: 'x&\ny'}, '<p>x&amp;<br>y</p>'],
+    ['{{ x|safe|paragraph }}', {x: 'x&\ny'}, '<p>x&<br>y</p>'],
     ['{{ x|paragraph }}', {x: '\n\na\nb\n\nc\n'},
-     '<p>a<br />b</p>\n\n<p>c</p>'],
+     '<p>a<br>b</p>\n\n<p>c</p>'],
     ['{{ x|paragraph }}', {x: '\n \t\n'}, ''],
     ['{{ x|breakLines }}', {x: '\n\na\nb\n\nc\n'},
-     '<br /><br />a<br />b<br /><br />c<br />'],
+     '<br><br>a<br>b<br><br>c<br>'],
     ['{{ x|numberLines }}', {x: '\n\na\n\n\nb\n\nc\nd\n\ne\n\nf'},
      ' 1 \n 2 \n 3 a\n 4 \n 5 \n 6 b\n 7 \n 8 c\n 9 d\n10 \n11 e\n12 \n13 f'],
     ['{{ 1|pluralize }}', {}, ''],
@@ -1177,9 +1172,9 @@
     ['{{ x|slice:"1,4"|join }}', {x: [1, 2, 3, 4, 5]}, '234'],
     ['{{ x|slice:3|join }}', {x: [1, 2, 3, 4, 5]}, '45'],
     ['{{ " \ta b&!-C -- d"|slugify }}', {}, 'a-b-c-d'],
-    ['{{ "<p>a<br />b</p>"|stripTags }}', {}, 'ab'],
-    ['{{ "hello world"|title }}', {}, 'Hello World'],
-    ['{{ " everything\'s ok "|title }}', {}, ' Everything\'s Ok '],
+    ['{{ "<p>a<br>b</p>"|stripTags }}', {}, 'ab'],
+    ['{{ "hello world"|toTitleCase }}', {}, 'Hello World'],
+    ['{{ " everything\'s ok "|toTitleCase }}', {}, ' Everything\'s Ok '],
     ['{{ "\thello  world  "|countWords }}', {}, '2'],
     ['{{ "\t "|countWords }}', {}, '0'],
     ['{{ date1|timeSince:date2 }} {{ date2|timeUntil:date1 }}',
@@ -1190,12 +1185,6 @@
      '1 hour, 47 minutes 1 hour, 47 minutes'],
 
 
-    ['{% comment %} hi {% endcomment %}hello', {}, 'hello'],
-    ['{% comment %} hi {% endcomment %}hello' +
-     '{% comment %} yo {% endcomment %}',
-     {}, 'hello'],
-    ['{% comment %} {% if %} {% endcomment %}', {}, ''],
-    ['{% comment %} {% comment %} {% endcomment %}', {}, ''],
     ['{% if \t  true %}foo{% endif %}', {}, 'foo'],
     ['{% if undefined == null %}foo{% endif %}', {}, 'foo'],
     ['{% if 1 !== 1 %}foo{% else %}bar{% endif %}', {}, 'bar'],
@@ -1241,17 +1230,15 @@
     ['{% for i in "abcd" %}{% cycle 1 2 3 as x %}{% cycle x %}{% endfor %}', {},
      '12312312'],
     ['{% cycle 1 2 as x %}{% cycle "a" "b" as x %}{% cycle x %}', {}, '1ab'],
-    ['{% debug %}', {}, '{}'],
-    ['{% debug %}', {x: 42, a: [1, "yo!"]}, '{a: [1, &quot;yo!&quot;], x: 42}'],
     ['{% filter escape %}<>{% endfilter %}', {}, '&lt;&gt;'],
     ['{% filter truncateWords:3 %}foo & bar baz{% endfilter %}', {},
      'foo & bar ...'],
     ['{% filter removeTags:"i"|escape %}<i>&</i>{% endfilter %}', {},
      '&amp;'],
-    ['{% firstof "" a "<>" %}', {}, '<>'],
-    ['{% firstof ""|default:"hello world" 42 %}', {}, 'hello world'],
-    ['{% firstof a b c %}', {}, ''],
-    ['{% firstof x %}', {x: '<>'}, '&lt;&gt;'],
+    ['{% firstOf "" a "<>" %}', {}, '<>'],
+    ['{% firstOf ""|default:"hello world" 42 %}', {}, 'hello world'],
+    ['{% firstOf a b c %}', {}, ''],
+    ['{% firstOf x %}', {x: '<>'}, '&lt;&gt;'],
     ['{% for x in "aaabbcdddd" %}' +
      '{% ifchanged %}{{ x }}{% endifchanged %}' +
      '{% endfor %}',
@@ -1275,22 +1262,21 @@
      {},
      '!!!*!!*!!!!!*!!!!!!!!*!!*!!*!!'],
     ['{% include "hello" %}', {}, 'hello world'],
-    ['{% include "no_such_template" %}', {}, ''],
     ['{% for x in "12" %}{% include "hello" %}{% endfor %}', {},
      'hello worldhello world'],
     ['{% include x %}', {x: 'hello'}, 'hello world'],
     ['{% spaceless %}<b> <i> hi  </i>\t </b>\t{% endspaceless %}', {},
      '<b><i> hi  </i></b>\t'],
-    ['{% templatetag openblock %}', {}, '{%'],
-    ['{% widthratio a b 0 %}', {a: 50, b: 100}, '0'],
-    ['{% widthratio a b 100 %}', {a: 0, b: 0}, ''],
-    ['{% widthratio a b 100 %}', {a: 0, b: 100}, '0'],
-    ['{% widthratio a b 100 %}', {a: 50, b: 100}, '50'],
-    ['{% widthratio a b 100 %}', {a: 100, b: 100}, '100'],
-    ['{% widthratio a b 100 %}', {a: 50, b: 80}, '63'],
-    ['{% widthratio a b 100 %}', {a: 50, b: 70}, '71'],
-    ['{% widthratio a b 100.0 %}', {a: 50, b: 100}, '50'],
-    ['{% widthratio a b c %}', {a: 50, b: 100, c: 100}, '50'],
+    ['{% templateTag openBlock %}', {}, '{%'],
+    ['{% widthRatio a b 0 %}', {a: 50, b: 100}, '0'],
+    ['{% widthRatio a b 100 %}', {a: 0, b: 0}, ''],
+    ['{% widthRatio a b 100 %}', {a: 0, b: 100}, '0'],
+    ['{% widthRatio a b 100 %}', {a: 50, b: 100}, '50'],
+    ['{% widthRatio a b 100 %}', {a: 100, b: 100}, '100'],
+    ['{% widthRatio a b 100 %}', {a: 50, b: 80}, '63'],
+    ['{% widthRatio a b 100 %}', {a: 50, b: 70}, '71'],
+    ['{% widthRatio a b 100.0 %}', {a: 50, b: 100}, '50'],
+    ['{% widthRatio a b c %}', {a: 50, b: 100, c: 100}, '50'],
     ['{% with "<>" as x %}{{ x }}{% endwith %}', {}, '<>'],
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
     ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
@@ -1301,21 +1287,8 @@
     ['{% url ak._TestController#page "a" "b" %}', {}, '/%3C%3E/a/b/page/'],
     ['{% csrfToken %}', {},
      ('<div style=\"display:none;\">' +
-      '<input type=\"hidden\" name=\"csrfToken\" value=\"42\" />' +
+      '<input type=\"hidden\" name=\"csrfToken\" value=\"42\">' +
       '</div>')]
-  ];
-
-
-  var invalidRenderingTests = [
-    ['as{{ missing }}df', {}, 'asdf', 'asINVALIDdf'],
-    ['{{ x.y }}', {x: {}}],
-    ['{{ x.y }}', {x: null}],
-    ['{{ x }}', {x: undefined}],
-    ['{{ x }}', {x: null}],
-    ['{{ x }}', {x: function () { return null; }}],
-    ['{{ x.1 }}', {x: null}],
-    ['{{ x.5 }}', {x: [1, 2, 3]}],
-    ['{{ x|default }}', {}]
   ];
 
 
@@ -1357,14 +1330,14 @@
     '{% cycle %}',
     '{% cycle x %}',
     '{% cycle 1 2 as x %}{% cycle y %}',
-    '{% firstof %}',
+    '{% firstOf %}',
     '{% include  %}',
     '{% regroup %}',
     '{% regroup a yo! b as c %}',
     '{% regroup a by b yo! c %}',
-    '{% templatetag fdsa %}',
-    '{% templatetag %}',
-    '{% widthratio %}',
+    '{% templateTag fdsa %}',
+    '{% templateTag %}',
+    '{% widthRatio %}',
     '{% with %}{% endwith %}',
     '{% with 1 1 1 %}{% endwith %}',
     '{% url %}',
@@ -1389,32 +1362,14 @@
         defineRoutes('<>/', [[[[ak._TestController,
                                 [['page/', ak._TestController.page('page')]]
                                ]]]]);
-        template.defaultTags.csrfToken.value = '42';
+        template.env.tags.csrfToken.value = '42';
         renderingTests.forEach(
           function (test) {
-            assertSame((new Template(test[0],
-                                     test[0],
-                                     normalEnv)).render(test[1]),
+            assertSame((new Template(test[0], testEnv)).render(test[1]),
                        test[2],
                        'Rendering ' + repr(test[0]));
           });
         ak.rootRoute = oldRootRoute;
-      },
-
-      testInvalidRendering: function () {
-        invalidRenderingTests.forEach(
-          function (test) {
-            assertSame((new Template(test[0],
-                                     test[0],
-                                     normalEnv)).render(test[1]),
-                       test[2] || '',
-                       'Rendering with empty invalid ' + repr(test[0]));
-            assertSame((new Template(test[0],
-                                     test[0],
-                                     invalidEnv)).render(test[1]),
-                       test[3] || 'INVALID',
-                       'Rendering with "INVALID" ' + repr(test[0]));
-          });
       },
 
       testErrors: function () {
@@ -1422,7 +1377,7 @@
           function (test) {
             assertThrow(TemplateSyntaxError,
                         function () {
-                          new Template(test, test, normalEnv);
+                          new Template(test, testEnv);
                         });
           });
         assertThrow(NotImplementedError,
@@ -1447,7 +1402,7 @@
       },
 
       testMakeLoadFromCode: function () {
-        var env = {__proto__: template.defaultEnv};
+        var env = {__proto__: template.env};
         env.load = template.makeLoadFromCode('/test_data/templates');
         assertSame(getTemplate('child.txt', env).render({x: 42}),
                    '\n42\n\n\n\nfoo\n\n');
@@ -1576,8 +1531,8 @@
       name: 'rest',
 
       testRenderToResponse: function () {
-        template.defaultEnv = {__proto__: template.defaultEnv};
-        template.defaultEnv.load = function (name) {
+        template.env = {__proto__: template.env};
+        template.env.load = function (name) {
           return '{{' + name + '}}';
         };
         var headers = {};
@@ -1585,7 +1540,7 @@
         assertSame(response.content, '42');
         assertSame(response.status, 1);
         assertSame(response.headers, headers);
-        template.defaultEnv = template.defaultEnv.__proto__;
+        template.env = template.env.__proto__;
       },
 
       testRedirect: function () {

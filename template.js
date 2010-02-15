@@ -34,12 +34,7 @@
 
   var $ = ak.template = new ak.Module();
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Errors
-  //////////////////////////////////////////////////////////////////////////////
-
   ak.TemplateSyntaxError = ak.BaseError.subclass();
-  ak.TemplateDoesNotExist = ak.BaseError.subclass();
 
   //////////////////////////////////////////////////////////////////////////////
   // Wrap
@@ -60,15 +55,10 @@
       },
 
       toString: function () {
+        if (this.raw === undefined)
+          return '';
         var string = this.raw + '';
-        return (this.safe
-                ? string
-                : (string
-                   .replace(/&/g, '&amp;')
-                   .replace(/</g, '&lt;')
-                   .replace(/>/g, '&gt;')
-                   .replace(/\"/g, '&quot;')
-                   .replace(/\'/g, '&#39;')));
+        return this.safe ? string : ak.escapeHTML(string);
       }
     });
 
@@ -102,13 +92,7 @@
   // Exprs
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Expr = Object.subclass(
-    {
-      resolve: ak.abstract
-    });
-
-
-  var Variable = $.Expr.subclass(
+  var Variable = Object.subclass(
     function (lookups) {
       this._lookups = lookups;
     },
@@ -132,7 +116,7 @@
     });
 
 
-  var Constant = $.Expr.subclass(
+  var Constant = Object.subclass(
     function (value) {
       this._value = new $.Wrap(value, true);
     },
@@ -141,7 +125,7 @@
     });
 
 
-  var FilterExpr = $.Expr.subclass(
+  var FilterExpr = Object.subclass(
     function (filter, expr, arg) {
       this._filter = filter;
       this._expr = expr;
@@ -260,13 +244,7 @@
   // Nodes
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Node = Object.subclass(
-    {
-      render: ak.abstract
-    });
-
-
-  var GroupNode = $.Node.subclass(
+  var GroupNode = Object.subclass(
     function (subnodes) {
       this._subnodes = subnodes;
     },
@@ -280,7 +258,7 @@
     });
 
 
-  var TextNode = $.Node.subclass(
+  var TextNode = Object.subclass(
     function (string) {
       this._string = string;
     },
@@ -289,17 +267,13 @@
     });
 
 
-  var ExprNode = $.Node.subclass(
-    function (expr, env) {
+  var ExprNode = Object.subclass(
+    function (expr) {
       this._expr = expr;
-      this._env = env;
     },
     {
       render: function (context) {
-        var value = this._expr.resolve(context);
-        return (value.raw === undefined || value.raw === null
-                ? this._env.invalid
-                : value + '');
+        return this._expr.resolve(context) + '';
       }
     });
 
@@ -307,16 +281,16 @@
   // Token
   //////////////////////////////////////////////////////////////////////////////
 
-  $.Token = Object.subclass(
-    function (kind, contents) {
+  var Token = Object.subclass(
+    function (kind, content) {
       this.kind = kind;
-      this.contents = contents;
+      this.content = content;
     });
 
-  $.Token.TEXT    = 0;
-  $.Token.EXPR    = 1;
-  $.Token.BLOCK   = 2;
-  $.Token.COMMENT = 3;
+  var TEXT    = 0;
+  var EXPR    = 1;
+  var BLOCK   = 2;
+  var COMMENT = 3;
 
 
   function tokenize(string) {
@@ -328,19 +302,16 @@
       var tag = match[0];
       var tagStart = re.lastIndex - tag.length;
       if (tagStart > textStart)
-        result.push(new $.Token($.Token.TEXT,
-                                string.substring(textStart, tagStart)));
+        result.push(new Token(TEXT, string.substring(textStart, tagStart)));
       if (tag.startsWith('{#'))
-        result.push(new $.Token($.Token.COMMENT, ''));
+        result.push(new Token(COMMENT, ''));
       else
-        result.push(new $.Token((tag.startsWith('{%')
-                                 ? $.Token.BLOCK
-                                 : $.Token.EXPR),
-                                tag.substring(2, tag.length - 2).trim()));
+        result.push(new Token(tag.startsWith('{%') ? BLOCK : EXPR,
+                              tag.substring(2, tag.length - 2).trim()));
       textStart = re.lastIndex;
     }
     if (string.length > textStart)
-      result.push(new $.Token($.Token.TEXT, string.substring(textStart)));
+      result.push(new Token(TEXT, string.substring(textStart)));
     return result;
   }
 
@@ -349,51 +320,45 @@
   //////////////////////////////////////////////////////////////////////////////
 
   $.Parser = Object.subclass(
-    function (string, store, env/* = ak.template.defaultEnv */) {
+    function (string, store, env) {
       this._tokens = tokenize(string);
       this.store = store;
-      this.env = env || $.defaultEnv;
-      this.token = undefined;
+      this.env = env;
+      this._token = undefined;
       this.parsedNonText = false;
     },
     {
+      get content() {
+        return this._token.content;
+      },
+
       parse: function (until/* = [] */) {
         until = until || [];
         var nodes = [];
         while (this._tokens.length) {
-          this.token = this._tokens.shift();
-          if (this.token.kind == $.Token.TEXT) {
-            nodes.push(new TextNode(this.token.contents));
-          } else if (this.token.kind == $.Token.EXPR) {
-            nodes.push(new ExprNode(this.makeExpr(this.token.contents),
-                                    this.env));
+          this._token = this._tokens.shift();
+          if (this._token.kind == TEXT) {
+            nodes.push(new TextNode(this.content));
+          } else if (this._token.kind == EXPR) {
+            nodes.push(new ExprNode(this.makeExpr(this.content)));
             this.parsedNonText = true;
-          } else if (this.token.kind == $.Token.BLOCK) {
-            if (until.indexOf(this.token.contents) != -1)
+          } else if (this._token.kind == BLOCK) {
+            if (until.indexOf(this.content) != -1)
               return new GroupNode(nodes);
-            var command = this.token.contents.split(/\s/, 1)[0];
+            var command = this.content.split(/\s/, 1)[0];
             if (!command)
               throw ak.TemplateSyntaxError('Empty block tag');
             var compile = this.env.tags[command];
             if (!compile)
               throw ak.TemplateSyntaxError(
                 'Invalid block tag: ' + ak.repr(command));
-            nodes.push(compile(this));
+            nodes.push(compile(this, this.content));
             this.parsedNonText = true;
           }
         }
         if (until.length)
           throw ak.TemplateSyntaxError('Unclosed tags: ' + until.join(', '));
         return new GroupNode(nodes);
-      },
-
-      skip: function (end) {
-        while (this._tokens.length) {
-          this.token = this._tokens.shift();
-          if (this.token.kind == $.Token.BLOCK && this.token.contents == end)
-            return;
-        }
-        throw ak.TemplateSyntaxError('Unclosed tag: ' + endTag);
       },
 
       makeExpr: function (string) {
@@ -410,12 +375,9 @@
   //////////////////////////////////////////////////////////////////////////////
 
   ak.Template = Object.subclass(
-    function (string,
-              name/* = '<Unknown Template>' */,
-              env/* = ak.template.defaultEnv */) {
+    function (string, env/* = ak.template.env */) {
       this.store = {};
-      this._root = (new $.Parser(string, this.store, env)).parse();
-      this._name = name || '<Unknown Template>';
+      this._root = (new $.Parser(string, this.store, env || $.env)).parse();
     },
     {
       render: function (context/* = {} */) {
@@ -424,9 +386,9 @@
     });
 
 
-  ak.getTemplate = function (name, env/* = ak.template.defaultEnv */) {
-    env = env || $.defaultEnv;
-    return new ak.Template(env.load(name), name, env);
+  ak.getTemplate = function (name, env/* = ak.template.env */) {
+    env = env || $.env;
+    return new ak.Template(env.load(name), env);
   };
 
   //////////////////////////////////////////////////////////////////////////////
@@ -462,14 +424,11 @@
       }));
 
 
-  $.defaultFilters = {
+  var defaultFilters = {
     add: new $.Filter(
       function (value, arg) {
-        var vNum = +value.raw;
-        var aNum = +arg.raw;
-        if (isNaN(vNum) || isNaN(aNum))
-          return value;
-        return vNum + aNum;
+        var result = (+value.raw) + (+arg.raw);
+        return isNaN(result) ? value : result;
       },
       {safety: 'always', accept: 'wrap'}),
 
@@ -482,11 +441,26 @@
       },
       {safety: 'value', accept: 'string'}),
 
+    breakLines: new $.Filter(
+      function (value) {
+        return (value + '').replace(/\n/g, '<br>');
+      },
+      {safety: 'always', accept: 'wrap'}),
+
     capFirst: new $.Filter(
       function (value) {
         return value && value[0].toUpperCase() + value.substr(1);
       },
       {safety: 'value', accept: 'string'}),
+
+    countWords: new $.Filter(
+      function (value) {
+        var words = value.trim().split(/\s+/);
+        return (words.length == 1 && !words[0]
+                ? 0
+                : words.length);
+      },
+      {safety: 'always', accept: 'string'}),
 
     cut: new $.Filter(
       function (value, arg) {
@@ -511,18 +485,6 @@
         return value.raw === undefined ? arg : value;
       },
       {accept: 'wrap'}),
-
-    sortObjects: new $.Filter(
-      function (value, arg) {
-        return sortObjects(value, arg);
-      },
-      {safety: 'value'}),
-
-    sortObjectsReversed: new $.Filter(
-      function (value, arg) {
-        return sortObjects(value, arg).reverse();
-      },
-      {safety: 'value'}),
 
     divisibleBy: new $.Filter(
       function (value, arg) {
@@ -555,6 +517,20 @@
       },
       {accept: 'string'}),
 
+    first: new $.Filter(
+      function (value) {
+        return (typeof(value) == 'string' || ak.isList(value)
+                ? value[0]
+                : value);
+      },
+      {safety: 'value'}),
+
+    forceEscape: new $.Filter(
+      function (value) {
+        return (new $.Wrap(value)) + '';
+      },
+      {safety: 'always', accept: 'wrap'}),
+
     formatFileSize: new $.Filter(
       function (value) {
         value = +value;
@@ -572,14 +548,6 @@
       },
       {safety: 'always'}),
 
-    first: new $.Filter(
-      function (value) {
-        return (value === undefined || value === null
-                ? value
-                : value[0]);
-      },
-      {safety: 'value'}),
-
     formatFloat: new $.Filter(
       function (value, arg/* = -1 */) {
         value = +value;
@@ -595,12 +563,6 @@
         return value.toFixed(Math.abs(arg));
       },
       {safety: 'always'}),
-
-    forceEscape: new $.Filter(
-      function (value) {
-        return (new $.Wrap(value)) + '';
-      },
-      {safety: 'always', accept: 'wrap'}),
 
     getDigit: new $.Filter(
       function (value, arg) {
@@ -627,29 +589,11 @@
 
     last: new $.Filter(
       function (value) {
-        return (value === undefined || value === null
-                ? value
-                : value[value.length - 1]);
+        return (typeof(value) == 'string' || ak.isList(value)
+                ? value[value.length - 1]
+                : value);
       },
       {safety: 'value'}),
-
-    paragraph: new $.Filter(
-      function (value) {
-        value = (value + '').trim();
-        if (!value)
-          return '';
-        return value.split(/\n{2,}/).map(
-          function (paragraph) {
-            return '<p>' + paragraph.replace(/\n/g, '<br />') + '</p>';
-          }).join('\n\n');
-      },
-      {safety: 'always', accept: 'wrap'}),
-
-    breakLines: new $.Filter(
-      function (value) {
-        return (value + '').replace(/\n/g, '<br />');
-      },
-      {safety: 'always', accept: 'wrap'}),
 
     numberLines: new $.Filter(
       function (value) {
@@ -665,11 +609,17 @@
       },
       {safety: 'always', accept: 'wrap'}),
 
-    lower: new $.Filter(
+    paragraph: new $.Filter(
       function (value) {
-        return value.toLowerCase();
+        value = (value + '').trim();
+        if (!value)
+          return '';
+        return value.split(/\n{2,}/).map(
+          function (paragraph) {
+            return '<p>' + paragraph.replace(/\n/g, '<br>') + '</p>';
+          }).join('\n\n');
       },
-      {safety: 'value', accept: 'string'}),
+      {safety: 'always', accept: 'wrap'}),
 
     pluralize: new $.Filter(
       function (value, arg/* = 's' */) {
@@ -706,7 +656,7 @@
         var func;
         if (typeof(value) == 'string' || value instanceof String)
           func = String.prototype.substring;
-        else if (value instanceof Array)
+        else if (ak.isList(value))
           func = Array.prototype.slice;
         else
           return value;
@@ -737,6 +687,18 @@
       },
       {safety: 'always', accept: 'string'}),
 
+    sortObjects: new $.Filter(
+      function (value, arg) {
+        return sortObjects(value, arg);
+      },
+      {safety: 'value'}),
+
+    sortObjectsReversed: new $.Filter(
+      function (value, arg) {
+        return sortObjects(value, arg).reverse();
+      },
+      {safety: 'value'}),
+
     stripTags: new $.Filter(
       function (value) {
         return value.replace(/<[^>]*?>/g, '');
@@ -755,7 +717,13 @@
       },
       {safety: 'always'}),
 
-    title: new $.Filter(
+    toLowerCase: new $.Filter(
+      function (value) {
+        return value.toLowerCase();
+      },
+      {safety: 'value', accept: 'string'}),
+
+    toTitleCase: new $.Filter(
       function (value) {
         return (value
                 .toLowerCase()
@@ -770,6 +738,12 @@
       },
       {safety: 'value', accept: 'string'}),
 
+    toUpperCase: new $.Filter(
+      function (value) {
+        return value.toUpperCase();
+      },
+      {safety: 'value', accept: 'string'}),
+
     truncateWords: new $.Filter(
       function (value, arg) {
         var length = +arg;
@@ -781,21 +755,6 @@
         return words.join(' ');
       },
       {safety: 'value'}),
-
-    upper: new $.Filter(
-      function (value) {
-        return value.toUpperCase();
-      },
-      {safety: 'value', accept: 'string'}),
-
-    countWords: new $.Filter(
-      function (value) {
-        var words = value.trim().split(/\s+/);
-        return (words.length == 1 && !words[0]
-                ? 0
-                : words.length);
-      },
-      {safety: 'always', accept: 'string'}),
 
     yesno: new $.Filter(
       function (value, arg) {
@@ -813,23 +772,10 @@
   // defaultTags
   //////////////////////////////////////////////////////////////////////////////
 
-  $.defaultTags = {};
+  var defaultTags = {};
 
 
-  var CommentNode = $.Node.subclass(
-    {
-      render: function (context) {
-        return '';
-      }
-    });
-
-  $.defaultTags.comment = function(parser) {
-    parser.skip('endcomment');
-    return new CommentNode();
-  };
-
-
-  var ForNode = $.Node.subclass(
+  var ForNode = Object.subclass(
     function (name, expr, reversed, bodyNode, emptyNode) {
       this._name = name;
       this._expr = expr;
@@ -866,24 +812,24 @@
       }
     });
 
-  $.defaultTags['for'] = function (parser) {
+  defaultTags['for'] = function (parser) {
     var match = (/^for\s+(\w+)\s+in\s+(.*?)(\s+reversed)?$/
-                 .exec(parser.token.contents));
+                 .exec(parser.content));
     if (!match)
       throw ak.TemplateSyntaxError(
         '"for" tag should use the format ' +
           '"for <letters, digits or underscores> in <expr> [reversed]": ' +
-          ak.repr(parser.token.contents));
+          ak.repr(parser.content));
     var bodyNode = parser.parse(['empty', 'endfor']);
     var emptyNode;
-    if (parser.token.contents == 'empty')
+    if (parser.content == 'empty')
       emptyNode = parser.parse(['endfor']);
     return new ForNode(match[1], parser.makeExpr(match[2]), !!match[3],
                        bodyNode, emptyNode);
   };
 
 
-  var ExtendsNode = $.Node.subclass(
+  var ExtendsNode = Object.subclass(
     function (expr, blocks, env) {
       this._expr = expr;
       this._blocks = blocks;
@@ -907,18 +853,18 @@
       }
     });
 
-  $.defaultTags.extends = function (parser) {
+  defaultTags.extends = function (parser) {
     if (parser.parsedNonText)
       throw ak.TemplateSyntaxError(
-        '"extend" should be the first tag in the template');
-    var expr = parser.makeExpr(parser.token.contents.substr(8).trim());
+        '"extends" should be the first tag in the template');
+    var expr = parser.makeExpr(parser.content.substr(8).trim());
     parser.store.extends = true;
     parser.parse();
     return new ExtendsNode(expr, parser.store.blocks || {}, parser.env);
   };
 
 
-  var BlockNode = $.Node.subclass(
+  var BlockNode = Object.subclass(
     function (name, node, store) {
       store.blocks[name] = this;
       this._name = name;
@@ -937,8 +883,8 @@
       }
     });
 
-  $.defaultTags.block = function (parser) {
-    var args = parser.token.contents.split(/\s+/);
+  defaultTags.block = function (parser) {
+    var args = parser.content.split(/\s+/);
     if (args.length != 2)
       throw ak.TemplateSyntaxError('"block" tag takes one argument');
     var name = args[1];
@@ -952,24 +898,21 @@
   };
 
 
-  var CycleNode = $.Node.subclass(
-    function (exprs, env) {
+  var CycleNode = Object.subclass(
+    function (exprs) {
       this._exprs = exprs;
-      this._env = env;
       this._index = 0;
     },
     {
       render: function (context) {
         var value = this._exprs[this._index].resolve(context);
         this._index = (this._index + 1) % this._exprs.length;
-        return (value.raw === undefined || value.raw === null
-                ? this._env.invalid
-                : value + '');
+        return value + '';
       }
     });
 
-  $.defaultTags.cycle = function (parser) {
-    var args = $.smartSplit(parser.token.contents);
+  defaultTags.cycle = function (parser) {
+    var args = $.smartSplit(parser.content);
     if (args.length < 2)
       throw ak.TemplateSyntaxError(
         '"cycle" tag requires at least one argument');
@@ -992,7 +935,7 @@
     } else {
       exprStrings = args.slice(1);
     }
-    var result = new CycleNode(parser.makeExprs(exprStrings, parser.env));
+    var result = new CycleNode(parser.makeExprs(exprStrings));
     if (name) {
       parser.store.cycles = parser.store.cycles || {};
       parser.store.cycles[name] = result;
@@ -1001,39 +944,27 @@
   };
 
 
-  var DebugNode = $.Node.subclass(
-    {
-      render: function (context) {
-        return (new $.Wrap(ak.repr(context))) + '';
-      }
-    });
-
-  $.defaultTags.debug = function (parser) {
-    return new DebugNode();
-  };
-
-
-  var FilterNode = $.Node.subclass(
-    function (expr, node, env) {
+  var FilterNode = Object.subclass(
+    function (expr, node) {
       this._expr = expr;
       this._node = node;
     },
     {
       render: function (context) {
         var subcontext = {__proto__: context};
-        subcontext.contents = this._node.render(context);
+        subcontext.content = this._node.render(context);
         return this._expr.resolve(subcontext) + '';
       }
     });
 
-  $.defaultTags.filter = function (parser) {
-    var expr = parser.makeExpr('contents|safe|' +
-                               parser.token.contents.substr(7).trim());
+  defaultTags.filter = function (parser) {
+    var expr = parser.makeExpr('content|safe|' +
+                               parser.content.substr(7).trim());
     return new FilterNode(expr, parser.parse(['endfilter']));
   };
 
 
-  var FirstOfNode = $.Node.subclass(
+  var FirstOfNode = Object.subclass(
     function (exprs) {
       this._exprs = exprs;
     },
@@ -1048,16 +979,16 @@
       }
     });
 
-  $.defaultTags.firstof = function (parser) {
-    var args = $.smartSplit(parser.token.contents);
+  defaultTags.firstOf = function (parser) {
+    var args = $.smartSplit(parser.content);
     if (args.length < 2)
       throw ak.TemplateSyntaxError(
-        '"firstof" tag requires at least one argument');
+        '"firstOf" tag requires at least one argument');
     return new FirstOfNode(parser.makeExprs(args.slice(1)));
   };
 
 
-  var IfChangedNode = $.Node.subclass(
+  var IfChangedNode = Object.subclass(
     function (exprs, thenNode, elseNode) {
       this._exprs = exprs;
       this._thenNode = thenNode;
@@ -1083,20 +1014,20 @@
       }
     });
 
-  $.defaultTags.ifchanged = function (parser) {
-    var args = $.smartSplit(parser.token.contents);
+  defaultTags.ifchanged = function (parser) {
+    var args = $.smartSplit(parser.content);
     var exprs;
     if (args.length > 1)
       exprs = parser.makeExprs(args.slice(1));
     var thenNode = parser.parse(['else', 'endifchanged']);
     var elseNode;
-    if (parser.token.contents == 'else')
+    if (parser.content == 'else')
       elseNode = parser.parse(['endifchanged']);
     return new IfChangedNode(exprs, thenNode, elseNode);
   };
 
 
-  var IncludeNode = $.Node.subclass(
+  var IncludeNode = Object.subclass(
     function (expr, env) {
       this._expr = expr;
       this._env = env;
@@ -1106,14 +1037,7 @@
         if (this._template)
           return this._template;
         var name = this._expr.resolve(context).raw;
-        var template;
-        try {
-          template = ak.getTemplate(name, this._env);
-        } catch (error) {
-          if (this._env.debug && error instanceof ak.TemplateSyntaxError)
-            throw error;
-          template = new ak.Template('', '', this._env);
-        }
+        var template = ak.getTemplate(name, this._env);
         if (this._expr instanceof Constant)
           this._template = template;
         return template;
@@ -1124,13 +1048,13 @@
       }
     });
 
-  $.defaultTags.include = function (parser) {
-    return new IncludeNode(parser.makeExpr(parser.token.contents.substr(8)),
+  defaultTags.include = function (parser) {
+    return new IncludeNode(parser.makeExpr(parser.content.substr(8)),
                            parser.env);
   };
 
 
-  var SpacelessNode = $.Node.subclass(
+  var SpacelessNode = Object.subclass(
     function (node) {
       this._node = node;
     },
@@ -1140,37 +1064,37 @@
       }
     });
 
-  $.defaultTags.spaceless = function (parser) {
+  defaultTags.spaceless = function (parser) {
     return new SpacelessNode(parser.parse(['endspaceless']));
   };
 
 
   var templateTagMapping = {
-    openblock: '{%',
-    closeblock: '%}',
-    openvariable: '{{',
-    closevariable: '}}',
-    openbrace: '{',
-    closebrace: '}',
-    opencomment: '{#',
-    closecomment: '#}'
+    openBlock: '{%',
+    closeBlock: '%}',
+    openExpr: '{{',
+    closeExpr: '}}',
+    openBrace: '{',
+    closeBrace: '}',
+    openComment: '{#',
+    closeComment: '#}'
   };
 
-  $.defaultTags.templatetag = function (parser) {
-    var args = parser.token.contents.split(/\s+/);
+  defaultTags.templateTag = function (parser) {
+    var args = parser.content.split(/\s+/);
     if (args.length != 2)
       throw ak.TemplateSyntaxError(
-        '"templatetag" takes one argument');
+        '"templateTag" takes one argument');
     var value = templateTagMapping[args[1]];
     if (!value)
       throw ak.TemplateSyntaxError(
-        'Invalid "templatetag" argument: ' + ak.repr(args[1]) +
+        'Invalid "templateTag" argument: ' + ak.repr(args[1]) +
         '. Must be one of: ' + ak.keys(templateTagMapping).join(', '));
     return new TextNode(value);
   };
 
 
-  var WidthRatioNode = $.Node.subclass(
+  var WidthRatioNode = Object.subclass(
     function (currExpr, maxExpr, maxWidthExpr) {
       this._currExpr = currExpr;
       this._maxExpr = maxExpr;
@@ -1186,18 +1110,18 @@
       }
     });
 
-  $.defaultTags.widthratio = function (parser) {
-    var args = $.smartSplit(parser.token.contents);
+  defaultTags.widthRatio = function (parser) {
+    var args = $.smartSplit(parser.content);
     if (args.length != 4)
       throw ak.TemplateSyntaxError(
-        '"widthratio" tag takes three arguments');
+        '"widthRatio" tag takes three arguments');
     return new WidthRatioNode(parser.makeExpr(args[1]),
                               parser.makeExpr(args[2]),
                               parser.makeExpr(args[3]));
   };
 
 
-  var WithNode = $.Node.subclass(
+  var WithNode = Object.subclass(
     function (expr, name, node) {
       this._expr = expr;
       this._name = name;
@@ -1211,8 +1135,8 @@
       }
     });
 
-  $.defaultTags['with'] = function (parser) {
-    var args = $.smartSplit(parser.token.contents);
+  defaultTags['with'] = function (parser) {
+    var args = $.smartSplit(parser.content);
     if (args.length != 4)
       throw ak.TemplateSyntaxError(
         '"with" tag takes three arguments');
@@ -1225,7 +1149,7 @@
   };
 
 
-  var URLNode = $.Node.subclass(
+  var URLNode = Object.subclass(
     function (controller, argExprs, as) {
       this._controller = controller;
       this._argExprs = argExprs;
@@ -1255,8 +1179,8 @@
       }
     });
 
-  $.defaultTags.url = function (parser) {
-    var args = $.smartSplit(parser.token.contents);
+  defaultTags.url = function (parser) {
+    var args = $.smartSplit(parser.content);
     if (args.length < 2)
       throw ak.TemplateSyntaxError(
         '"url" takes at least two arguments');
@@ -1283,7 +1207,7 @@
   };
 
 
-  var CSRFTokenNode = $.Node.subclass(
+  var CSRFTokenNode = Object.subclass(
     function (value) {
       this._value = value;
     },
@@ -1291,11 +1215,11 @@
       render: function (context) {
         return ('<div style="display:none;">' +
                 '<input type="hidden" name="csrfToken" value="' + this._value +
-                '" /></div>');
+                '"></div>');
       }
     });
 
-  $.defaultTags.csrfToken = function (parser) {
+  defaultTags.csrfToken = function (parser) {
     return new CSRFTokenNode(arguments.callee.value || '');
   };
 
@@ -1362,7 +1286,7 @@
   }
 
 
-  var Binary = $.Expr.subclass(
+  var Binary = Object.subclass(
     function (left, right, func) {
       this._left = left;
       this._right = right;
@@ -1376,7 +1300,7 @@
     });
 
 
-  var Unary = $.Expr.subclass(
+  var Unary = Object.subclass(
     function (arg, func) {
       this._arg = arg;
       this._func = func;
@@ -1510,7 +1434,7 @@
   }
 
 
-  var IfNode = $.Node.subclass(
+  var IfNode = Object.subclass(
     function (expr, thenNode, /* optional */elseNode) {
       this._expr = expr;
       this._thenNode = thenNode;
@@ -1526,17 +1450,17 @@
       }
     });
 
-  $.defaultTags['if'] = function (parser) {
-    var expr = parseExpr(parser.token.contents.substring(3));
+  defaultTags['if'] = function (parser) {
+    var expr = parseExpr(parser.content.substring(3));
     var thenNode = parser.parse(['else', 'endif']);
     var elseNode;
-    if (parser.token.contents == 'else')
+    if (parser.content == 'else')
       elseNode = parser.parse(['endif']);
     return new IfNode(expr, thenNode, elseNode);
   };
 
   //////////////////////////////////////////////////////////////////////////////
-  // defaultEnv
+  // Default environment
   //////////////////////////////////////////////////////////////////////////////
 
   $.makeLoadFromCode = function (dir) {
@@ -1549,11 +1473,9 @@
   };
 
 
-  $.defaultEnv = {
-    debug: false,
-    invalid: '',
-    tags: $.defaultTags,
-    filters: $.defaultFilters,
+  $.env = {
+    tags: defaultTags,
+    filters: defaultFilters,
     load: $.makeLoadFromCode('/templates')
   };
 
