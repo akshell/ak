@@ -41,18 +41,6 @@
                            headers);
   };
 
-
-  ak.redirect = function (to /* ... */) {
-    return new ak.Response(
-      '',
-      ak.http.FOUND,
-      {
-        Location: (typeof(to) == 'string'
-                   ? to
-                   : ak.reverse.apply(this, arguments))
-      });
-  };
-
   //////////////////////////////////////////////////////////////////////////////
   // Rel, Selection and RelVar get() method
   //////////////////////////////////////////////////////////////////////////////
@@ -170,8 +158,8 @@
   // serve() and defaultServe()
   //////////////////////////////////////////////////////////////////////////////
 
-  ak.serve = function (request, root/* = ak.rootRoute */) {
-    root = root || ak.getRootRoute();
+  ak.serve = function (request, root/* = __root__ */) {
+    root = root || __root__;
     var resolveInfo = root.resolve(request.path.substr(1));
     var controller = resolveInfo[0];
     var args = [request].concat(resolveInfo[1]);
@@ -237,7 +225,7 @@
             if (!(error instanceof ak.ResolveError))
               throw error;
             try {
-              (root || ak.rootRoute).resolve(request.path.substr(1) + '/');
+              (root || __root__).resolve(request.path.substr(1) + '/');
             } catch (_) {
               throw error;
             }

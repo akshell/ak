@@ -38,6 +38,10 @@ var HelloController = ak.Controller.subclass(
 
 var MainController = ak.Controller.subclass(
   {
+    get: function () {
+      return ak.renderToResponse('home.html');
+    },
+
     handleTestPage: function () {
       return ak.renderToResponse('test.html', {request: this.request});
     },
@@ -48,12 +52,13 @@ var MainController = ak.Controller.subclass(
   });
 
 
-ak.defineRoutes('',
-                [
-                  ['hello/', [[HelloController]]],
-                  ['test/', MainController.page('Test')],
-                  ['error/', MainController.page('Error')]
-                ]);
+__root__ = new ak.URLMap(
+  MainController,
+  ['hello/',
+   ['', HelloController, 'hello']
+  ],
+  ['test/', MainController.page('Test'), 'test'],
+  ['error/', MainController.page('Error'), 'error']);
 
 
 __main__ = ak.defaultServe;

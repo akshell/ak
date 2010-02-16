@@ -1281,10 +1281,10 @@
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
     ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
     ['{% with "a>b" as x %}{{ x.toUpperCase }}{% endwith %}', {}, 'A>B'],
-    ['{% url ak._TestController x y %}', {x: '&', y: '"'}, '/%3C%3E/&/%22/'],
-    ['{% url ak._TestController 1 2 as x %}{{ x }}', {}, '/%3C%3E/1/2/'],
-    ['{% url ak._TestController as x %}{{ x }}', {}, ''],
-    ['{% url ak._TestController#page "a" "b" %}', {}, '/%3C%3E/a/b/page/'],
+    ['{% url test x y %}', {x: '&', y: '"'}, '/%3C%3E/&/%22/'],
+    ['{% url test 1 2 as x %}{{ x }}', {}, '/%3C%3E/1/2/'],
+    ['{% url test as x %}{{ x }}', {}, ''],
+    ['{% url page "a" "b" %}', {}, '/%3C%3E/a/b/page/'],
     ['{% csrfToken %}', {},
      ('<div style=\"display:none;\">' +
       '<input type=\"hidden\" name=\"csrfToken\" value=\"42\">' +
@@ -1341,10 +1341,6 @@
     '{% with %}{% endwith %}',
     '{% with 1 1 1 %}{% endwith %}',
     '{% url %}',
-    '{% url does_not_exist %}',
-    '{% url does_not_exist as x %}',
-
-
     '{% for a in b %}',
     '{% for a in b %}{% empty %}',
     '{% for %}{% endfor %}',
@@ -1358,10 +1354,15 @@
       name: 'template',
 
       testRendering: function () {
-        var oldRootRoute = ak.rootRoute;
-        defineRoutes('<>/', [[[[ak._TestController,
-                                [['page/', ak._TestController.page('page')]]
-                               ]]]]);
+        var oldRoot = __root__;
+        __root__ = new URLMap(
+          ['<>/',
+           ['',
+            ['', ak._TestController, 'test',
+             ['page/', ak._TestController.page('page'), 'page']
+            ]
+           ]
+          ]);
         template.env.tags.csrfToken.value = '42';
         renderingTests.forEach(
           function (test) {
@@ -1369,7 +1370,7 @@
                        test[2],
                        'Rendering ' + repr(test[0]));
           });
-        ak.rootRoute = oldRootRoute;
+        __root__ = oldRoot;
       },
 
       testErrors: function () {
@@ -1420,6 +1421,13 @@
       testErrors: function () {
         assertSame((new HttpError()).status, http.BAD_REQUEST);
         assertSame((new NotFoundError()).message, 'Not found');
+      },
+
+      testRedirect: function () {
+        var response = redirect('xyz');
+        assertSame(response.content, '');
+        assertSame(response.status, http.FOUND);
+        assertSame(response.headers.Location, 'xyz');
       }
     });
 
@@ -1436,60 +1444,43 @@
         function g() {}
         function h() {}
         function m() {}
-        assertEqual((new Route([new Route([new Route(f)])])).resolve('a/b/c/'),
-                    [f, ['a', 'b', 'c']]);
-        var route = new Route(
-          '',
-          [
-            ['abc/', [[f]]],
-            [/123/, g],
-            [
-              g,
-              [
-                [/a(.)c/, h],
-                [
-                  /./,
-                  m
-                ],
-                [
-                  /(.)(.)/,
-                  f,
-                  function (args) {
-                    return args[0] + '' + args[1];
-                  }
-                ]
-              ]
-            ]
+        assertEqual(
+          (new URLMap(['', new URLMap(['', new URLMap(f)])])).resolve('a/b/'),
+          [f, ['a', 'b']]);
+        var root = new URLMap(
+          ['abc/', ['', f, 'f1']],
+          [/123/, g, 'g1'],
+          ['', g, 'g2',
+           [/a(.)c/, h, 'h'],
+           [/../, f, 'f2'],
+           [/./, m]
           ]);
-        assertEqual(route.resolve('abc/xyz/'), [f, ['xyz']]);
-        assertEqual(route.resolve('xyz/'), [g, ['xyz']]);
-        assertThrow(ResolveError, function () { route.resolve(''); });
-        assertThrow(ResolveError, function () { route.resolve('xyz/abd'); });
-        assertThrow(ResolveError, function () { route.resolve('xyz/xabc'); });
-        assertEqual(route.resolve('xyz/abc'), [h, ['xyz', 'b']]);
-        assertEqual(route.resolve('xyz/a'), [m, ['xyz', 'a']]);
-        assertEqual(route.resolve('xyz/ab'), [f, ['xyz', ['a', 'b']]]);
-        assertEqual(route.reverse(h, 'xyz', 0), 'xyz/a0c');
-        assertEqual(route.reverse(f, '123'), 'abc/123/');
-        assertEqual(route.reverse(f, '123', [4, 5]), '123/45');
+        assertEqual(root.resolve('abc/xyz/'), [f, ['xyz']]);
+        assertEqual(root.resolve('xyz/'), [g, ['xyz']]);
+        assertThrow(ResolveError, function () { root.resolve(''); });
+        assertThrow(ResolveError, function () { root.resolve('xyz/abd'); });
+        assertThrow(ResolveError, function () { root.resolve('xyz/xabc'); });
+        assertEqual(root.resolve('xyz/abc'), [h, ['xyz', 'b']]);
+        assertEqual(root.resolve('xyz/a'), [m, ['xyz', 'a']]);
+        assertEqual(root.resolve('xyz/ab'), [f, ['xyz', 'ab']]);
+        assertEqual(root.reverse('h', 'xyz', 0), 'xyz/a0c');
+        assertEqual(root.reverse('f1', '123'), 'abc/123/');
+        assertEqual(root.reverse('f2', '123', 45), '123/45');
         assertThrow(ReverseError,
-                    function () { route.reverse(function () {}); });
-        assertThrow(ReverseError, function () { route.reverse(g, 42); });
-        assertThrow(ReverseError, function () { route.reverse(g, 1, 2, 3); });
-        assertThrow(UsageError, function () { new Route(42); });
-        assertThrow(TypeError, function () { new Route([f]); });
+                    function () { root.reverse(function () {}); });
+        assertThrow(ReverseError, function () { root.reverse('g1', 1, 2); });
+        assertThrow(ReverseError, function () { root.reverse('g2', 1, 2); });
+        assertThrow(ReverseError, function () { root.reverse('no-such'); });
+        assertThrow(TypeError, function () { new URLMap(42); });
+        assertThrow(TypeError, function () { new URLMap([f]); });
+        assertThrow(UsageError, function () {
+                      var map = new URLMap(['x', f, 'name'], ['y', g, 'name']);
+                      map.reverse('other-name');
+                    });
       },
 
-      testRoot: function () {
-        var oldRootRoute = ak.rootRoute;
-        delete ak.rootRoute;
-        assertThrow(UsageError, resolve);
-        assertThrow(UsageError, reverse);
-        function f() {};
-        defineRoutes('abc', f);
-        assertSame(reverse(f), '/abc');
-        assertEqual(resolve('/abc'), [f, []]);
-        ak.rootRoute = oldRootRoute;
+      testResolve: function () {
+        assertThrow(ValueError, resolve, 'relative/path');
       }
     });
 
@@ -1543,18 +1534,6 @@
         template.env = template.env.__proto__;
       },
 
-      testRedirect: function () {
-        var oldRootRoute = ak.rootRoute;
-        function f () {}
-        defineRoutes(f);
-        var response = redirect('xyz');
-        assertSame(response.content, '');
-        assertSame(response.status, http.FOUND);
-        assertSame(response.headers.Location, 'xyz');
-        assertSame(redirect(f, 'abc').headers.Location, '/abc/');
-        ak.rootRoute = oldRootRoute;
-      },
-
       testGetOne: function () {
         db.drop(keys(rv));
         db.create('X', {x: number});
@@ -1596,7 +1575,7 @@
         assertThrow(LoginRequiredError, function () { C({}); });
         var f = function () {}.decorated(Controller.requiringLogin);
         assertThrow(LoginRequiredError, function () { f({}); });
-        var route = new Route(f);
+        var root = new URLMap(['', f]);
         var request = new Request({
                                     path: 'x/',
                                     fullPath: 'x/',
@@ -1604,7 +1583,7 @@
                                       Host: 'ak.akshell.com'
                                     }
                                   });
-        var response = defaultServe(request, route);
+        var response = defaultServe(request, root);
         assertSame(response.status, http.FOUND);
         assertSame(response.headers.Location,
                    ('http://www.akshell.com/login/?next=' +
@@ -1613,13 +1592,13 @@
 
       testServe: function () {
         var E = Error.subclass();
-        var root = new Route(TestController.page(''),
-                             [
-                               ['method', TestController.page('Method')],
-                               ['upper', TestController.page('Upper')],
-                               ['error', thrower(E())],
-                               ['length', LengthController]
-                             ]);
+        var root = new URLMap(
+          ['', TestController.page(''),
+           ['method', TestController.page('Method')],
+           ['upper', TestController.page('Upper')],
+           ['error', thrower(E())],
+           ['length', LengthController]
+          ]);
         assertSame(defaultServe({path: '/a/b'}, root).status, http.NOT_FOUND);
         var response = defaultServe({path: '/abc'}, root);
         assertSame(response.status, http.MOVED_PERMANENTLY);

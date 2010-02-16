@@ -1150,8 +1150,8 @@
 
 
   var URLNode = Object.subclass(
-    function (controller, argExprs, as) {
-      this._controller = controller;
+    function (name, argExprs, as) {
+      this._name = name;
       this._argExprs = argExprs;
       this._as = as;
     },
@@ -1161,7 +1161,7 @@
         try {
           path = ak.reverse.apply(
             ak.global,
-            [this._controller].concat(
+            [this._name].concat(
               this._argExprs.map(function (expr) {
                                    return expr.resolve(context).raw;
                                  })));
@@ -1183,7 +1183,7 @@
     var args = $.smartSplit(parser.content);
     if (args.length < 2)
       throw ak.TemplateSyntaxError(
-        '"url" takes at least two arguments');
+        '"url" takes at least one argument');
     var exprStrings;
     var as;
     if (args.length > 3 && args[args.length - 2] == 'as') {
@@ -1192,18 +1192,7 @@
     } else {
       exprStrings = args.slice(2);
     }
-    var controllerAndPage = args[1].split('#', 2);
-    var bits = controllerAndPage[0].split('.');
-    var object = ak.global;
-    for (var i = 0; i < bits.length; ++i) {
-      object = object[bits[i]];
-      if (!object)
-        throw ak.TemplateSyntaxError(
-          'Controller ' + args[1] + ' does not exist');
-    }
-    if (controllerAndPage[1])
-      object = object.page(controllerAndPage[1]);
-    return new URLNode(object, parser.makeExprs(exprStrings), as);
+    return new URLNode(args[1], parser.makeExprs(exprStrings), as);
   };
 
 
