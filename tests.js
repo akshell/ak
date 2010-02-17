@@ -1712,15 +1712,20 @@
         rv.X.insert({x: 1});
         rv.X.insert({x: 2});
         rv.X.insert({x: 3});
-        assertThrow(MultipleTuplesError,
+        assert(rv.X.MultipleTuplesReturned.subclassOf(MultipleTuplesReturned));
+        assert(rv.X.DoesNotExist.subclassOf(TupleDoesNotExist));
+        assertSame(rv.X.MultipleTuplesReturned().message,
+                   'Multiple Xs returned');
+        assertSame(rv.X.DoesNotExist().message,
+                   'X does not exist');
+        assertSame(rv.X.MultipleTuplesReturned.__name__,
+                   'ak.rv.X.MultipleTuplesReturned');
+        assertSame(rv.X.DoesNotExist.__name__,
+                   'ak.rv.X.DoesNotExist');
+        assertThrow(rv.X.MultipleTuplesReturned,
                     function () { rv.X.where('x % 2 == 1').getOne(); });
-        try {
-          rv.X.where({x: 4}).getOne();
-          assert(false);
-        } catch (error) {
-          assert(error instanceof rv.X.DoesNotExist);
-          assertSame(error.message, 'X does not exist');
-        }
+        assertThrow(rv.X.DoesNotExist,
+                    function () { rv.X.where({x: 4}).getOne(); });
         assertSame(rv.X.where('x % 2 == 0').getOne().x, 2);
         assertSame(rv.X.where('x > $', 2).getOne({attr: 'x'}), 3);
         assertSame(rv.X.all().getOne({by: 'x', length: 1}).x, 1);

@@ -154,29 +154,46 @@
   //////////////////////////////////////////////////////////////////////////////
 
   ak.TupleDoesNotExist = ak.BaseError.subclass(
-    function (message/* = 'Tuple does not exist' */) {
+    function (message) {
       ak.BaseError.call(this, message || 'Tuple does not exist');
     });
 
 
-  ak.MultipleTuplesError = ak.BaseError.subclass(
-    function () {
-      ak.BaseError.call(this, 'Multiple tuples returned');
+  ak.MultipleTuplesReturned = ak.BaseError.subclass(
+    function (message) {
+      ak.BaseError.call(this, message || 'Multiple tuples returned');
     });
 
 
-  ak.RelVar.prototype.__defineGetter__(
-    'DoesNotExist',
-    function () {
-      if (!this._DoesNotExist) {
-        var name = this.name;
-        this._DoesNotExist = ak.TupleDoesNotExist.subclass(
-          function () {
-            ak.TupleDoesNotExist.call(this, name + ' does not exist');
-          });
-        this._DoesNotExist.__name__ = 'ak.rv.' + name + '.DoesNotExist';
-      }
-      return this._DoesNotExist;
+  [
+    [
+      'DoesNotExist', ak.TupleDoesNotExist,
+      '', ' does not exist'
+    ],
+    [
+      'MultipleTuplesReturned', ak.MultipleTuplesReturned,
+      'Multiple ', 's returned'
+    ]
+  ].forEach(
+    function (pair) {
+      var propName = pair[0];
+      var cachedPropName = '_' + propName;
+      var baseClass = pair[1];
+      var prefix = pair[2];
+      var suffix = pair[3];
+      ak.RelVar.prototype.__defineGetter__(
+        propName,
+        function () {
+          if (!this[cachedPropName]) {
+            var name = this.name;
+            this[cachedPropName] = baseClass.subclass(
+              function () {
+                baseClass.call(this, [prefix, name, suffix].join(''));
+              });
+            this[cachedPropName].__name__ = ['ak.rv', name, propName].join('.');
+          }
+          return this[cachedPropName];;
+        });
     });
 
 
@@ -185,7 +202,7 @@
     if (!tuples.length)
       throw this.rv.DoesNotExist();
     if (tuples.length > 1)
-      throw ak.MultipleTuplesError();
+      throw this.rv.MultipleTuplesReturned();
     return tuples[0];
   };
 
