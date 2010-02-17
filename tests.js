@@ -1525,6 +1525,19 @@
     {
       name: 'rest',
 
+      testHandler: function () {
+        var H = Handler.subclass(
+          {
+            func:    function () { return 'func';    },
+            del:     function () { return 'del';     },
+            perform: function () { return 'perform'; }
+          });
+        var h = new H();
+        assertSame(h.handle({method: 'delete'}), 'del');
+        assertSame(h.handle({method: 'del'}), 'perform');
+        assertSame(h.handle({method: 'func'}), 'perform');
+      },
+
       testServe: function () {
         var E = Error.subclass();
 

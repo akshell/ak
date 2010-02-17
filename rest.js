@@ -32,8 +32,12 @@
   ak.Handler = Object.subclass(
     {
       handle: function (request/*, args... */) {
-        if (this.__proto__.hasOwnProperty(request.method))
-          return this[request.method].apply(this, arguments);
+        if (['get', 'post', 'head', 'put', 'delete']
+            .indexOf(request.method) != -1) {
+          var name = request.method == 'delete' ? 'del' : request.method;
+          if (this.__proto__.hasOwnProperty(name))
+            return this[name].apply(this, arguments);
+        }
         if (this.__proto__.hasOwnProperty('perform'))
           return this.perform.apply(this, arguments);
         throw ak.HttpError(
