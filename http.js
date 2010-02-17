@@ -30,7 +30,7 @@
 
 
   ak.HttpError = ak.BaseError.subclass(
-    function (message, status/* = 400 */) {
+    function (message, status/* = ak.http.BAD_REQUEST */) {
       ak.BaseError.call(this, message);
       this.status = status || ak.http.BAD_REQUEST;
     });
@@ -109,6 +109,30 @@
 
   ak.redirect = function (location) {
     return new ak.Response('', ak.http.FOUND, {Location: location});
+  };
+
+
+  ak.loggingIn = function (handler) {
+    var func;
+    var decoratedFunc = function (request/*, args... */) {
+      if (request.user)
+        return func.apply(this, arguments);
+      var parts = request.headers.Host.split('.');
+      return ak.redirect('http://www.' +
+                         parts.slice(parts.length - 2).join('.') +
+                         '/login/?domain=' +
+                         parts.slice(0, parts.length - 2).join('.') +
+                         '&path=' +
+                         encodeURIComponent(request.fullPath));
+    };
+    if (handler.subclassOf(ak.Handler)) {
+      func = handler.prototype.handle;
+      handler.prototype.handle = decoratedFunc.wraps(func);
+      return handler;
+    } else {
+      func = handler;
+      return decoratedFunc.wraps(func);
+    }
   };
 
 })();

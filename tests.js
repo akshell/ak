@@ -251,14 +251,11 @@
             'new ak.Response((new ak.Template("")).render(context))').context,
           context);
 
-        var C = Controller.subclass(
+        var H = Handler.subclass(
           {
-            get: function () { return {}; },
-            getXPage: function () { return {}; }
+            get: function () { return {}; }
           });
-        assertSame(request('C({method: "get"})').controller, C);
-        assertSame(request('C.page("x")({method: "get"})').controller,
-                   C.page('x'));
+        assertSame(request('(new H()).handle({method: "get"})').handler, H);
 
         aspect.unweave();
       }
@@ -1018,9 +1015,6 @@
   };
 
 
-  ak._TestController = Controller.subclass();
-
-
   var renderingTests = [
     ['hello world', {}, 'hello world'],
     ['{{ Infinity }}', {}, 'Infinity'],
@@ -1358,8 +1352,8 @@
         __root__ = new URLMap(
           ['<>/',
            ['',
-            ['', ak._TestController, 'test',
-             ['page/', ak._TestController.page('page'), 'page']
+            ['', function () {}, 'test',
+             ['page/', function () {}, 'page']
             ]
            ]
           ]);
@@ -1385,6 +1379,19 @@
                     function () {
                       new Template('{{ x }}').render({x: abstract});
                     });
+      },
+
+      testRender: function () {
+        template.env = {__proto__: template.env};
+        template.env.load = function (name) {
+          return '{{' + name + '}}';
+        };
+        var headers = {};
+        var response = render('x', {x: 42}, 1, headers);
+        assertSame(response.content, '42');
+        assertSame(response.status, 1);
+        assertSame(response.headers, headers);
+        template.env = template.env.__proto__;
       },
 
       testSmartSplit: function () {
@@ -1428,6 +1435,32 @@
         assertSame(response.content, '');
         assertSame(response.status, http.FOUND);
         assertSame(response.headers.Location, 'xyz');
+      },
+
+      testLoggingIn: function () {
+        var H = Handler.subclass(
+          {
+            get: function () {
+              return new Response();
+            }
+          });
+        assertSame(H.decorated(loggingIn), H);
+        var response = (new H()).handle(
+          {
+            fullPath: '/some/path/?with&params',
+            headers: {Host: 'debug.anton-korenyushkin.ak.akshell.com'}
+          });
+        assertSame(response.status, http.FOUND);
+        assertSame(response.headers.Location,
+                   'http://www.akshell.com/login/' +
+                   '?domain=debug.anton-korenyushkin.ak' +
+                   '&path=%2Fsome%2Fpath%2F%3Fwith%26params');
+        assertSame((new H()).handle({user: 'some user', method: 'get'}).status,
+                   http.OK);
+        function f() {}
+        var g = f.decorated(loggingIn);
+        assert(f !== g);
+        assertSame(g({headers: {Host: 'ak.akshell.com'}}).status, http.FOUND);
       }
     });
 
@@ -1488,150 +1521,127 @@
   // rest tests
   //////////////////////////////////////////////////////////////////////////////
 
-  var TestController = Controller.subclass(
-    function (request, string) {
-      Controller.call(this, request);
-      this._string = string;
-      this.args = [string];
-    },
-    {
-      get: function () {
-        return new Response(this._string);
-      },
-
-      getUpperPage: function (string) {
-        return new Response(string.toUpperCase());
-      },
-
-      handleMethodPage: function () {
-        return new Response(this.request.method);
-      }
-    });
-
-
-  var LengthController = TestController.subclass(
-    {
-      put: function () {
-        return new Response(this._string.length);
-      }
-    });
-
-
   ak.RestTestCase = TestCase.subclass(
     {
       name: 'rest',
 
-      testRenderToResponse: function () {
-        template.env = {__proto__: template.env};
-        template.env.load = function (name) {
-          return '{{' + name + '}}';
-        };
-        var headers = {};
-        var response = renderToResponse('x', {x: 42}, 1, headers);
-        assertSame(response.content, '42');
-        assertSame(response.status, 1);
-        assertSame(response.headers, headers);
-        template.env = template.env.__proto__;
-      },
-
-      testGetOne: function () {
-        db.drop(keys(rv));
-        db.create('X', {x: number});
-        rv.X.insert({x: 1});
-        rv.X.insert({x: 2});
-        rv.X.insert({x: 3});
-        assertThrow(MultipleTuplesError,
-                    function () { rv.X.where('x % 2 == 1').getOne(); });
-        try {
-          rv.X.where({x: 4}).getOne();
-          assert(false);
-        } catch (error) {
-          assert(error instanceof rv.X.DoesNotExist);
-          assertSame(error.message, 'X does not exist');
-        }
-        assertSame(rv.X.where('x % 2 == 0').getOne().x, 2);
-        assertSame(rv.X.where('x > $', 2).getOne({attr: 'x'}), 3);
-        assertSame(rv.X.all().getOne({by: 'x', length: 1}).x, 1);
-        assertSame(rv.X.all().getOne({by: 'x', start: 2}).x, 3);
-        rv.X.drop();
-      },
-
-      testController: function () {
-        var C = Controller.subclass();
-        var P = C.page('page');
-        C.__name__ = 'C';
-        assertSame(P.__name__, 'C#Page');
-      },
-
-      testRequiringLogin: function () {
-        var C = Controller.subclass(
-          {
-            handleXPage: function () {
-              return new Response(42);
-            }
-          }).decorated(Controller.requiringLogin);
-        assertSame(C.page('x')({user: 'x'}).content, 42);
-        assertThrow(LoginRequiredError, function () { C.page('P')({}); });
-        assertThrow(LoginRequiredError, function () { C({}); });
-        var f = function () {}.decorated(Controller.requiringLogin);
-        assertThrow(LoginRequiredError, function () { f({}); });
-        var root = new URLMap(['', f]);
-        var request = new Request({
-                                    path: 'x/',
-                                    fullPath: 'x/',
-                                    headers: {
-                                      Host: 'ak.akshell.com'
-                                    }
-                                  });
-        var response = defaultServe(request, root);
-        assertSame(response.status, http.FOUND);
-        assertSame(response.headers.Location,
-                   ('http://www.akshell.com/login/?next=' +
-                    'http%3A%2F%2Fak.akshell.com%2Fx%2F'));
-      },
-
       testServe: function () {
         var E = Error.subclass();
-        var root = new URLMap(
-          ['', TestController.page(''),
-           ['method', TestController.page('Method')],
-           ['upper', TestController.page('Upper')],
+
+        var EchoHandler = Handler.subclass(
+          function (request, string) {
+            this.string = string;
+          },
+          {
+            get: function () {
+              return new Response(this.string);
+            }
+          });
+
+        var MethodHandler = Handler.subclass(
+          {
+            perform: function(request) {
+              return new Response(request.method);
+            }
+          });
+
+        var UpperHandler = Handler.subclass(
+          {
+            get: function (request, string) {
+              return new Response(string.toUpperCase());
+            }
+          });
+
+        var LengthHandler = EchoHandler.subclass(
+          {
+            put: function () {
+              return new Response(this.string.length);
+            }
+          });
+
+        var oldRoot = __root__;
+        __root__ = new URLMap(
+          ['', EchoHandler,
+           ['method', MethodHandler],
+           ['upper', UpperHandler],
            ['error', thrower(E())],
-           ['length', LengthController]
+           ['length', LengthHandler]
           ]);
-        assertSame(defaultServe({path: '/a/b'}, root).status, http.NOT_FOUND);
-        var response = defaultServe({path: '/abc'}, root);
+
+        assertSame(defaultServe({path: '/a/b'}).status, http.NOT_FOUND);
+        var response = defaultServe({path: '/abc'});
         assertSame(response.status, http.MOVED_PERMANENTLY);
         assertSame(response.headers.Location, '/abc/');
-        assertThrow(ResolveError, serve, {path: '/abc'}, root);
-        assertSame(serve({path: '/abc/', method: 'get'}, root).content, 'abc');
-        assertSame(defaultServe({path: '/abc/', method: 'put'}, root).status,
+        assertThrow(ResolveError, serve, {path: '/abc'});
+        assertSame(serve({path: '/abc/', method: 'get'}).content, 'abc');
+        assertSame(defaultServe({path: '/abc/', method: 'put'}).status,
                    http.METHOD_NOT_ALLOWED);
-        assertThrow(E, defaultServe, {path: '/abc/error'}, root);
-        assertSame(serve({path: '/abc/method', method: 'PUT'}, root).content,
+        assertThrow(E, defaultServe, {path: '/abc/error'});
+        assertSame(serve({path: '/abc/method', method: 'PUT'}).content,
                    'PUT');
-        assertSame(serve({path: '/abc/upper', method: 'get'}, root).content,
+        assertSame(serve({path: '/abc/upper', method: 'get'}).content,
                    'ABC');
-        assertSame(serve({path: '/abc/length', method: 'put'}, root).content,
+        assertSame(serve({path: '/abc/length', method: 'put'}).content,
                    3);
-        assertSame(defaultServe({path: '/a/length', method: 'get'}, root).status,
+        assertSame(defaultServe({path: '/a/length', method: 'get'}).status,
                    http.METHOD_NOT_ALLOWED);
         assertSame(defaultServe({
                                   method: 'post',
                                   path: '/abc/method',
                                   post: {},
                                   csrfToken: 'x'
-                                },
-                                root).status,
+                                }).status,
                    http.FORBIDDEN);
         assertSame(defaultServe({
                                   method: 'post',
                                   path: '/abc/method',
                                   post: {csrfToken: 'x'},
                                   csrfToken: 'x'
-                                },
-                                root).status,
+                                }).status,
                    http.OK);
+
+        __root__ = oldRoot;
+      },
+
+      testDefaultServe: function () {
+        var oldRoot = __root__;
+        __root__ = new URLMap(
+          ['csrf-token', function () {
+             return new Response((new Template('{% csrfToken %}')).render());
+           }],
+          ['http-error', function () {
+             throw new HttpError('hi');
+           }],
+          ['tuple-does-not-exist', function () {
+             throw new TupleDoesNotExist('hello');
+           }],
+          ['path-with-slash/', function () {}]);
+
+        assertSame(
+          defaultServe(
+            {
+              method: 'post',
+              csrfToken: 'a',
+              post: {csrfToken: 'b'}
+            }).status,
+          http.FORBIDDEN);
+        assert(
+          defaultServe(
+            {
+              csrfToken: '42',
+              path: '/csrf-token'
+            }).content.indexOf('42') != -1);
+        var response = defaultServe({path: '/http-error'});
+        assertSame(response.status, http.BAD_REQUEST);
+        assertSame(response.content, 'hi');
+        response = defaultServe({path: '/tuple-does-not-exist'});
+        assertSame(response.status, http.NOT_FOUND);
+        assertSame(response.content, 'hello');
+        response = defaultServe({path: '/path-with-slash'});
+        assertSame(response.status, http.MOVED_PERMANENTLY);
+        assertSame(response.headers.Location, '/path-with-slash/');
+
+        __root__ = oldRoot;
       }
     });
 
@@ -1694,6 +1704,28 @@
         assertEqual(
           rv.Y.foreign,
           [[["ii", "nn"], "X", ["i", "n"]], [["ss", "nn"], "X", ["s", "n"]]]);
+      },
+
+      testGetOne: function () {
+        db.drop(keys(rv));
+        db.create('X', {x: number});
+        rv.X.insert({x: 1});
+        rv.X.insert({x: 2});
+        rv.X.insert({x: 3});
+        assertThrow(MultipleTuplesError,
+                    function () { rv.X.where('x % 2 == 1').getOne(); });
+        try {
+          rv.X.where({x: 4}).getOne();
+          assert(false);
+        } catch (error) {
+          assert(error instanceof rv.X.DoesNotExist);
+          assertSame(error.message, 'X does not exist');
+        }
+        assertSame(rv.X.where('x % 2 == 0').getOne().x, 2);
+        assertSame(rv.X.where('x > $', 2).getOne({attr: 'x'}), 3);
+        assertSame(rv.X.all().getOne({by: 'x', length: 1}).x, 1);
+        assertSame(rv.X.all().getOne({by: 'x', start: 2}).x, 3);
+        rv.X.drop();
       }
     });
 

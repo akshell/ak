@@ -391,6 +391,16 @@
     return new ak.Template(env.load(name), env);
   };
 
+
+  ak.render = function (name,
+                        context/* = {} */,
+                        status/* = http.OK */,
+                        headers/* optional */) {
+    return new ak.Response(ak.getTemplate(name).render(context),
+                           status,
+                           headers);
+  };
+
   //////////////////////////////////////////////////////////////////////////////
   // defaultFilters
   //////////////////////////////////////////////////////////////////////////////

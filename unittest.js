@@ -383,9 +383,9 @@
                        function () {
                          this.context = contexts[this.content];
                        }),
-          ak.weave(ak.After, ak.Controller, 'respond',
-                   function (result, args) {
-                     result.controller = this.constructor.page(args[0]);
+          ak.weave(ak.After, ak.Handler, 'handle',
+                   function (result) {
+                     result.handler = this.constructor;
                      return result;
                    })
         ).instances(ak.AspectArray);

@@ -38,10 +38,10 @@
 
 
   ak.URLMap = Object.subclass(
-    function (/* [controller, [name,]] children... */) {
+    function (/* [handler, [name,]] children... */) {
       var i;
       if (typeof(arguments[0]) == 'function') {
-        this._controller = arguments[0];
+        this._handler = arguments[0];
         if (typeof(arguments[1]) == 'string') {
           this._name = arguments[1];
           i = 2;
@@ -67,7 +67,7 @@
     {
       _resolve: function (path) {
         if (!path)
-          return this._controller ? [this._controller, []] : undefined;
+          return this._handler ? [this._handler, []] : undefined;
         for (var i = 0; i < this._children.length; ++i) {
           var child = this._children[i];
           var pattern = child[0];

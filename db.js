@@ -28,6 +28,9 @@
 {
   ak.include('base.js');
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Human-friendly db.create()
+  //////////////////////////////////////////////////////////////////////////////
 
   var typeRegExp = RegExp(
     ('\\s*(?:' +
@@ -144,6 +147,46 @@
         });
     }
     return doCreate(name, header, constrs);
+  };
+
+  //////////////////////////////////////////////////////////////////////////////
+  // getOne() method
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.TupleDoesNotExist = ak.BaseError.subclass(
+    function (message/* = 'Tuple does not exist' */) {
+      ak.BaseError.call(this, message || 'Tuple does not exist');
+    });
+
+
+  ak.MultipleTuplesError = ak.BaseError.subclass(
+    function () {
+      ak.BaseError.call(this, 'Multiple tuples returned');
+    });
+
+
+  ak.RelVar.prototype.__defineGetter__(
+    'DoesNotExist',
+    function () {
+      if (!this._DoesNotExist) {
+        var name = this.name;
+        this._DoesNotExist = ak.TupleDoesNotExist.subclass(
+          function () {
+            ak.TupleDoesNotExist.call(this, name + ' does not exist');
+          });
+        this._DoesNotExist.__name__ = 'ak.rv.' + name + '.DoesNotExist';
+      }
+      return this._DoesNotExist;
+    });
+
+
+  ak.Selection.prototype.getOne = function (options) {
+    var tuples = this.get(options);
+    if (!tuples.length)
+      throw this.rv.DoesNotExist();
+    if (tuples.length > 1)
+      throw ak.MultipleTuplesError();
+    return tuples[0];
   };
 
 })();

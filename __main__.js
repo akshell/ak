@@ -25,40 +25,40 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-var suite = ak.include('tests.js');
+ak.include('tests.js');
 
 
-var HelloController = ak.Controller.subclass(
+var HomeHandler = ak.Handler.subclass(
   {
-    get: function (request, name) {
-      return ak.renderToResponse('hello.html', {name: name});
+    get: function () {
+      return ak.render('home.html');
     }
   });
 
 
-var MainController = ak.Controller.subclass(
+var HelloHandler = ak.Handler.subclass(
   {
-    get: function () {
-      return ak.renderToResponse('home.html');
-    },
+    get: function (request, name) {
+      return ak.render('hello.html', {name: name});
+    }
+  });
 
-    handleTestPage: function () {
-      return ak.renderToResponse('test.html', {request: this.request});
-    },
 
-    getErrorPage: function () {
-      throw Error('Test error');
+var TestHandler = ak.Handler.subclass(
+  {
+    perform: function () {
+      return ak.render('test.html', {request: this.request});
     }
   });
 
 
 __root__ = new ak.URLMap(
-  MainController,
+  HomeHandler,
   ['hello/',
-   ['', HelloController, 'hello']
+   ['', HelloHandler, 'hello']
   ],
-  ['test/', MainController.page('Test'), 'test'],
-  ['error/', MainController.page('Error'), 'error']);
+  ['test/', TestHandler, 'test'],
+  ['error/', function () { throw Error('Test error'); }, 'error']);
 
 
 __main__ = ak.defaultServe;
