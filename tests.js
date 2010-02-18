@@ -1335,6 +1335,9 @@
     '{% with %}{% endwith %}',
     '{% with 1 1 1 %}{% endwith %}',
     '{% url %}',
+    '{% code %}',
+    '{% media "file" bad-option %}',
+    '{% media 1 2 3 %}',
     '{% for a in b %}',
     '{% for a in b %}{% empty %}',
     '{% for %}{% endfor %}',
@@ -1365,6 +1368,44 @@
                        'Rendering ' + repr(test[0]));
           });
         __root__ = oldRoot;
+      },
+
+      testStatic: function () {
+        var oldApp = ak.app;
+        ak.app = {
+          name: 'ak',
+          spot: {name: 'debug', owner: 'Anton Korenyushkin'}
+        };
+        assertSame(
+          (new Template('{% code "some/path" %}').render()),
+          ('http://static.akshell.com/code/spots/' +
+           'ak/anton-korenyushkin/debug/some/path'));
+        ak.app = {name: 'ak'};
+        assertSame(
+          (new Template('{% code "some/path" %}').render()),
+          'http://static.akshell.com/code/release/ak/some/path');
+        var ts = getCodeModDate('__main__.js') / 1000;
+        assertSame(
+          (new Template('{% code "__main__.js" %}')).render(),
+          'http://static.akshell.com/code/release/ak/__main__.js?' + ts);
+        ts = getCodeModDate('templates/test.html') / 1000;
+        assertSame(
+          (new Template('{% code "templates/test.html" timestamp %}')).render(),
+          ('http://static.akshell.com/code/release/ak/templates/test.html?' +
+           ts));
+        assertSame(
+          (new Template('{% code "__main__.js" no-timestamp %}')).render(),
+          'http://static.akshell.com/code/release/ak/__main__.js');
+        assertSame(
+          (new Template('{% code "no_such_file.js" %}')).render(),
+          'http://static.akshell.com/code/release/ak/no_such_file.js');
+        fs.write('test.css', '');
+        ts = fs.getModDate('test.css') / 1000;
+        assertSame(
+          (new Template('{% media "test.css" %}')).render(),
+          'http://static.akshell.com/media/release/ak/test.css?' + ts);
+        fs.remove('test.css');
+        ak.app = oldApp;
       },
 
       testErrors: function () {

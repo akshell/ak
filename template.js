@@ -1193,7 +1193,7 @@
     var args = $.smartSplit(parser.content);
     if (args.length < 2)
       throw ak.TemplateSyntaxError(
-        '"url" takes at least one argument');
+        '"url" tag takes at least one argument');
     var exprStrings;
     var as;
     if (args.length > 3 && args[args.length - 2] == 'as') {
@@ -1221,6 +1221,63 @@
   defaultTags.csrfToken = function (parser) {
     return new CSRFTokenNode(arguments.callee.value || '');
   };
+
+
+  var StaticNode = Object.subclass(
+    function (name, tsFunc, pathExpr, tsFlag) {
+      var parts = ['http://static.akshell.com', name];
+      if (ak.app.spot)
+        parts.push('spots',
+                   ak.app.name,
+                   ak.app.spot.owner.replace(/ /g, '-').toLowerCase(),
+                   ak.app.spot.name);
+      else
+        parts.push('release', ak.app.name);
+      this._prefix = parts.join('/') + '/';
+      this._tsFunc = tsFunc;
+      this._pathExpr = pathExpr;
+      this._tsFlag = tsFlag;
+    },
+    {
+      render: function (context) {
+        var path = this._pathExpr.resolve(context) + '';
+        var url = this._prefix + path;
+        if (this._tsFlag ||
+            (this._tsFlag === undefined &&
+             (path.endsWith('.css') || path.endsWith('.js')))) {
+          try {
+            return url + '?' + (this._tsFunc(path) / 1000);
+          } catch (_) {}
+        }
+        return url;
+      }
+    });
+
+  [
+    ['code', ak.getCodeModDate],
+    ['media', ak.fs.getModDate]
+  ].forEach(
+    function (pair) {
+      defaultTags[pair[0]] = function (parser) {
+        var args = $.smartSplit(parser.content);
+        var tsFlag;
+        if (args.length == 3) {
+          if (args[2] == 'timestamp')
+            tsFlag = true;
+          else if (args[2] == 'no-timestamp')
+            tsFlag = false;
+          else
+            throw ak.TemplateSyntaxError(
+              'Unknow option of ' + ak.repr(args[0]) +
+              ' tag: ' + ak.repr(args[2]));
+        } else if (args.length != 2) {
+          throw ak.TemplateSyntaxError(
+            ak.repr(args[0]) + ' tag takes one or two arguments');
+        }
+        return new StaticNode(
+          pair[0], pair[1], parser.makeExpr(args[1]), tsFlag);
+      };
+    });
 
   //////////////////////////////////////////////////////////////////////////////
   // if tag
