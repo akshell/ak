@@ -28,10 +28,10 @@
 ak.include('tests.js');
 
 
-var HomeHandler = ak.Handler.subclass(
+var IndexHandler = ak.Handler.subclass(
   {
     get: function () {
-      return ak.render('home.html');
+      return ak.render('index.html');
     }
   });
 
@@ -53,7 +53,7 @@ var TestHandler = ak.Handler.subclass(
 
 
 __root__ = new ak.URLMap(
-  HomeHandler,
+  IndexHandler, 'index',
   ['hello/',
    ['', HelloHandler, 'hello']
   ],
