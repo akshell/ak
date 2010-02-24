@@ -62,13 +62,22 @@
 
   ak.serve.update(
     {
+      protectingFromICAR: function (func) {
+        return function (request) {
+          return (!request.issuer || request.legal
+                  ? func(request)
+                  : new ak.Response('Illegal cross-application request',
+                                    ak.http.FORBIDDEN));
+        };
+      },
+
       protectingFromCSRF: function (func) {
         return function (request) {
           if (request.method == 'post' &&
               request.csrfToken &&
               request.post.csrfToken != request.csrfToken)
             return new ak.Response(
-              'Cross Site Request Forgery detected. Request aborted.',
+              'Cross-site request forgery detected. Request aborted.',
               ak.http.FORBIDDEN);
           ak.template.env.tags.csrfToken.value = request.csrfToken;
           return func(request);
@@ -137,6 +146,7 @@
 
 
   ak.defaultServe = ak.serve.decorated(
+    ak.serve.protectingFromICAR,
     ak.serve.protectingFromCSRF,
     ak.serve.catchingHttpError,
     ak.serve.catchingTupleDoesNotExist,
