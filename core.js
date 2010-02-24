@@ -121,6 +121,19 @@
   };
 
 
+  ak.rv = {};
+
+
+  ak.db.refresh = function () {
+    for (var name in ak.rv)
+      delete ak.rv[name];
+    ak.db._list().forEach(
+      function (name) {
+        ak.rv[name] = {name: name, __proto__: ak.RelVar.prototype};
+      });
+  };
+  
+
   ak.db.create = function (name, header, constrs/* = {} */) {
     constrs = constrs || {};
     ak.db._create(name,
@@ -249,12 +262,7 @@
     });
 
 
-  ak.rv = {};
-
-  ak.db._list().forEach(
-    function (name) {
-      ak.rv[name] = {name: name, __proto__: ak.RelVar.prototype};
-    });
+  ak.db.refresh();
 
   //////////////////////////////////////////////////////////////////////////////
   // Misc
