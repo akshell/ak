@@ -121,6 +121,17 @@
               {Location: request.path + '/'});
           }
         };
+      },
+
+      rollbacking: function (func) {
+        return function (request) {
+          try {
+            return func(request);
+          } catch (error) {
+            ak.db.rollback();
+            throw error;
+          }
+        };
       }
     });
 
@@ -129,7 +140,8 @@
     ak.serve.protectingFromCSRF,
     ak.serve.catchingHttpError,
     ak.serve.catchingTupleDoesNotExist,
-    ak.serve.appendingSlash
+    ak.serve.appendingSlash,
+    ak.serve.rollbacking
   );
 
 })();
