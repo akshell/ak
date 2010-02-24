@@ -388,9 +388,9 @@
 
   ak.Module = function (name, version) {
     if (name)
-      this.setHidden('__name__', name);
+      ak.set(this, '__name__', ak.HIDDEN, name);
     if (version)
-      this.setHidden('__version__', version);
+      ak.set(this, '__version__', ak.HIDDEN, version);
   };
 
 
@@ -409,8 +409,8 @@
    ak.AK.prototype.__proto__ =
    ak.DB.prototype.__proto__ =
    ak.FS.prototype.__proto__ = ak.Module.prototype);
-  ak.__version__ = '0.1';
-  ak.__name__ = 'ak';
+
+  ak.Module.call(ak, 'ak', '0.1');
 
   //////////////////////////////////////////////////////////////////////////////
   // Debug tools

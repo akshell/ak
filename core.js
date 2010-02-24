@@ -369,39 +369,41 @@
   };
 
 
-  ak._main = function (data) {
-    data = JSON.parse(data);
-    if (!(typeof(data) == 'object' &&
-          typeof(data.method) == 'string' &&
-          typeof(data.path) == 'string' &&
-          typeof(data.get) == 'object' &&
-          typeof(data.post) == 'object' &&
-          typeof(data.headers) == 'object' &&
-          data.fileNames instanceof Array &&
-          data.fileNames.length == ak._files.length))
-      return '400\n\nBad request';
-    var request = {
-      __proto__: ak.Request.prototype,
-      method: data.method.toLowerCase(),
-      path: data.path,
-      fullPath: typeof(data.fullPath) == 'string' ? data.fullPath : data.path,
-      get: data.get,
-      post: data.post,
-      headers: data.headers,
-      data: ak._data,
-      user: ak._user,
-      issuer: ak._issuer,
-      files: {}
-    };
-    for (var i = 0; i < ak._files.length; ++i)
-      request.files[data.fileNames[i]] = ak._files[i];
-    var response = __main__(request);
-    var headerLines = [];
-    for (var name in response.headers)
-      headerLines.push(name + ': ' + response.headers[name]);
-    return (response.status + '\n' +
-            headerLines.join('\n') +
-            '\n\n' + response.content);
-  };
+  ak.set(
+    ak, '_main', ak.HIDDEN,
+    function (data) {
+      data = JSON.parse(data);
+      if (!(typeof(data) == 'object' &&
+            typeof(data.method) == 'string' &&
+            typeof(data.path) == 'string' &&
+            typeof(data.get) == 'object' &&
+            typeof(data.post) == 'object' &&
+            typeof(data.headers) == 'object' &&
+            data.fileNames instanceof Array &&
+            data.fileNames.length == ak._files.length))
+        return '400\n\nBad request';
+      var request = {
+        __proto__: ak.Request.prototype,
+        method: data.method.toLowerCase(),
+        path: data.path,
+        fullPath: typeof(data.fullPath) == 'string' ? data.fullPath : data.path,
+        get: data.get,
+        post: data.post,
+        headers: data.headers,
+        data: ak._data,
+        user: ak._user,
+        issuer: ak._issuer,
+        files: {}
+      };
+      for (var i = 0; i < ak._files.length; ++i)
+        request.files[data.fileNames[i]] = ak._files[i];
+      var response = __main__(request);
+      var headerLines = [];
+      for (var name in response.headers)
+        headerLines.push(name + ': ' + response.headers[name]);
+      return (response.status + '\n' +
+              headerLines.join('\n') +
+              '\n\n' + response.content);
+    });
 
 })();
