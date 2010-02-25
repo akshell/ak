@@ -1179,6 +1179,7 @@
      '1 hour, 47 minutes 1 hour, 47 minutes'],
 
 
+    ['{% comment %} yo \n\r\t wuzzup {% endcomment %}', {}, ''],
     ['{% if \t  true %}foo{% endif %}', {}, 'foo'],
     ['{% if undefined == null %}foo{% endif %}', {}, 'foo'],
     ['{% if 1 !== 1 %}foo{% else %}bar{% endif %}', {}, 'bar'],
@@ -1302,6 +1303,7 @@
     '{{ x|default: 1 }}',
     '{% does_not_exist %}',
     '{%  %}',
+    '{% comment %}',
     '{% if && %}{% endif %}',
     '{% if > %}{% endif %}',
     '{% if & %}{% endif %}',

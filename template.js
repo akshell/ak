@@ -361,6 +361,15 @@
         return new GroupNode(nodes);
       },
 
+      skip: function (end) {
+        while (this._tokens.length) {
+          this._token = this._tokens.shift();
+          if (this._token.kind == BLOCK && this.content == end)
+            return;
+        }
+        throw ak.TemplateSyntaxError('Unclosed tag: ' + end);
+      },
+
       makeExpr: function (string) {
         return makeExpr(string, this.env.filters);
       },
@@ -784,6 +793,18 @@
 
   var defaultTags = {};
 
+
+  var CommentNode = Object.subclass(
+    {
+      render: function () {
+        return '';
+      }
+    });
+
+  defaultTags.comment = function(parser) {
+    parser.skip('endcomment');
+    return new CommentNode();
+  };
 
   var ForNode = Object.subclass(
     function (name, expr, reversed, bodyNode, emptyNode) {
