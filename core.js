@@ -132,7 +132,7 @@
         ak.rv[name] = {name: name, __proto__: ak.RelVar.prototype};
       });
   };
-  
+
 
   ak.db.create = function (name, header, constrs/* = {} */) {
     constrs = constrs || {};
@@ -300,6 +300,13 @@
   };
 
 
+  ak.app.domain = (ak.app.spot
+                   ? [ak.app.spot.name,
+                      ak.app.spot.owner.replace(/ /g, '-').toLowerCase(),
+                      ak.app.name].join('.')
+                   : ak.app.name);
+
+
   ak.requestApp = function (appName, request) {
     var path = request.path || '/';
     if (path[0] != '/')
@@ -395,6 +402,10 @@
         issuer: ak._issuer,
         files: {}
       };
+      if (!request.issuer) {
+        request.session = data.session || '';
+        request.csrfToken = data.csrfToken || '';
+      }
       for (var i = 0; i < ak._files.length; ++i)
         request.files[data.fileNames[i]] = ak._files[i];
       var response = __main__(request);
