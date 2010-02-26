@@ -1488,22 +1488,30 @@
             }
           });
         assertSame(H.decorated(loggingIn), H);
-        var response = (new H()).handle(
-          {
-            fullPath: '/some/path/?with&params',
-            headers: {Host: 'debug.anton-korenyushkin.ak.akshell.com'}
-          });
+        var response = (new H()).handle({fullPath: '/some/path/?with&params'});
         assertSame(response.status, http.FOUND);
         assertSame(response.headers.Location,
-                   'http://www.akshell.com/login/' +
-                   '?domain=debug.anton-korenyushkin.ak' +
-                   '&path=%2Fsome%2Fpath%2F%3Fwith%26params');
+                   ('http://www.akshell.com/login/' +
+                    '?domain=' + app.domain +
+                    '&path=%2Fsome%2Fpath%2F%3Fwith%26params'));
         assertSame((new H()).handle({user: 'some user', method: 'get'}).status,
                    http.OK);
         function f() {}
         var g = f.decorated(loggingIn);
         assert(f !== g);
-        assertSame(g({headers: {Host: 'ak.akshell.com'}}).status, http.FOUND);
+        assertSame(g({fullPath: '/'}).status, http.FOUND);
+      },
+
+      testObtainingSession: function () {
+        var f = function () {
+          return new Response();
+        }.decorated(obtainingSession);
+        assertSame(f({session: 42}).status, http.OK);
+        var response = f({fullPath: '/x?y&z'});
+        assertSame(response.status, http.FOUND);
+        assertSame(response.headers.Location,
+                   ('http://www.akshell.com/session/?domain=' + app.domain +
+                    '&path=%2Fx%3Fy%26z'));
       }
     });
 

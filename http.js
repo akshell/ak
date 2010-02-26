@@ -112,27 +112,44 @@
   };
 
 
-  ak.loggingIn = function (handler) {
-    var func;
-    var decoratedFunc = function (request/*, args... */) {
-      if (request.user)
-        return func.apply(this, arguments);
-      var parts = request.headers.Host.split('.');
-      return ak.redirect('http://www.' +
-                         parts.slice(parts.length - 2).join('.') +
-                         '/login/?domain=' +
-                         parts.slice(0, parts.length - 2).join('.') +
-                         '&path=' +
-                         encodeURIComponent(request.fullPath));
-    };
-    if (handler.subclassOf(ak.Handler)) {
-      func = handler.prototype.handle;
-      handler.prototype.handle = decoratedFunc.wraps(func);
+  ['Login', 'SignUp', 'Session'].forEach(
+    function (name) {
+      var prefix = ('http://www.akshell.com/' + name.toLowerCase() +
+                    '/?domain=' + ak.app.domain + '&path=');
+      ak['get' + name + 'URL'] = function (path) {
+        return prefix + encodeURIComponent(path);
+      };
+    });
+
+
+  function makeHandlerDecorator(decorator) {
+    return function (handler) {
+      if (!handler.subclassOf(ak.Handler))
+        return decorator(handler).wraps(handler);
+      var func = handler.prototype.handle;
+      handler.prototype.handle = decorator(func).wraps(func);
       return handler;
-    } else {
-      func = handler;
-      return decoratedFunc.wraps(func);
-    }
-  };
+    };
+  }
+
+
+  ak.loggingIn = makeHandlerDecorator(
+    function (func) {
+      return function (request/*, args... */) {
+        return (request.user
+                ? func.apply(this, arguments)
+                : ak.redirect(ak.getLoginURL(request.fullPath)));
+      };
+    });
+
+
+  ak.obtainingSession = makeHandlerDecorator(
+    function (func) {
+      return function (request/*, args... */) {
+        return (request.session
+                ? func.apply(this, arguments)
+                : ak.redirect(ak.getSessionURL(request.fullPath)));
+      };
+    });
 
 })();
