@@ -111,45 +111,4 @@
     return new ak.Response('', ak.http.FOUND, {Location: location});
   };
 
-
-  ['Login', 'SignUp', 'Session'].forEach(
-    function (name) {
-      var prefix = ('http://www.akshell.com/' + name.toLowerCase() +
-                    '/?domain=' + ak.app.domain + '&path=');
-      ak['get' + name + 'URL'] = function (path) {
-        return prefix + encodeURIComponent(path);
-      };
-    });
-
-
-  function makeHandlerDecorator(decorator) {
-    return function (handler) {
-      if (!handler.subclassOf(ak.Handler))
-        return decorator(handler).wraps(handler);
-      var func = handler.prototype.handle;
-      handler.prototype.handle = decorator(func).wraps(func);
-      return handler;
-    };
-  }
-
-
-  ak.loggingIn = makeHandlerDecorator(
-    function (func) {
-      return function (request/*, args... */) {
-        return (request.user
-                ? func.apply(this, arguments)
-                : ak.redirect(ak.getLoginURL(request.fullPath)));
-      };
-    });
-
-
-  ak.obtainingSession = makeHandlerDecorator(
-    function (func) {
-      return function (request/*, args... */) {
-        return (request.session
-                ? func.apply(this, arguments)
-                : ak.redirect(ak.getSessionURL(request.fullPath)));
-      };
-    });
-
 })();
