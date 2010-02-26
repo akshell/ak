@@ -53,6 +53,11 @@
   // Utilities
   //////////////////////////////////////////////////////////////////////////////
 
+  ak.redirect = function (location) {
+    return new ak.Response('', ak.http.FOUND, {Location: location});
+  };
+
+  
   ['Login', 'SignUp', 'Session'].forEach(
     function (name) {
       var prefix = ('http://www.akshell.com/' + name.toLowerCase() +

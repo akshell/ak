@@ -1471,13 +1471,6 @@
       testErrors: function () {
         assertSame((new HttpError()).status, http.BAD_REQUEST);
         assertSame((new NotFoundError()).message, 'Not found');
-      },
-
-      testRedirect: function () {
-        var response = redirect('xyz');
-        assertSame(response.content, '');
-        assertSame(response.status, http.FOUND);
-        assertSame(response.headers.Location, 'xyz');
       }
     });
 
@@ -1555,6 +1548,13 @@
         assertSame(h.handle({method: 'func'}), 'perform');
       },
 
+      testRedirect: function () {
+        var response = redirect('xyz');
+        assertSame(response.content, '');
+        assertSame(response.status, http.FOUND);
+        assertSame(response.headers.Location, 'xyz');
+      },
+      
       testLoggingIn: function () {
         var H = Handler.subclass(
           {
@@ -1588,7 +1588,7 @@
                    ('http://www.akshell.com/session/?domain=' + app.domain +
                     '&path=%2Fx%3Fy%26z'));
       },
-      
+
       testServe: function () {
         var E = Error.subclass();
 
