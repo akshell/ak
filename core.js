@@ -60,7 +60,7 @@
     [ak.fs, 'isFile'],
     [ak.fs, 'getModDate'],
     [ak.fs, 'list'],
-    [ak.fs, 'makeDir'],
+    [ak.fs, 'createDir'],
     [ak.fs, 'write'],
     [ak.fs, 'rename'],
     [ak.db, 'rollback'],

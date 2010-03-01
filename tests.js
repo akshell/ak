@@ -419,8 +419,8 @@
       },
 
       testRemove: function () {
-        fs.makeDir('dir');
-        fs.makeDir('dir/subdir');
+        fs.createDir('dir');
+        fs.createDir('dir/subdir');
         fs.write('file', 'hello');
         fs.write('dir/subdir/f', 'hi');
         fs.remove('dir');
@@ -1554,7 +1554,7 @@
         assertSame(response.status, http.FOUND);
         assertSame(response.headers.Location, 'xyz');
       },
-      
+
       testLoggingIn: function () {
         var H = Handler.subclass(
           {
