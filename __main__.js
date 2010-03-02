@@ -46,8 +46,8 @@ var HelloHandler = ak.Handler.subclass(
 
 var TestHandler = ak.Handler.subclass(
   {
-    perform: function () {
-      return ak.render('test.html', {request: this.request});
+    perform: function (request) {
+      return ak.render('test.html', {request: request});
     }
   });
 
