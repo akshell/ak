@@ -302,33 +302,34 @@
 
   ak.TestClient = Object.subclass(
     function (users/* = [] */, apps/* = {} */) {
-      this._users = users || [];
-      this._apps = apps || {};
-      for (var name in this._apps) {
-        var app = this._apps[name];
+      this.users = users || [];
+      this.apps = apps || {};
+      for (var name in this.apps) {
+        var app = this.apps[name];
         app.name = name;
         app.developers = app.developers || [];
+        app.developers.unshift(app.admin);
       }
       this._user = '';
     },
     {
       _describeApp: function (name) {
-        var result = this._apps[name];
+        var result = this.apps[name];
         if (!result)
           throw ak.NoSuchAppError('No such test app: ' + ak.repr(name));
         return result;
       },
 
       _checkUserExists: function (user) {
-        if (this._users.indexOf(user) == -1)
+        if (this.users.indexOf(user) == -1)
           throw ak.NoSuchUserError('No such test user: ' + ak.repr(user));
       },
 
       _getAdminedApps: function (user) {
         this._checkUserExists(user);
         var result = [];
-        for (var name in this._apps)
-          if (this._apps[name].admin == user)
+        for (var name in this.apps)
+          if (this.apps[name].admin == user)
             result.push(name);
         return result;
       },
@@ -336,8 +337,8 @@
       _getDevelopedApps: function (user) {
         this._checkUserExists(user);
         var result = [];
-        for (var name in this._apps)
-          if (this._apps[name].developers.indexOf(user) != -1)
+        for (var name in this.apps)
+          if (this.apps[name].developers.indexOf(user) > 0)
             result.push(name);
         return result;
       },
