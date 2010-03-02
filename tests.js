@@ -1181,7 +1181,6 @@
      },
      '1 hour, 47 minutes 1 hour, 47 minutes'],
 
-
     ['{% comment %} yo \n\r\t wuzzup {% endcomment %}', {}, ''],
     ['{% if \t  true %}foo{% endif %}', {}, 'foo'],
     ['{% if undefined == null %}foo{% endif %}', {}, 'foo'],
@@ -1286,7 +1285,13 @@
     ['{% csrfToken %}', {},
      ('<div style=\"display:none;\">' +
       '<input type=\"hidden\" name=\"csrfToken\" value=\"42\">' +
-      '</div>')]
+      '</div>')],
+    ['{% for item in object|items|sortObjects:1 %}{{ item.0 }}{% endfor %}',
+     {object: {a: 3, b: 2, c: 2}},
+     'cba'],
+    ['{{ object|items|sortObjects:0|last|last }}',
+     {object: safe({a: '', b: '<>'})},
+     '<>']
   ];
 
 

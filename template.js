@@ -601,6 +601,12 @@
       },
       {safety: 'value'}),
 
+    items: new $.Filter(
+      function (value) {
+        return ak.items(value);
+      },
+      {safety: 'value'}),
+
     join: new $.Filter(
       function (value, arg/* = '' */) {
         try {
