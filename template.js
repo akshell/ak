@@ -1186,9 +1186,8 @@
 
 
   var URLNode = Object.subclass(
-    function (name, argExprs, as) {
-      this._name = name;
-      this._argExprs = argExprs;
+    function (exprs, as) {
+      this._exprs = exprs;
       this._as = as;
     },
     {
@@ -1197,10 +1196,9 @@
         try {
           path = ak.reverse.apply(
             ak.global,
-            [this._name].concat(
-              this._argExprs.map(function (expr) {
-                                   return expr.resolve(context).raw;
-                                 })));
+            this._exprs.map(function (expr) {
+                              return expr.resolve(context).raw;
+                            }));
         } catch (error) {
           if (this._as && error instanceof ak.ReverseError)
             return '';
@@ -1224,11 +1222,11 @@
     var as;
     if (args.length > 3 && args[args.length - 2] == 'as') {
       as = args[args.length - 1];
-      exprStrings = args.slice(2, args.length - 2);
+      exprStrings = args.slice(1, args.length - 2);
     } else {
-      exprStrings = args.slice(2);
+      exprStrings = args.slice(1);
     }
-    return new URLNode(args[1], parser.makeExprs(exprStrings), as);
+    return new URLNode(parser.makeExprs(exprStrings), as);
   };
 
 

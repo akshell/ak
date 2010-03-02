@@ -1279,10 +1279,10 @@
     ['{% with "<>"|escape as x %}{{ x }}{% endwith %}', {}, '&lt;&gt;'],
     ['{% with y as x %}{{ x }}{% endwith %}', {y: '<>'}, '&lt;&gt;'],
     ['{% with "a>b" as x %}{{ x.toUpperCase }}{% endwith %}', {}, 'A>B'],
-    ['{% url test x y %}', {x: '&', y: '"'}, '/%3C%3E/&/%22/'],
-    ['{% url test 1 2 as x %}{{ x }}', {}, '/%3C%3E/1/2/'],
-    ['{% url test as x %}{{ x }}', {}, ''],
-    ['{% url page "a" "b" %}', {}, '/%3C%3E/a/b/page/'],
+    ['{% url "test" x y %}', {x: '&', y: '"'}, '/%3C%3E/&/%22/'],
+    ['{% url "test" 1 2 as x %}{{ x }}', {}, '/%3C%3E/1/2/'],
+    ['{% url "test" as x %}{{ x }}', {}, ''],
+    ['{% url "page" "a" "b" %}', {}, '/%3C%3E/a/b/page/'],
     ['{% csrfToken %}', {},
      ('<div style=\"display:none;\">' +
       '<input type=\"hidden\" name=\"csrfToken\" value=\"42\">' +
