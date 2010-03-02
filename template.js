@@ -380,7 +380,7 @@
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // Template and getTemplate
+  // API
   //////////////////////////////////////////////////////////////////////////////
 
   ak.Template = Object.subclass(
@@ -408,6 +408,11 @@
     return new ak.Response(ak.getTemplate(name).render(context),
                            status,
                            headers);
+  };
+
+
+  ak.safe = function (value) {
+    return new $.Wrap(value instanceof $.Wrap ? value.raw : value, true);
   };
 
   //////////////////////////////////////////////////////////////////////////////
