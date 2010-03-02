@@ -357,7 +357,7 @@
       },
 
       request: function (request) {
-        request = {__proto__: request};
+        request = request ? {__proto__: request} : {};
         ak.update(
           request,
           {
@@ -367,6 +367,7 @@
             get: request.get || {},
             post: request.post || {},
             headers: request.headers || {},
+            data: request.data || null,
             files: request.files || {}
           });
         var contexts = {};

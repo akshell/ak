@@ -218,6 +218,7 @@
 
         client.login('no such user');
         client.login('user1');
+        assertSame(client.get(), null);
         assertSame(request('request.user'), 'user1');
         assertSame(client.request({user: 'user2', data: 'request.user'}),
                    'user2');
