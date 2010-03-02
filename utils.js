@@ -90,7 +90,7 @@
       step = arguments[2];
     }
     if (step == 0)
-      throw TypeError('range() step must not be 0');
+      throw ak.ValueError('range() step must not be 0');
     var result = [];
     for (var i = start; step > 0 ? i < stop : i > stop; i += step)
       result.push(i);

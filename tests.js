@@ -834,7 +834,7 @@
         assertEqual(range(4, 7), [4, 5, 6]);
         assertEqual(range(4, 7, 2), [4, 6]);
         assertEqual(range(7, 4, -1), [7, 6, 5]);
-        assertThrow(TypeError, range, 2, 3, 0);
+        assertThrow(ValueError, range, 2, 3, 0);
       },
 
       testZip: function () {
