@@ -216,8 +216,7 @@
           return client.request({data: data});
         }
 
-        assertThrow(NoSuchUserError,
-                    function () { client.login('no_such_user'); });
+        client.login('no such user');
         client.login('user1');
         assertSame(request('request.user'), 'user1');
         assertSame(client.request({user: 'user2', data: 'request.user'}),
@@ -241,9 +240,9 @@
         assertEqual(request('ak.getDevelopedApps("user1")'), ['app2', 'app4']);
         assertEqual(request('ak.getDevelopedApps("user2")'), []);
         assertThrow(
-          NoSuchUserError, request, 'ak.getAdminedApps("no_such_user")');
+          NoSuchUserError, request, 'ak.getAdminedApps("no such user")');
         assertThrow(
-          NoSuchUserError, request, 'ak.getDevelopedApps("no_such_user")');
+          NoSuchUserError, request, 'ak.getDevelopedApps("no such user")');
 
         var context = {};
         assertSame(

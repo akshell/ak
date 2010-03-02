@@ -349,7 +349,6 @@
       },
 
       login: function (user) {
-        this._checkUserExists(user);
         this._user = user;
       },
 
