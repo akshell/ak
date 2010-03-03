@@ -1286,10 +1286,10 @@
      ('<div style=\"display:none;\">' +
       '<input type=\"hidden\" name=\"csrfToken\" value=\"42\">' +
       '</div>')],
-    ['{% for item in object|items|sortObjects:1 %}{{ item.0 }}{% endfor %}',
-     {object: {a: 3, b: 2, c: 2}},
-     'cba'],
-    ['{{ object|items|sortObjects:0|last|last }}',
+    ['{% for item in object|items %}{{ item.1 }}{% endfor %}',
+     {object: {a: 1, b: 2, c: 3}},
+     '123'],
+    ['{{ object|items|last|last }}',
      {object: safe({a: '', b: '<>'})},
      '<>']
   ];

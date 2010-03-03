@@ -26,19 +26,19 @@
       <dd>{{ request.csrfToken }}</dd>
       <dt>get</dt>
       <dd>
-        {% for item in request.get|items|sortObjects:0 %}
+        {% for item in request.get|items %}
           <p>{{ item.0 }} {{ item.1 }}</p>
         {% endfor %}
       </dd>
       <dt>post</dt>
       <dd>
-        {% for item in request.post|items|sortObjects:0 %}
+        {% for item in request.post|items %}
           <p>{{ item.0 }} {{ item.1 }}</p>
         {% endfor %}
       </dd>
       <dt>files</dt>
       <dd>
-        {% for item in request.files|items|sortObjects:0 %}
+        {% for item in request.files|items %}
           <p>{{ item.0 }}</p>
           <textarea rows=20 cols=80>{{ item.1.read }}</textarea>
         {% endfor %}
@@ -46,7 +46,7 @@
       <dt>headers</dt>
       <dd>
         <dl>
-          {% for item in request.headers|items|sortObjects:0 %}
+          {% for item in request.headers|items %}
             <dt>{{ item.0 }}</dt>
             <dd>{{ item.1 }}</dd>
           {% endfor %}

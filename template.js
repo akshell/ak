@@ -603,7 +603,8 @@
 
     items: new $.Filter(
       function (value) {
-        return ak.items(value);
+        return ak.keys(value).sort().map(
+          function (key) { return [key, value[key]]; });
       },
       {safety: 'value'}),
 
