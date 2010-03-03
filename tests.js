@@ -1554,6 +1554,19 @@
         assertSame(h.handle({method: 'delete'}), 'del');
         assertSame(h.handle({method: 'del'}), 'perform');
         assertSame(h.handle({method: 'func'}), 'perform');
+        var H1 = H.subclass(
+          {
+            get: function () {},
+            put: 42,
+            perform: 42
+          });
+        h1 = new H1();
+        h1.get = 42;
+        ['get', 'post', 'put', 'delete'].forEach(
+          function (method) {
+            assertThrow(
+              HttpError, function () { h1.handle({method: method}); });
+          });
       },
 
       testRedirect: function () {

@@ -38,10 +38,12 @@
         if (['get', 'post', 'head', 'put', 'delete']
             .indexOf(request.method) != -1) {
           var name = request.method == 'delete' ? 'del' : request.method;
-          if (this.__proto__.hasOwnProperty(name))
+          if (this.__proto__.hasOwnProperty(name) &&
+              typeof(this[name]) == 'function')
             return this[name].apply(this, arguments);
         }
-        if (this.__proto__.hasOwnProperty('perform'))
+        if (this.__proto__.hasOwnProperty('perform') &&
+            typeof(this.perform) == 'function')
           return this.perform.apply(this, arguments);
         throw ak.HttpError(
           'Method ' + request.method + ' is not allowed',
@@ -57,7 +59,7 @@
     return new ak.Response('', ak.http.FOUND, {Location: location});
   };
 
-  
+
   ['Login', 'SignUp', 'Session'].forEach(
     function (name) {
       var prefix = ('http://www.akshell.com/' + name.toLowerCase() +
