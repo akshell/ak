@@ -1502,7 +1502,7 @@
           ['abc/', ['', f, 'f1']],
           [/123/, g, 'g1'],
           ['', g, 'g2',
-           [/a(.)c/, h, 'h'],
+           [/a(.)c\//, h, 'h'],
            [/../, f, 'f2'],
            [/./, m]
           ]);
@@ -1511,10 +1511,10 @@
         assertThrow(ResolveError, function () { root.resolve(''); });
         assertThrow(ResolveError, function () { root.resolve('xyz/abd'); });
         assertThrow(ResolveError, function () { root.resolve('xyz/xabc'); });
-        assertEqual(root.resolve('xyz/abc'), [h, ['xyz', 'b']]);
+        assertEqual(root.resolve('xyz/abc/'), [h, ['xyz', 'b']]);
         assertEqual(root.resolve('xyz/a'), [m, ['xyz', 'a']]);
         assertEqual(root.resolve('xyz/ab'), [f, ['xyz', 'ab']]);
-        assertEqual(root.reverse('h', 'xyz', 0), 'xyz/a0c');
+        assertEqual(root.reverse('h', 'xyz', 0), 'xyz/a0c/');
         assertEqual(root.reverse('f1', '123'), 'abc/123/');
         assertEqual(root.reverse('f2', '123', 45), '123/45');
         assertThrow(ReverseError,

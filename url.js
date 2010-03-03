@@ -115,7 +115,7 @@
             } else if (pattern === defaultPattern) {
               childParts.push('/');
             } else {
-              var source = pattern.source;
+              var source = pattern.source.replace(/\\(.)/g, '$1');
               var start = source.indexOf('(');
               var stop = source.lastIndexOf(')');
               if (start == -1 || stop == -1 || start > stop) {
