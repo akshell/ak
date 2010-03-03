@@ -862,32 +862,35 @@
       testTimeSince: function () {
         assertSame(timeSince(new Date('14 Jan 2010 09:32:00'),
                              new Date('14 Jan 2010 09:33:03')),
-                   '1 minute, 3 seconds');
+                   '1 minute');
+        assertSame(timeSince(new Date('14 Jan 2010 09:32:03'),
+                             new Date('14 Jan 2010 11:31:00')),
+                   '1 hour, 58 minutes');
         assertSame(timeSince(new Date('14 Jan 2010 09:33:03'),
                              new Date('14 Jan 2010 09:32:00')),
-                   '0 seconds');
+                   '0 minutes');
         assertSame(timeSince(new Date('14 Jan 2010 09:32:00'),
                              new Date('14 Jan 2010 09:32:00')),
-                   '0 seconds');
+                   '0 minutes');
         assertSame(timeSince(new Date('14 Jan 2009 09:32:00'),
                              new Date('14 Jan 2010 09:33:03')),
                    '1 year');
         var date1 = new Date('14 Jan 2009 09:32:00');
         var date2 = new Date(date1);
         date2.setMilliseconds(1);
-        assertSame(timeSince(date1, date2), '0 seconds');
+        assertSame(timeSince(date1, date2), '0 minutes');
       },
 
       testTimeUntil: function () {
         assertSame(timeUntil(new Date('14 Jan 2009 09:32:00'),
                              new Date('14 Jan 2010 09:33:03')),
-                   '0 seconds');
+                   '0 minutes');
         assertSame(timeUntil(new Date('14 Jan 2010 09:33:03'),
                              new Date('14 Feb 2000 09:32:00')),
                    '9 years, 11 months');
         assertSame(timeUntil(new Date('fdsa'),
                              new Date('14 Feb 2000 09:32:00')),
-                   '0 seconds');
+                   '0 minutes');
       },
 
       testStream: function () {

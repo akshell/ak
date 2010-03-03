@@ -140,31 +140,30 @@
 
   ak.timeSince = function (date, now/* = new Date() */) {
     var chunks = [
-      [60 * 60 * 24 * 365, 'year'],
-      [60 * 60 * 24 * 30, 'month'],
-      [60 * 60 * 24 * 7, 'week'],
-      [60 * 60 * 24, 'day'],
-      [60 * 60, 'hour'],
-      [60, 'minute'],
-      [1, 'second']
+      [60 * 24 * 365, 'year'],
+      [60 * 24 * 30, 'month'],
+      [60 * 24 * 7, 'week'],
+      [60 * 24, 'day'],
+      [60, 'hour'],
+      [1, 'minute']
     ];
     now = now || new Date();
-    var seconds = (now - date) / 1000;
-    if (isNaN(seconds) || seconds <= 0)
-      return '0 seconds';
+    var minutes = (now - date) / 60000;
+    if (isNaN(minutes) || minutes <= 0)
+      return '0 minutes';
     var count1;
     for (var i = 0; i < chunks.length; ++i) {
-      count1 = Math.floor(seconds / chunks[i][0]);
+      count1 = Math.floor(minutes / chunks[i][0]);
       if (count1)
         break;
     }
     if (!count1)
-      return '0 seconds';
+      return '0 minutes';
     var result = count1 + ' ' + chunks[i][1];
     if (count1 != 1)
       result += 's';
     if (i + 1 < chunks.length) {
-      var count2 = Math.floor((seconds - count1 * chunks[i][0]) /
+      var count2 = Math.floor((minutes - count1 * chunks[i][0]) /
                               chunks[i + 1][0]);
       if (count2) {
         result += ', ' + count2 + ' ' + chunks[i + 1][1];
