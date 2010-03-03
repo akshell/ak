@@ -399,6 +399,7 @@
 
       get: makeRequester('get'),
       post: makeRequester('post'),
+      head: makeRequester('head'),
       put: makeRequester('put'),
       del: makeRequester('delete')
     });
