@@ -1607,7 +1607,8 @@
           return new Response();
         }.decorated(obtainingSession);
         assertSame(f({session: 42}).status, http.OK);
-        var response = f({fullPath: '/x?y&z'});
+        assertSame(f({}).status, http.OK);
+        var response = f({fullPath: '/x?y&z', session: ''});
         assertSame(response.status, http.FOUND);
         assertSame(response.headers.Location,
                    ('http://www.akshell.com/session/?domain=' + app.domain +

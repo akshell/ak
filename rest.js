@@ -84,7 +84,7 @@
   ak.obtainingSession = makeHandlerDecorator(
     function (func) {
       return function (request/*, args... */) {
-        return (request.session
+        return (request.session !== ''
                 ? func.apply(this, arguments)
                 : ak.redirect(ak.reverse('session', request.fullPath)));
       };
