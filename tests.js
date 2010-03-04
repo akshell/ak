@@ -1514,6 +1514,7 @@
         assertThrow(ResolveError, function () { root.resolve(''); });
         assertThrow(ResolveError, function () { root.resolve('xyz/abd'); });
         assertThrow(ResolveError, function () { root.resolve('xyz/xabc'); });
+        assertThrow(ResolveError, function () { root.resolve('/'); });
         assertEqual(root.resolve('xyz/abc/'), [h, ['xyz', 'b']]);
         assertEqual(root.resolve('xyz/a'), [m, ['xyz', 'a']]);
         assertEqual(root.resolve('xyz/ab'), [f, ['xyz', 'ab']]);

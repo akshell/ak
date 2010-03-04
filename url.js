@@ -34,7 +34,7 @@
   ak.ReverseError = ak.BaseError.subclass();
 
 
-  var defaultPattern = /([^\/]*)\//;
+  var defaultPattern = /([^\/]+)\//;
 
 
   ak.URLMap = Object.subclass(
