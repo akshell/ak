@@ -402,9 +402,10 @@
         issuer: ak._issuer,
         files: {}
       };
-      if (!request.issuer) {
-        request.session = data.session || '';
-        request.csrfToken = data.csrfToken || '';
+      if (!request.issuer && data.session !== undefined) {
+        request.session = data.session;
+        if (data.csrfToken)
+          request.csrfToken = data.csrfToken;
       }
       for (var i = 0; i < ak._files.length; ++i)
         request.files[data.fileNames[i]] = ak._files[i];
