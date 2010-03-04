@@ -60,16 +60,6 @@
   };
 
 
-  ['Login', 'SignUp', 'Session'].forEach(
-    function (name) {
-      var prefix = ('http://www.akshell.com/' + name.toLowerCase() +
-                    '/?domain=' + ak.app.domain + '&path=');
-      ak['get' + name + 'URL'] = function (path) {
-        return prefix + encodeURIComponent(path);
-      };
-    });
-
-
   function makeHandlerDecorator(decorator) {
     return function (handler) {
       if (!handler.subclassOf(ak.Handler))
@@ -86,7 +76,7 @@
       return function (request/*, args... */) {
         return (request.user
                 ? func.apply(this, arguments)
-                : ak.redirect(ak.getLoginURL(request.fullPath)));
+                : ak.redirect(ak.reverse('login', request.fullPath)));
       };
     });
 
@@ -96,7 +86,7 @@
       return function (request/*, args... */) {
         return (request.session
                 ? func.apply(this, arguments)
-                : ak.redirect(ak.getSessionURL(request.fullPath)));
+                : ak.redirect(ak.reverse('session', request.fullPath)));
       };
     });
 

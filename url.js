@@ -158,7 +158,12 @@
 
 
   ak.reverse = function (name/*, args... */) {
-    return '/' + __root__.reverse.apply(__root__, arguments);
+    return (['login', 'signup', 'session'].indexOf(name) == -1
+            ? '/' + __root__.reverse.apply(__root__, arguments)
+            : ('http://www.akshell.com/' + name +
+               '/?domain=' + ak.app.domain +
+               '&path=' + encodeURIComponent(arguments[1] || '/')));
+
   };
 
 })();
