@@ -158,7 +158,7 @@
 
 
   ak.reverse = function (name/*, args... */) {
-    return (['login', 'signup', 'session'].indexOf(name) == -1
+    return (['login', 'logout', 'signup', 'session'].indexOf(name) == -1
             ? '/' + __root__.reverse.apply(__root__, arguments)
             : ('http://www.akshell.com/' + name +
                '/?domain=' + ak.app.domain +
