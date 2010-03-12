@@ -1482,6 +1482,13 @@
       testErrors: function () {
         assertSame((new HttpError()).status, http.BAD_REQUEST);
         assertSame((new NotFoundError()).message, 'Not found');
+      },
+
+      testRedirect: function () {
+        var response = redirect('xyz');
+        assertSame(response.content, '');
+        assertSame(response.status, http.FOUND);
+        assertSame(response.headers.Location, 'xyz');
       }
     });
 
@@ -1571,13 +1578,6 @@
             assertThrow(
               HttpError, function () { h1.handle({method: method}); });
           });
-      },
-
-      testRedirect: function () {
-        var response = redirect('xyz');
-        assertSame(response.content, '');
-        assertSame(response.status, http.FOUND);
-        assertSame(response.headers.Location, 'xyz');
       },
 
       testLoggingIn: function () {
