@@ -1,0 +1,6 @@
+# Basic Akshell Library
+
+`ak` provides general JavaScript goodies and a Model-View-Controller
+framework facilitating web development. The [Akshell
+documentation](http://akshell.com/docs/) describes the library in
+detail.
