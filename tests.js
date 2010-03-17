@@ -855,8 +855,8 @@
         var string = 'x';
         assertSame(nextMatch(re, string)[0], 'x');
         assertSame(nextMatch(re, string), null);
-        assertThrow(SyntaxError, nextMatch, /a/g, 'b');
-        assertThrow(SyntaxError, nextMatch, /a/g, 'ba');
+        assertThrow(SyntaxError, nextMatch, new RegExp(/a/g), 'b');
+        assertThrow(SyntaxError, nextMatch, new RegExp(/a/g), 'ba');
       },
 
       testTimeSince: function () {
