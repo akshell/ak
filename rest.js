@@ -138,8 +138,9 @@
             } catch (_) {
               template = new ak.Template('{{ error.message }}');
             }
-            return new ak.Response(template.render({error: error}),
-                                   error.status);
+            return new ak.Response(
+              template.render({error: error, request: request}),
+              error.status);
           }
         };
       },
