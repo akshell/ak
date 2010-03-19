@@ -1337,7 +1337,7 @@
 
 
   var parenString = '(\\(|\\))';
-  var opString = '(\\|\\||&&|===|==|!==|!=|!)';
+  var opString = '(\\|\\||&&|===|==|!==|!=|<=|>=|<|>|!)';
 
   var exprTokenRegExp = RegExp(('\\s*(' +
                                 parenString + '|' +
@@ -1429,9 +1429,29 @@
       precedence: 2,
       func: function (left, right) { return left !== right; }
     },
+    '<': {
+      arity: 2,
+      precedence: 3,
+      func: function (left, right) { return left < right; }
+    },
+    '>': {
+      arity: 2,
+      precedence: 3,
+      func: function (left, right) { return left > right; }
+    },
+    '<=': {
+      arity: 2,
+      precedence: 3,
+      func: function (left, right) { return left <= right; }
+    },
+    '>=': {
+      arity: 2,
+      precedence: 3,
+      func: function (left, right) { return left >= right; }
+    },
     '!': {
       arity: 1,
-      precedence: 3,
+      precedence: 4,
       func: function (arg) { return !arg; }
     },
     '(': {

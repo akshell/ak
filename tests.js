@@ -1197,6 +1197,7 @@
     ['{% if . %}foo{% endif %}', {'': {'': true}}, 'foo'],
     ['{% if a.b %}foo{% endif %}', {a: {b: true}}, 'foo'],
     ['{% if x === undefined %}foo{% endif %}', {}, 'foo'],
+    ['{% if 3 > 2 == 4 >= 4 === 5 < 10 == true %}foo{% endif %}', {}, 'foo'],
     ['{% if x.y.z %}foo{% endif %}', {}, ''],
     ['{% for x in y %}{{ x }}{% endfor %}', {y: [1, 2, 3]}, '123'],
     ['{% for x in "" %}{% empty %}empty{% endfor %}', {}, 'empty'],
