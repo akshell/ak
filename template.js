@@ -1550,20 +1550,21 @@
   // Default environment
   //////////////////////////////////////////////////////////////////////////////
 
-  $.makeLoadFromCode = function (dir) {
-    var cache = {};
-    return function (name) {
-      return (name in cache
-              ? cache[name]
-              : ak.readCode(dir + '/' + name));
-    };
-  };
-
+  var templateCache = {};
 
   $.env = {
     tags: defaultTags,
     filters: defaultFilters,
-    load: $.makeLoadFromCode('/templates')
+    load: function (name) {
+      if (!templateCache.hasOwnProperty(name)) {
+        var i = name.indexOf(':');
+        templateCache[name] = (
+          i == -1
+          ? ak.readCode('templates/' + name)
+          : ak.readCode(name.substr(0, i), 'templates/' + name.substr(i + 1)));
+      }
+      return templateCache[name];
+    }
   };
 
 })();

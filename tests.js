@@ -1461,13 +1461,6 @@
         assertEqual(smartSplit('"'), ['"']);
         assertEqual(smartSplit('hi'), ['hi']);
         assertEqual(smartSplit(' \t'), []);
-      },
-
-      testMakeLoadFromCode: function () {
-        var env = {__proto__: template.env};
-        env.load = template.makeLoadFromCode('/test_data/templates');
-        assertSame(getTemplate('child.txt', env).render({x: 42}),
-                   '\n42\n\n\n\nfoo\n\n');
       }
     });
 

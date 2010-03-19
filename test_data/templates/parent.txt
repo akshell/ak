@@ -1,5 +1,0 @@
-{% block first %}
-{% endblock %}
-{% block second %}
-foo
-{% endblock %}
