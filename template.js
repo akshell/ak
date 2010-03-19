@@ -601,6 +601,15 @@
       },
       {safety: 'value'}),
 
+    hyphen: new $.Filter(
+      function (value) {
+        return (value
+                .trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[-\s]+/g, '-'));
+      },
+      {safety: 'always', accept: 'string'}),
+
     items: new $.Filter(
       function (value) {
         return ak.keys(value).sort().map(
@@ -707,16 +716,6 @@
         return func.apply(value, args);
       },
       {safety: 'value'}),
-
-    slugify: new $.Filter(
-      function (value) {
-        return (value
-                .trim()
-                .replace(/[^\w\s-]/g, '')
-                .replace(/[-\s]+/g, '-')
-                .toLowerCase());
-      },
-      {safety: 'always', accept: 'string'}),
 
     sortObjects: new $.Filter(
       function (value, arg) {

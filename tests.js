@@ -1171,7 +1171,7 @@
     ['{{ "abcde"|slice:"1,2,3" }}', {}, 'abcde'],
     ['{{ x|slice:"1,4"|join }}', {x: [1, 2, 3, 4, 5]}, '234'],
     ['{{ x|slice:3|join }}', {x: [1, 2, 3, 4, 5]}, '45'],
-    ['{{ " \ta b&!-C -- d"|slugify }}', {}, 'a-b-c-d'],
+    ['{{ " \ta b&!-C -- d"|hyphen }}', {}, 'a-b-C-d'],
     ['{{ "<p>a<br>b</p>"|stripTags }}', {}, 'ab'],
     ['{{ "hello world"|toTitleCase }}', {}, 'Hello World'],
     ['{{ " everything\'s ok "|toTitleCase }}', {}, ' Everything\'s Ok '],
