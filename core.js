@@ -277,8 +277,8 @@
   };
 
 
-  ak.describeApp = function (name) {
-    var result = ak.db._describeApp(name);
+  ak.getAppDescription = function (name) {
+    var result = ak.db._getAppDescription(name);
     result.name = name;
     result.developers.unshift(result.admin);
     return result;

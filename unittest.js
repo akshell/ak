@@ -313,7 +313,7 @@
       this._user = '';
     },
     {
-      _describeApp: function (name) {
+      _getAppDescription: function (name) {
         var result = this.apps[name];
         if (!result)
           throw ak.NoSuchAppError('No such test app: ' + ak.repr(name));
@@ -372,7 +372,7 @@
           });
         var contexts = {};
         var aspects = [].concat(
-          this._substitute('describeApp'),
+          this._substitute('getAppDescription'),
           this._substitute('getAdminedApps'),
           this._substitute('getDevelopedApps'),
           ak.weave(ak.After, ak.Template, 'render',

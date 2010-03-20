@@ -236,7 +236,7 @@
         assertSame(client.post({data: 'request.method'}), 'post');
         assertSame(client.del({data: 'request.method'}), 'delete');
 
-        assertSame(request('ak.describeApp("app1")'), apps.app1);
+        assertSame(request('ak.getAppDescription("app1")'), apps.app1);
         assertEqual(request('ak.getAdminedApps("user1")'), ['app1', 'app3']);
         assertEqual(request('ak.getDevelopedApps("user1")'), ['app2', 'app4']);
         assertEqual(request('ak.getDevelopedApps("user2")'), []);
@@ -413,7 +413,7 @@
       },
 
       testDescribeApp: function () {
-        var description = describeApp('ak');
+        var description = getAppDescription('ak');
         assertSame(description.name, 'ak');
         assertSame(description.admin, description.developers[0]);
       },
