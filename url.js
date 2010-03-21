@@ -30,7 +30,7 @@
   ak.include('http.js');
 
 
-  ak.ResolveError = ak.NotFoundError.subclass();
+  ak.ResolveError = ak.NotFound.subclass();
   ak.ReverseError = ak.BaseError.subclass();
 
 

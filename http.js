@@ -36,7 +36,7 @@
     });
 
 
-  ak.NotFoundError = ak.HttpError.subclass(
+  ak.NotFound = ak.HttpError.subclass(
     function (message/* = 'Not found' */) {
       ak.HttpError.call(this, message || 'Not found', ak.http.NOT_FOUND);
     }
@@ -47,7 +47,7 @@
     return new ak.Response('', ak.http.FOUND, {Location: location});
   };
 
-  
+
   ak.http = {
     __proto__: ak.Module.prototype,
 

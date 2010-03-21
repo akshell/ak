@@ -151,7 +151,7 @@
             return func(request);
           } catch (error) {
             if (!(error instanceof ak.TupleDoesNotExist)) throw error;
-            throw ak.NotFoundError(error.message);
+            throw ak.NotFound(error.message);
           }
         };
       },

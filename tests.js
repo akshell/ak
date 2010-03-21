@@ -1475,7 +1475,7 @@
 
       testErrors: function () {
         assertSame((new HttpError()).status, http.BAD_REQUEST);
-        assertSame((new NotFoundError()).message, 'Not found');
+        assertSame((new NotFound()).message, 'Not found');
       },
 
       testRedirect: function () {
