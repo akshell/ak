@@ -31,7 +31,7 @@ ak.include('tests.js');
 var IndexHandler = ak.Handler.subclass(
   {
     get: function () {
-      return ak.render('index.html');
+      return ak.redirect('http://www.akshell.com/apps/ak/');
     }
   });
 
