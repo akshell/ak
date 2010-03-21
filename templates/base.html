@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+          "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <link rel="shortcut icon"
+          href="http://static.akshell.com/main/images/favicon.ico">
+    <link rel="stylesheet"
+          href="http://static.akshell.com/main/styles/base.css"
+          type="text/css">
+    <title>{% block title %}{% endblock %}</title>
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <div id="container">
+      <div id="header">
+        {% block logo %}{% endblock %}
+        <div id="global-menu">
+          {% block global-menu %}{% endblock %}
+        </div>
+        <div id="auth">
+          {% if request.user %}
+            <a href="http://www.akshell.com/account/">
+            <em>{{ request.user }}</em></a>
+            <a href="{% url 'logout' request.fullPath %}">Log Out</a>
+          {% else %}
+            <a href="{% url 'login' request.fullPath %}">Log In</a>
+            <a href="{% url 'signup' request.fullPath %}">Sign Up</a>
+          {% endif %}
+        </div>
+      </div>
+      <div id="content" class="content">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+    <div id="footer">
+      <a href="mailto:support@akshell.com">Support</a>
+      |
+      <a href="http://www.akshell.com/about/terms/">Terms of Service</a>
+      |
+      <a href="http://www.akshell.com/about/privacy/">Privacy Policy</a>
+      |
+      &copy; 2010 by Anton Korenyushkin
+    </div>
+  </body>
+</html>
