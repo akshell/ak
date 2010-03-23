@@ -13,19 +13,18 @@
   <body>
     <div id="container">
       <div id="header">
-        {% block logo %}{% endblock %}
-        <div id="global-menu">
-          {% block global-menu %}{% endblock %}
-        </div>
+        {% block header %}{% endblock %}
         <div id="auth">
-          {% if request.user %}
-            <a href="http://www.akshell.com/account/">
-            <em>{{ request.user }}</em></a>
-            <a href="{% url 'logout' request.fullPath %}">Log Out</a>
-          {% else %}
-            <a href="{% url 'login' request.fullPath %}">Log In</a>
-            <a href="{% url 'signup' request.fullPath %}">Sign Up</a>
-          {% endif %}
+          {% block auth %}
+            {% if request.user %}
+              <a href="http://www.akshell.com/account/">
+              <em>{{ request.user }}</em></a>
+              <a href="{% url 'logout' request.fullPath %}">Log Out</a>
+            {% else %}
+              <a href="{% url 'login' request.fullPath %}">Log In</a>
+              <a href="{% url 'signup' request.fullPath %}">Sign Up</a>
+            {% endif %}
+          {% endblock %}
         </div>
       </div>
       <div id="content" class="content">
