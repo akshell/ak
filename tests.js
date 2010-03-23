@@ -1393,7 +1393,7 @@
         assertSame(
           (new Template('{% code "some/path" %}').render()),
           ('http://static.akshell.com/code/spots/' +
-           'ak/anton-korenyushkin/debug/some/path'));
+           'ak/Anton-Korenyushkin/debug/some/path'));
         ak.app = {name: 'ak'};
         assertSame(
           (new Template('{% code "some/path" %}').render()),

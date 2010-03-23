@@ -1259,7 +1259,7 @@
       if (ak.app.spot)
         parts.push('spots',
                    ak.app.name,
-                   ak.app.spot.owner.replace(/ /g, '-').toLowerCase(),
+                   ak.app.spot.owner.replace(/ /g, '-'),
                    ak.app.spot.name);
       else
         parts.push('release', ak.app.name);
