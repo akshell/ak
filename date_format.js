@@ -13,9 +13,7 @@
 
 (function ()
 {
-  var token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LloSZ]|\"[^\"]*\"|\'[^\']*\'/g;
-  var timezone = /\b(?:[PMCEA][SDP]T|(?:Pacific|Mountain|Central|Eastern|Atlantic) (?:Standard|Daylight|Prevailing) Time|(?:GMT|UTC)(?:[-+]\d{4})?)\b/g;
-  var timezoneClip = /[^-+\dA-Z]/g;
+  var token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LlS]|\"[^\"]*\"|\'[^\']*\'/g;
 
 
   function pad(val, len) {
@@ -28,27 +26,19 @@
 
   Date.prototype.setHidden(
     'format',
-    function (mask, utc) {
+    function (mask) {
 	  var dF = arguments.callee;
 	  mask = String(dF.masks[mask] || mask || dF.masks["default"]);
 
-	  // Allow setting the utc argument via the mask
-	  if (mask.startsWith("UTC:")) {
-	    mask = mask.slice(4);
-	    utc = true;
-	  }
-
-	  var	_ = utc ? "getUTC" : "get",
-	  d = this[_ + "Date"](),
-	  D = this[_ + "Day"](),
-	  m = this[_ + "Month"](),
-	  y = this[_ + "FullYear"](),
-	  H = this[_ + "Hours"](),
-	  M = this[_ + "Minutes"](),
-	  s = this[_ + "Seconds"](),
-	  L = this[_ + "Milliseconds"](),
-	  o = utc ? 0 : this.getTimezoneOffset(),
-	  flags = {
+	  var d = this.getUTCDate();
+	  var D = this.getUTCDay();
+	  var m = this.getUTCMonth();
+	  var y = this.getUTCFullYear();
+	  var H = this.getUTCHours();
+	  var M = this.getUTCMinutes();
+	  var s = this.getUTCSeconds();
+	  var L = this.getUTCMilliseconds();
+	  var flags = {
 	    d:    d,
 	    dd:   pad(d),
 	    ddd:  dF.i18n.dayNames[D],
@@ -73,8 +63,6 @@
 	    tt:   H < 12 ? "am" : "pm",
 	    T:    H < 12 ? "A"  : "P",
 	    TT:   H < 12 ? "AM" : "PM",
-	    Z:    utc ? "UTC" : (String(this).match(timezone) || [""]).pop().replace(timezoneClip, ""),
-	    o:    (o > 0 ? "-" : "+") + pad(Math.floor(Math.abs(o) / 60) * 100 + Math.abs(o) % 60, 4),
 	    S:    ["th", "st", "nd", "rd"][d % 10 > 3 ? 0 : (d % 100 - d % 10 != 10) * d % 10]
 	  };
 
@@ -92,12 +80,10 @@
 	longDate:       "mmmm d, yyyy",
 	fullDate:       "dddd, mmmm d, yyyy",
 	shortTime:      "h:MM TT",
-	mediumTime:     "h:MM:ss TT",
-	longTime:       "h:MM:ss TT Z",
+	longTime:       "h:MM:ss TT",
 	isoDate:        "yyyy-mm-dd",
 	isoTime:        "HH:MM:ss",
-	isoDateTime:    "yyyy-mm-dd'T'HH:MM:ss",
-	isoUtcDateTime: "UTC:yyyy-mm-dd'T'HH:MM:ss'Z'"
+	isoDateTime:    "yyyy-mm-dd'T'HH:MM:ss"
   };
 
 
