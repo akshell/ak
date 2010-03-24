@@ -25,7 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 // 'with' is used here in order to ensure that ak namespace is used correctly
-(function () { with (ak.use('ak'))
+(function () { with (ak.include('__init__.js'))
 {
   // May be this function should be in utils.
   function thrower (error) {
