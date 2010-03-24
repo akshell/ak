@@ -1948,4 +1948,18 @@
       }
     });
 
+  //////////////////////////////////////////////////////////////////////////////
+  // date_format tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.DateFormatTestCase = TestCase.subclass(
+    {
+      testFormat: function () {
+        var date = new Date('Wed, 24 Mar 2010 14:59:57');
+        assertSame(date.format(), 'Wed Mar 24 2010 14:59:57');
+        assertSame(date.format('mediumDate'), 'Mar 24, 2010');
+        assertSame(date.format('h:M:ss'), '2:59:57');
+      }
+    });
+
 }})();

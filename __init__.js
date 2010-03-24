@@ -36,6 +36,7 @@
   ak.include('unittest.js');
   ak.include('url.js');
   ak.include('utils.js');
+  ak.include('date_format.js');
 
   ak.giveNames(ak);
   return ak;
