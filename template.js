@@ -492,6 +492,12 @@
       },
       {accept: 'string'}),
 
+    date: new $.Filter(
+      function (value, arg) {
+        return value ? value.format(arg) : '';
+      },
+      {safety: 'arg'}),
+
     'default': new $.Filter(
       function (value, arg) {
         return value.raw ? value : arg;

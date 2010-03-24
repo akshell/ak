@@ -1188,6 +1188,13 @@
        date2: new Date('14 Jan 2010 09:32:00')
      },
      '1 hour, 47 minutes 1 hour, 47 minutes'],
+    ['{{ date|date }}', {}, ''],
+    ['{{ date|date }}',
+     {date: new Date('Wed, 24 Mar 2010 15:40:40')},
+     'Wed Mar 24 2010 15:40:40'],
+    ['{{ date|date:"h:M" }}',
+     {date: new Date('Wed, 24 Mar 2010 15:40:40')},
+     '3:40'],
 
     ['{% comment %} yo \n\r\t wuzzup {% endcomment %}', {}, ''],
     ['{% if \t  true %}foo{% endif %}', {}, 'foo'],
