@@ -931,7 +931,7 @@
       throw ak.TemplateSyntaxError('"block" tag takes one argument');
     var name = args[1];
     parser.store.blocks = parser.store.blocks || {};
-    if (name in parser.store.blocks)
+    if (parser.store.blocks.hasOwnProperty(name))
       throw ak.TemplateSyntaxError(
         'Block with name ' + ak.repr(name) + ' appears more than once');
     return new BlockNode(name,
@@ -1043,7 +1043,7 @@
                                         return expr.resolve(context).raw;
                                       })
                     : this._thenNode.render(context));
-        if ('_prev' in this &&
+        if (this.hasOwnProperty('_prev') &&
             (this._exprs
              ? (curr.length == this._prev.length &&
                 ak.zip(curr, this._prev).every(function (pair) {

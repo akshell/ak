@@ -133,7 +133,7 @@
         this.prototype = func.prototype;
         ak.set(this.prototype, 'constructor', ak.HIDDEN, this);
         this.__proto__ = func.__proto__;
-        if ('__name__' in func)
+        if (func.__name__)
           this.__name__ = func.__name__;
         return this;
       },

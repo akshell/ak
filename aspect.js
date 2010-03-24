@@ -44,7 +44,7 @@
         this._source = source;
         this._setSourceOwner(this);
       }
-      if ('__name__' in source)
+      if (source.__name__)
         this.__name__ = source.__name__;
       this.prototype = source.prototype;
       holder[name] = this;
