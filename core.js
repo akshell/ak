@@ -268,10 +268,6 @@
   // Misc
   //////////////////////////////////////////////////////////////////////////////
 
-  // Dates should be in UTC on the server
-  Date.prototype.toString = Date.prototype.toUTCString;
-
-
   ak.Data.prototype.toString = function (encoding) {
     return this._toString(encoding || 'UTF-8');
   };

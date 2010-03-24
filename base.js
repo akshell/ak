@@ -236,7 +236,7 @@
        return '[' + this.map(ak.repr).join(', ') + ']';
      }],
     [Date, function () {
-       return this + '';
+       return this.toUTCString();
      }],
     [Function, function () {
        if (this.__name__)
