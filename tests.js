@@ -1317,7 +1317,9 @@
      '123'],
     ['{{ object|items|last|last }}',
      {object: safe({a: '', b: '<>'})},
-     '<>']
+     '<>'],
+    ['{% now "<mmm yy>" %}', {}, (new Date()).format('<mmm yy>')],
+    ['{% now f %}', {f: '<mmm yy>'}, (new Date()).format('"&lt;"mmm yy"&gt;"')]
   ];
 
 
@@ -1442,6 +1444,10 @@
           'http://static.akshell.com/media/release/ak/test.css?' + ts);
         fs.remove('test.css');
         ak.app = oldApp;
+      },
+
+      testNow: function () {
+        (new Template('{% now %}')).render();
       },
 
       testErrors: function () {

@@ -1320,6 +1320,30 @@
       };
     });
 
+
+  var NowNode = Object.subclass(
+    function (expr) {
+      this._expr = expr;
+    },
+    {
+      render: function (context) {
+        if (!this._expr)
+          return (new Date()).format();
+        var wrap = this._expr.resolve(context);
+        var string = (new Date()).format(wrap.raw);
+        return wrap.safe ? string : ak.escapeHTML(string);
+      }
+    });
+
+
+  defaultTags.now = function (parser) {
+    var args = $.smartSplit(parser.content);
+    if (args.length > 2)
+      throw ak.TemplateSyntaxError(
+        '"now" tag takes one optional argument');
+    return new NowNode(args[1] && parser.makeExpr(args[1]));
+  };
+
   //////////////////////////////////////////////////////////////////////////////
   // if tag
   //////////////////////////////////////////////////////////////////////////////
