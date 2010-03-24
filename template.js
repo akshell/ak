@@ -872,9 +872,9 @@
 
 
   var ExtendsNode = Object.subclass(
-    function (expr, blocks, env) {
+    function (expr, store, env) {
       this._expr = expr;
-      this._blocks = blocks;
+      this._store = store;
       this._env = env;
     },
     {
@@ -883,15 +883,19 @@
           return this._template;
         var template = ak.getTemplate(this._expr.resolve(context).raw + '',
                                       this._env);
-        template.store.blocks = ak.update(template.store.blocks || {},
-                                          this._blocks);
         if (this._expr instanceof Constant)
           this._template = template;
         return template;
       },
 
       render: function (context) {
-        return this._getTemplate(context).render(context);
+        var template = this._getTemplate(context);
+        template.store.child = this._store;
+        try {
+          return template.render(context);
+        } finally {
+          delete template.store.child;
+        }
       }
     });
 
@@ -900,28 +904,30 @@
       throw ak.TemplateSyntaxError(
         '"extends" should be the first tag in the template');
     var expr = parser.makeExpr(parser.content.substr(8).trim());
-    parser.store.extends = true;
+    parser.store.blocks = {};
     parser.parse();
-    return new ExtendsNode(expr, parser.store.blocks || {}, parser.env);
+    return new ExtendsNode(expr, parser.store, parser.env);
   };
 
 
   var BlockNode = Object.subclass(
     function (name, node, store) {
-      store.blocks[name] = this;
       this._name = name;
       this._node = node;
       this._store = store;
     },
     {
       render: function (context) {
-        return (this._store.extends
-                ? ''
-                : this._store.blocks[this._name].doRender(context));
-      },
-
-      doRender: function (context) {
-        return this._node.render(context);
+        var node = this._node;
+        function doRender() {
+          return node.render(context);
+        }
+        for (var store = this._store.child; store; store = store.child) {
+          if (store.blocks.hasOwnProperty(this._name))
+            return store.blocks[this._name].render(
+              {__proto__: context, 'super': doRender});
+        }
+        return doRender();
       }
     });
 
@@ -934,9 +940,8 @@
     if (parser.store.blocks.hasOwnProperty(name))
       throw ak.TemplateSyntaxError(
         'Block with name ' + ak.repr(name) + ' appears more than once');
-    return new BlockNode(name,
-                         parser.parse(['endblock', 'endblock ' + name]),
-                         parser.store);
+    return parser.store.blocks[name] = new BlockNode(
+      name, parser.parse(['endblock', 'endblock ' + name]), parser.store);
   };
 
 
