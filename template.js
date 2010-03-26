@@ -596,7 +596,7 @@
 
     items: new $.Filter(
       function (value) {
-        return ak.keys(value).sort().map(
+        return ak.keys(value).map(
           function (key) { return [key, value[key]]; });
       },
       {safety: 'value'}),

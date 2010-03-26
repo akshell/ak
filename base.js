@@ -223,14 +223,10 @@
 
   [
     [Object, function () {
-       var keys = ak.keys(this);
-       keys.sort();
-       return ('{' +
-               keys.map(function (key) {
-                          return key + ': ' + ak.repr(this[key]);
-                        },
-                        this).join(', ') +
-               '}');
+       var parts = [];
+       for (var key in this)
+         parts.push(key + ': ' + ak.repr(this[key]));
+       return '{' + parts.join(', ') + '}';
      }],
     [Array, function () {
        return '[' + this.map(ak.repr).join(', ') + ']';

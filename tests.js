@@ -163,9 +163,9 @@
         m.tc = new TC('test1');
         m.TC = TC;
         assertSame(loadTestSuite(m) + '',
-                   'test1(TC), test2(TC), test1(TC), func(TC)');
+                   'func(TC), test1(TC), test1(TC), test2(TC)');
         assertSame(loadTestSuite([m, new TC('test2')]) + '',
-                   'test1(TC), test2(TC), test1(TC), func(TC), test2(TC)');
+                   'func(TC), test1(TC), test1(TC), test2(TC), test2(TC)');
         assertThrow(TypeError, loadTestSuite, 42);
       },
 
@@ -182,11 +182,11 @@
         var stream = new Stream();
         runTestViaStream(loadTestSuite(TC), stream);
         assert(stream.read().startsWith(
+                 'testOk(test) ok\n' +
+                 'testError(test) ERROR\n' +
                  'testAssert(test) FAIL\n' +
                  'testAssertEqual(test) FAIL\n' +
                  'testAssertThrow(test) FAIL\n' +
-                 'testError(test) ERROR\n' +
-                 'testOk(test) ok\n' +
                  '=====\n'),
                  'TextTestRunner');
       },
@@ -354,7 +354,7 @@
         assertEqual(rv.Y.serial, ['s']);
         assertEqual(rv.Y.integer, ['i', 'i1', 's', 's1']);
         assertEqual(items(rv.Y.default_), [['d', 15]]);
-        assertEqual(keys(rv).sort(), ['X', 'Y']);
+        assertEqual(keys(rv), ['X', 'Y']);
         rv.Y.drop();
         assertEqual(keys(rv), ['X']);
       },
@@ -492,24 +492,15 @@
       },
 
       testItems: function () {
-        var o = {a: 1, b: 2};
-        var expect = [['a', 1], ['b', 2]];
-        var o_items = items(o);
-        o_items.sort(cmp);
-        assertEqual(o_items, expect);
+        assertEqual(items({a: 1, b: 2}), [['a', 1], ['b', 2]]);
       },
 
       testKeys: function () {
-        var a = keys({a: 1, b: 2, c: 3});
-        a.sort(cmp);
-        assertEqual(a, ['a', 'b', 'c']);
+        assertEqual(keys({a: 1, b: 2, c: 3}), ['a', 'b', 'c']);
       },
 
       testValues: function () {
-        var o = {a: 1, b: 2, c: 4, d: -1};
-        var got = values(o);
-        got.sort(cmp);
-        assertEqual(got, [-1, 1, 2, 4]);
+        assertEqual(values({a: 1, b: 2, c: 4, d: -1}), [1, 2, 4, -1]);
       },
 
       testObjectSet: function () {
@@ -538,15 +529,15 @@
       },
 
       testObjectItems: function () {
-        assertEqual({a: 1, b: 2}.items().sort(), [['a', 1], ['b', 2]]);
+        assertEqual({a: 1, b: 2}.items(), [['a', 1], ['b', 2]]);
       },
 
       testObjectKeys: function () {
-        assertEqual({a: 1, b: 2}.keys().sort(), ['a', 'b']);
+        assertEqual({a: 1, b: 2}.keys(), ['a', 'b']);
       },
 
       testObjectValues: function () {
-        assertEqual({a: 1, b: 2}.values().sort(), [1, 2]);
+        assertEqual({a: 1, b: 2}.values(), [1, 2]);
       },
 
       //////////////////////////////////////////////////////////////////////////

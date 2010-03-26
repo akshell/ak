@@ -204,8 +204,7 @@
           testMethodNames.push(name);
       }
       return new ak.TestSuite(
-        testMethodNames.sort().map(
-          function (name) { return new source(name); }));
+        testMethodNames.map(function (name) { return new source(name); }));
     }
     return null;
   }
@@ -217,7 +216,7 @@
       return result;
     if (source instanceof ak.Module) {
       result = new ak.TestSuite();
-      ak.keys(source).sort().forEach(
+      ak.keys(source).forEach(
         function (name) {
           var suite = doLoadTestSuite(source[name]);
           if (suite)
