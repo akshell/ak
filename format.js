@@ -189,6 +189,8 @@
       if (typeof(format) == 'number' || format instanceof Number)
         return original.call(this, format);
 
+      format += '';
+
       var number = Number(this);
 
       if (format == 'X') {
@@ -245,6 +247,7 @@
     'toString',
     function (format) {
       format = format || 'ddd MMM dd yyyy HH:mm:ss';
+      format += '';
       if (format.length == 1 && ak.culture.hasOwnProperty(format))
         format = ak.culture[format];
       var self = this;

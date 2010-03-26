@@ -492,12 +492,6 @@
       },
       {accept: 'string'}),
 
-    date: new $.Filter(
-      function (value, arg) {
-        return value ? value.format(arg) : '';
-      },
-      {safety: 'arg'}),
-
     'default': new $.Filter(
       function (value, arg) {
         return value.raw ? value : arg;
@@ -575,22 +569,6 @@
         if (value < 1024 *1024 * 1024)
           return (value / (1024 * 1024)).toFixed(1) + ' MB';
         return (value / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-      },
-      {safety: 'always'}),
-
-    formatFloat: new $.Filter(
-      function (value, arg/* = -1 */) {
-        value = +value;
-        if (isNaN(value))
-          return '';
-        if (arguments.length < 2)
-          arg = -1;
-        arg = +arg;
-        if (isNaN(arg) || arg % 1 != 0)
-          return value;
-        if (arg < 0 && value % 1 == 0)
-          return value.toFixed();
-        return value.toFixed(Math.abs(arg));
       },
       {safety: 'always'}),
 
@@ -758,6 +736,16 @@
         return value.toLowerCase();
       },
       {safety: 'value', accept: 'string'}),
+
+    toString: new $.Filter(
+      function (value, arg) {
+        if (value === undefined)
+          return new $.Wrap('', true);
+        if (value === null)
+          return new $.Wrap('null', true);
+        return arg ? value.toString(arg) : value.toString();
+      },
+      {safety: 'both'}),
 
     toTitleCase: new $.Filter(
       function (value) {
@@ -1328,9 +1316,9 @@
     {
       render: function (context) {
         if (!this._expr)
-          return (new Date()).format();
+          return (new Date()).toString();
         var wrap = this._expr.resolve(context);
-        var string = (new Date()).format(wrap.raw);
+        var string = (new Date()).toString(wrap.raw);
         return wrap.safe ? string : ak.escapeHTML(string);
       }
     });

@@ -1134,12 +1134,6 @@
     ['{{ undefined|first }}', {}, ''],
     ['{{ "abc"|first }}', {}, 'a'],
     ['{{ x|first }}', {x: [1, 2, 3]}, '1'],
-    ['{{ "foo"|formatFloat }}', {}, ''],
-    ['{{ "42"|formatFloat }}', {}, '42'],
-    ['{{ 42|formatFloat:2 }}', {}, '42.00'],
-    ['{{ 42|formatFloat:"foo" }}', {}, '42'],
-    ['{{ 42|formatFloat:1.4 }}', {}, '42'],
-    ['{{ 42.3|formatFloat:-3 }}', {}, '42.300'],
     ['{{ "<>"|forceEscape|safe }}', {}, '&lt;&gt;'],
     ['{{ 12345|getDigit:4 }}', {}, '2'],
     ['{{ "<>"|getDigit:1 }}', {}, '<>'],
@@ -1188,16 +1182,18 @@
        date2: new Date('14 Jan 2010 09:32:00')
      },
      '1 hour, 47 minutes 1 hour, 47 minutes'],
-    ['{{ date|date }}', {}, ''],
-    ['{{ date|date }}',
+    ['{{ x|toString }}', {}, ''],
+    ['{{ x|toString }}', {x: null}, 'null'],
+    ['{{ date|toString }}',
      {date: new Date('Wed, 24 Mar 2010 15:40:40')},
      'Wed Mar 24 2010 15:40:40'],
-    ['{{ date|date:"<h:M>" }}',
-     {date: new Date('Wed, 24 Mar 2010 15:40:40')},
+    ['{{ date|toString:"<h:m>" }}',
+     {date: safe(new Date('Wed, 24 Mar 2010 15:40:40'))},
      '<3:40>'],
-    ['{{ date|date:format }}',
-     {date: new Date('Wed, 24 Mar 2010 15:40:40'), format: '<h:M>'},
+    ['{{ date|toString:"<h:m>" }}',
+     {date: new Date('Wed, 24 Mar 2010 15:40:40')},
      '&lt;3:40&gt;'],
+    ['{{ 42|toString:"000.00" }}', {}, '042.00'],
 
     ['{% comment %} yo \n\r\t wuzzup {% endcomment %}', {}, ''],
     ['{% if \t  true %}foo{% endif %}', {}, 'foo'],
@@ -1321,8 +1317,8 @@
     ['{{ object|items|last|last }}',
      {object: safe({a: '', b: '<>'})},
      '<>'],
-    ['{% now "<mmm yy>" %}', {}, (new Date()).format('<mmm yy>')],
-    ['{% now f %}', {f: '<mmm yy>'}, (new Date()).format('"&lt;"mmm yy"&gt;"')]
+    ['{% now "<mmm yy>" %}', {}, (new Date()).toString('<mmm yy>')],
+    ['{% now f %}', {f: '<mmm yy>'}, (new Date()).toString('&lt;mmm yy&gt;')]
   ];
 
 
@@ -1961,20 +1957,6 @@
         assertEqual(aspects.unweave(), [f1, f2]);
         assertSame(f.f1(), 1);
         assertSame(f.f2(), 2);
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
-  // date_format tests
-  //////////////////////////////////////////////////////////////////////////////
-
-  ak.DateFormatTestCase = TestCase.subclass(
-    {
-      testFormat: function () {
-        var date = new Date('Wed, 24 Mar 2010 14:59:57');
-        assertSame(date.format(), 'Wed Mar 24 2010 14:59:57');
-        assertSame(date.format('mediumDate'), 'Mar 24, 2010');
-        assertSame(date.format('h:M:ss'), '2:59:57');
       }
     });
 
