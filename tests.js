@@ -1978,4 +1978,88 @@
       }
     });
 
+  //////////////////////////////////////////////////////////////////////////////
+  // format tests
+  //////////////////////////////////////////////////////////////////////////////
+
+  ak.FormatTestCase = TestCase.subclass(
+    {
+      testDateToString: function () {
+        var date = new Date('Fri Mar 05 2010 14:04:09');
+        [
+          ['', 'Fri Mar 05 2010 14:04:09'],
+          ['d', '03/05/2010'],
+          ['D', 'March 05, 2010'],
+          ['t', '02:04 PM'],
+          ['T', '02:04:09 PM'],
+          ['M', '5 March'],
+          ['Y', 'March, 2010'],
+          ['s', '2010-03-05T14:04:09'],
+          ['f', 'March 05, 2010 02:04 PM'],
+          ['F', 'March 05, 2010 02:04:09 PM'],
+          ['g', '03/05/2010 02:04 PM'],
+          ['G', '03/05/2010 02:04:09 PM'],
+          ['dddd', 'Friday'],
+          ['ddd', 'Fri'],
+          ['dd', '05'],
+          [' d', ' 5'],
+          ['MMMM', 'March'],
+          ['MMM', 'Mar'],
+          ['MM', '03'],
+          [' M', ' 3'],
+          ['yyyy', '2010'],
+          ['yy', '10'],
+          ['HH', '14'],
+          ['hh', '02'],
+          ['H', '14'],
+          ['h', '2'],
+          ['mm', '04'],
+          ['m', '4'],
+          ['ss', '09'],
+          [' s', ' 9'],
+          ['tt', 'PM']
+        ].forEach(
+          function (pair) {
+            assertSame(date.toString(pair[0]), pair[1]);
+          });
+      },
+
+      testNumberToString: function () {
+        assertSame((42).toString(), '42');
+        [
+          [42, 16, '2a'],
+          [42, 'X', '2A'],
+          [42, 'x', '2a'],
+          [0.1234, 'g', '0.1234'],
+          [12345, 'g', '12345'],
+          [1234567, 'n', '1,234,567'],
+          [1234567.891, 'c', '$1,234,567.89'],
+          [42, 'f', '42.00'],
+          [0.1234, 'f', '0.12'],
+          [12.34, '000.000', '012.340'],
+          [12.34, '#a#b#.#c#d#', 'a1b2.3c4d'],
+          [1234567, '0,0', '1,234,567'],
+          [1234567, '0,.', '1235'],
+          [.1234, '#.###%', '12.34%'],
+          [42, 'positive;negative;zero', 'positive'],
+          [-42, 'positive;negative;zero', 'negative'],
+          [0, 'positive;negative;zero', 'zero']
+
+        ].forEach(
+          function (triple) {
+            assertSame(triple[0].toString(triple[1]), triple[2]);
+          });
+      },
+
+      testStringFormat: function () {
+        assertSame('{0}'.format(), 'undefined');
+        assertSame('{0} {1}'.format(42, 'yo!'), '42 yo!');
+        assertSame('{0,-10:0.00}'.format(42), '42.00     ');
+        assertSame(
+          '{0,11:MMMM yyyy}'.format(new Date('Fri Mar 05 2010 14:04:09')),
+          ' March 2010');
+        assertSame('{0}'.format(null), 'null');
+        assertSame('{{}}'.format(), '{}');
+      }
+    });
 }})();
