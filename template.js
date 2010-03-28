@@ -31,6 +31,7 @@
 {
   ak.include('utils.js');
   ak.include('url.js');
+  ak.include('format.js');
 
   var $ = ak.template = new ak.Module();
 
@@ -92,6 +93,10 @@
   // Exprs
   //////////////////////////////////////////////////////////////////////////////
 
+  [Boolean, Number, Date].forEach(
+    function (constructor) { constructor.prototype.toString.safe = true; });
+
+
   var Variable = Object.subclass(
     function (lookups) {
       this._lookups = lookups;
@@ -99,19 +104,22 @@
     {
       resolve: function (context) {
         var current = context;
-        var safe = false;
         for (var i = 0; i < this._lookups.length; ++i) {
           var bit = this._lookups[i];
-          if (current instanceof $.Wrap) {
-            safe = current.safe;
+          if (current instanceof $.Wrap)
             current = current.raw;
-          }
           var field = current[bit];
           current = typeof(field) == 'function' ? field.call(current) : field;
           if (current === undefined || current === null)
             break;
         }
-        return current instanceof $.Wrap ? current : new $.Wrap(current, safe);
+        return (current instanceof $.Wrap
+                ? current
+                : new $.Wrap(current,
+                             (current === undefined ||
+                              current === null ||
+                              (typeof(current.toString) == 'function' &&
+                               current.toString.safe))));
       }
     });
 
