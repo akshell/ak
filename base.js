@@ -177,8 +177,7 @@
           Error.captureStackTrace(this);
           if (arguments.length && !this.message)
             this.message = message + '';
-          constructor.apply(this, arguments);
-          return undefined;
+          return constructor.apply(this, arguments);
         }.wraps(constructor);
         result.prototype.__defineGetter__(
           'name',
