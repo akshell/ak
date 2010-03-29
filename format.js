@@ -76,6 +76,14 @@
   c.G = c.d + ' ' + c.T;
 
 
+  function makeShort(name) {
+    return name.substr(0, 3);
+  }
+
+  c.shortMonths = c.months.map(makeShort);
+  c.shortDays = c.days.map(makeShort);
+
+
   // Handles the internal format processing of a number
   function processNumber(input, format) {
     var digits = 0,
@@ -256,11 +264,11 @@
 		  function () {
             switch (arguments[0]) {
 			case 'dddd': return ak.culture.days[self.getDay()];
-			case 'ddd': return ak.culture.days[self.getDay()].substr(0, 3);
+			case 'ddd': return ak.culture.shortDays[self.getDay()];
 			case 'dd': return numberPair(self.getDate());
 			case 'd': return self.getDate();
 			case 'MMMM': return ak.culture.months[self.getMonth()];
-			case 'MMM': return ak.culture.months[self.getMonth()].substr(0, 3);
+			case 'MMM': return ak.culture.shortMonths[self.getMonth()];
 			case 'MM': return numberPair(self.getMonth() + 1);
 			case 'M': return self.getMonth() + 1;
 			case 'yyyy': return self.getFullYear();
