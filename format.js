@@ -61,6 +61,8 @@
       'Friday',
       'Saturday'
     ],
+    am: 'AM',
+    pm: 'PM',
     decimalSeparator: '.',
     thousandsSeparator: ',',
     currencyFormat: '$#,0.00',
@@ -281,7 +283,9 @@
 			case 'm': return self.getMinutes();
 			case 'ss': return numberPair(self.getSeconds());
 			case 's': return self.getSeconds();
-			case 'tt': return self.getHours() < 12 ? 'AM' : 'PM';
+			case 'tt': return (self.getHours() < 12
+                               ? ak.culture.am
+                               : ak.culture.pm);
 			default: return '';
 			}
 		  });
