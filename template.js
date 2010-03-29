@@ -436,7 +436,7 @@
   }
 
 
-  jsEscapes = [
+  var jsEscapes = [
     [/\\/g, '\\x5c'],
     [/\'/g, '\\x27'],
     [/\"/g, '\\x22'],
