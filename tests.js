@@ -1022,6 +1022,14 @@
     ['{{ a }} --- {{ b }}', {a: 1, b: 'hi'}, '1 --- hi'],
     ['{{ o.f }}', {o: {f: function () { return 42; }}}, '42'],
     ['{{ o1.o2.f }}', {o1: {o2: {f: function () { return 'hi'; }}}}, 'hi'],
+    ['{{ x }}',
+     {
+       x: 0,
+       getTemplateVariable: function (name) {
+         return name.toUpperCase();
+       }
+     },
+     'X'],
     ['a {{ moo %} b', {}, 'a {{ moo %} b'],
     ['{{ moo #}', {}, '{{ moo #}'],
     ['{{ moo\n }}', {}, '{{ moo\n }}'],

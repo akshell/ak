@@ -108,7 +108,9 @@
           var bit = this._lookups[i];
           if (current instanceof $.Wrap)
             current = current.raw;
-          var field = current[bit];
+          var field = (typeof(current.getTemplateVariable) == 'function'
+                       ? current.getTemplateVariable(bit)
+                       : current[bit]);
           current = typeof(field) == 'function' ? field.call(current) : field;
           if (current === undefined || current === null)
             break;
