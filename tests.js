@@ -1003,12 +1003,12 @@
       hello: 'hello world',
       foo: '{% block foo %}foo{% endblock %}',
       parent: (
-        '{% block 1 %}parent1{% endblock%} ' +
-        '{% block 2 %}{{ super }}parent2{% endblock %}'),
+        '{% block 1 %}<hr>{% endblock%} ' +
+        '{% block 2 %}{{ super }}<br>{% endblock %}'),
       child: (
         '{% extends "parent" %}' +
         '{% block 1 %}' +
-        '{{ super }} child1{% block 3 %}{% endblock %}' +
+        '{{ super }} hello{% block 3 %}{% endblock %}' +
         '{% endblock %}')
     }[name];
   };
@@ -1235,18 +1235,18 @@
     ['{% extends  "foo" %}', {}, 'foo'],
     ['{% extends "foo" %}{% block foo %}bar{% endblock %}', {}, 'bar'],
     ['{% extends "foo" %}{% block foo %}bar{% endblock foo  %}', {}, 'bar'],
-    ['{% extends "child" %}', {}, 'parent1 child1 parent2'],
+    ['{% extends "child" %}', {}, '<hr> hello <br>'],
     ['{% extends "child" %}{% block 2 %}yo!{% endblock %}',
      {},
-     'parent1 child1 yo!'],
+     '<hr> hello yo!'],
     ['{% extends "child" %}{% block 3 %} yo!{% endblock %}',
      {},
-     'parent1 child1 yo! parent2'],
+     '<hr> hello yo! <br>'],
     [('{% extends "child" %}' +
       '{% block 1 %}{{ super }} hi{% endblock %}' +
       '{% block 3 %} yo!{% endblock %}'),
      {},
-     'parent1 child1 yo! hi parent2'],
+     '<hr> hello yo! hi <br>'],
     ['{% for i in "12345" %}{% cycle "a" "b" %}{% endfor %}', {}, 'ababa'],
     ['{% for i in "abcd" %}{% cycle 1 2 3 as x %}{% cycle x %}{% endfor %}', {},
      '12312312'],

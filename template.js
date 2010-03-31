@@ -923,15 +923,17 @@
     {
       render: function (context) {
         var node = this._node;
-        function doRender() {
-          return node.render(context);
-        }
         for (var store = this._store.child; store; store = store.child) {
           if (store.blocks.hasOwnProperty(this._name))
             return store.blocks[this._name].render(
-              {__proto__: context, 'super': doRender});
+              {
+                __proto__: context,
+                'super': function () {
+                  return ak.safe(node.render(context));
+                }
+              });
         }
-        return doRender();
+        return node.render(context);
       }
     });
 
