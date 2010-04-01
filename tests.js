@@ -1498,9 +1498,10 @@
       name: 'http',
 
       testErrors: function () {
-        assertSame((new HttpError()).status, http.BAD_REQUEST);
-        assertSame((new NotFound()).message, 'Not found');
-        assertSame((new Forbidden()).message, 'Forbidden');
+        assertSame(HttpError().status, http.BAD_REQUEST);
+        assertSame(HttpError().message, 'Bad request');
+        assertSame(NotFound().message, 'Not found');
+        assertSame(Forbidden().message, 'Forbidden');
       },
 
       testRedirect: function () {

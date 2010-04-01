@@ -30,8 +30,8 @@
 
 
   ak.HttpError = ak.BaseError.subclass(
-    function (message, status/* = ak.http.BAD_REQUEST */) {
-      ak.BaseError.call(this, message);
+    function (message/* = 'Bad request' */, status/* = ak.http.BAD_REQUEST */) {
+      ak.BaseError.call(this, message || 'Bad request');
       this.status = status || ak.http.BAD_REQUEST;
     });
 
