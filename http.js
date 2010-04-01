@@ -43,6 +43,12 @@
   );
 
 
+  ak.Forbidden = ak.HttpError.subclass(
+    function (message/* = 'Forbidden' */) {
+      ak.HttpError.call(this, message || 'Forbidden', ak.http.FORBIDDEN);
+    });
+
+
   ak.redirect = function (location) {
     return new ak.Response('', ak.http.FOUND, {Location: location});
   };

@@ -1500,6 +1500,7 @@
       testErrors: function () {
         assertSame((new HttpError()).status, http.BAD_REQUEST);
         assertSame((new NotFound()).message, 'Not found');
+        assertSame((new Forbidden()).message, 'Forbidden');
       },
 
       testRedirect: function () {
