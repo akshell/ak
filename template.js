@@ -1615,7 +1615,9 @@
         templateCache[name] = (
           i == -1
           ? ak.readCode('templates/' + name)
-          : ak.readCode(name.substr(0, i), 'templates/' + name.substr(i + 1)));
+          : i == 0
+          ? ak.readCode(name)
+          : ak.readCode(name.substr(0, i), name.substr(i + 1)));
       }
       return templateCache[name];
     }
