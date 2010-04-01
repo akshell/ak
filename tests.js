@@ -348,9 +348,7 @@
         assertEqual(
           rv.Y.foreign,
           [[['f'], 'Y', ['u']], [['s1', 'i1'], 'Y', ['s', 'i']]]);
-        assertEqual(
-          rv.Y.unique,
-          [['s', 'i'], ['s', 'i', 'u', 'f', 'c', 's1', 'i1', 'd'], ['u']]);
+        assertEqual(rv.Y.unique, [['s', 'i'], ['u']]);
         assertEqual(rv.Y.serial, ['s']);
         assertEqual(rv.Y.integer, ['i', 'i1', 's', 's1']);
         assertEqual(items(rv.Y.default_), [['d', 15]]);
