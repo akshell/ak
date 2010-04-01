@@ -17,8 +17,7 @@
         <div id="auth">
           {% block auth %}
             {% if request.user %}
-              <a href="http://www.akshell.com/account/">
-              <em>{{ request.user }}</em></a>
+              <a href="http://www.akshell.com/account/">{{ request.user }}</a>
               <a href="{% url 'logout' request.fullPath %}">Log Out</a>
             {% else %}
               <a href="{% url 'login' request.fullPath %}">Log In</a>
