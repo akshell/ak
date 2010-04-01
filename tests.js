@@ -1117,7 +1117,7 @@
     ['{{ "42"|divisibleBy:"2" }}', {}, 'true'],
     ['{{ "42"|divisibleBy:"4" }}', {}, 'false'],
     ['{{ "yo!"|divisibleBy:"4" }}', {}, 'false'],
-    ['{{ a|escapeJavaScript }}',
+    ['{{ a|escapeJS }}',
      {'a': 'testing\r\njavascript \'string" <b>escaping</b>\u2028'},
      ('testing\\x0d\\x0ajavascript \\x27string\\x22 ' +
       '\\x3cb\\x3eescaping\\x3c/b\\x3e\\u2028')],

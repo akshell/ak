@@ -541,7 +541,7 @@
     escape: new $.Filter(
       function (value) { return value; }),
 
-    escapeJavaScript: new $.Filter(
+    escapeJS: new $.Filter(
       function (value) {
         jsEscapes.forEach(
           function (replacement) {
