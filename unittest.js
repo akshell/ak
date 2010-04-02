@@ -360,7 +360,7 @@
         ak.update(
           request,
           {
-            user: request.user || this._user,
+            user: request.user === undefined ? this._user : request.user,
             method: request.method || 'get',
             path: request.path || '/',
             get: request.get || {},
