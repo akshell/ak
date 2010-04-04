@@ -1248,19 +1248,19 @@
 
 
   var CSRFTokenNode = Object.subclass(
-    function (value) {
-      this._value = value;
-    },
     {
       render: function (context) {
         return ('<div style="display:none;">' +
-                '<input type="hidden" name="csrfToken" value="' + this._value +
+                '<input type="hidden" name="csrfToken" value="' +
+                ($.csrfToken || '') +
                 '"></div>');
       }
     });
 
   defaultTags.csrfToken = function (parser) {
-    return new CSRFTokenNode(arguments.callee.value || '');
+    if (parser.content.trim() != 'csrfToken')
+      throw ak.TemplateSyntaxError('"csrfToken" tag takes no arguments');
+    return new CSRFTokenNode();
   };
 
 

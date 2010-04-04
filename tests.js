@@ -1369,6 +1369,7 @@
     '{% with %}{% endwith %}',
     '{% with 1 1 1 %}{% endwith %}',
     '{% url %}',
+    '{% csrfToken 1 %}',
     '{% code %}',
     '{% media "file" bad-option %}',
     '{% media 1 2 3 %}',
@@ -1394,7 +1395,7 @@
             ]
            ]
           ]);
-        template.env.tags.csrfToken.value = '42';
+        template.csrfToken = '42';
         renderingTests.forEach(
           function (test) {
             assertSame((new Template(test[0], testEnv)).render(test[1]),

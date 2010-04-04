@@ -121,7 +121,7 @@
             return new ak.Response(
               'Cross-site request forgery detected. Request aborted.',
               ak.http.FORBIDDEN);
-          ak.template.env.tags.csrfToken.value = request.csrfToken;
+          ak.template.csrfToken = request.csrfToken;
           return func(request);
         };
       },
