@@ -407,7 +407,10 @@
 
   ak.getTemplate = function (name, env/* = ak.template.env */) {
     env = env || $.env;
-    return new ak.Template(env.load(name), env);
+    env.cache = env.cache || {};
+    if (!env.cache.hasOwnProperty(name))
+      env.cache[name] = new ak.Template(env.load(name), env);
+    return env.cache[name];
   };
 
 
@@ -1610,16 +1613,12 @@
     tags: defaultTags,
     filters: defaultFilters,
     load: function (name) {
-      if (!templateCache.hasOwnProperty(name)) {
-        var i = name.indexOf(':');
-        templateCache[name] = (
-          i == -1
-          ? ak.readCode('templates/' + name)
-          : i == 0
-          ? ak.readCode(name)
-          : ak.readCode(name.substr(0, i), name.substr(i + 1)));
-      }
-      return templateCache[name];
+      var i = name.indexOf(':');
+      return (i == -1
+              ? ak.readCode('templates/' + name)
+              : i == 0
+              ? ak.readCode(name)
+              : ak.readCode(name.substr(0, i), name.substr(i + 1)));
     }
   };
 
