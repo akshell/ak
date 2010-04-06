@@ -45,7 +45,7 @@
         if (this.__proto__.hasOwnProperty('perform') &&
             typeof(this.perform) == 'function')
           return this.perform.apply(this, arguments);
-        throw ak.HttpError(
+        throw ak.UserError(
           'Method ' + request.method + ' is not allowed',
           ak.http.METHOD_NOT_ALLOWED);
       }
@@ -126,12 +126,12 @@
         };
       },
 
-      catchingHttpError: function (func) {
+      catchingUserError: function (func) {
         return function (request) {
           try {
             return func(request);
           } catch (error) {
-            if (!(error instanceof ak.HttpError)) throw error;
+            if (!(error instanceof ak.UserError)) throw error;
             var template;
             try {
               template = ak.getTemplate('error.html');
@@ -191,7 +191,7 @@
   ak.defaultServe = ak.serve.decorated(
     ak.serve.protectingFromICAR,
     ak.serve.protectingFromCSRF,
-    ak.serve.catchingHttpError,
+    ak.serve.catchingUserError,
     ak.serve.catchingTupleDoesNotExist,
     ak.serve.appendingSlash,
     ak.serve.rollbacking
