@@ -1499,8 +1499,8 @@
       name: 'http',
 
       testErrors: function () {
-        assertSame(UserError().status, http.BAD_REQUEST);
-        assertSame(UserError().message, 'Bad request');
+        assertSame(Failure().status, http.BAD_REQUEST);
+        assertSame(Failure().message, 'Bad request');
         assertSame(NotFound().message, 'Not found');
         assertSame(Forbidden().message, 'Forbidden');
       },
@@ -1597,7 +1597,7 @@
         ['get', 'post', 'put', 'delete'].forEach(
           function (method) {
             assertThrow(
-              UserError, function () { h1.handle({method: method}); });
+              Failure, function () { h1.handle({method: method}); });
           });
       },
 
@@ -1721,7 +1721,7 @@
              return new Response((new Template('{% csrfToken %}')).render());
            }],
           ['http-error', function () {
-             throw new UserError('hi');
+             throw new Failure('hi');
            }],
           ['tuple-does-not-exist', function () {
              throw new TupleDoesNotExist('hello');

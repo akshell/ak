@@ -29,23 +29,23 @@
   ak.include('base.js');
 
 
-  ak.UserError = ak.BaseError.subclass(
+  ak.Failure = ak.BaseError.subclass(
     function (message/* = 'Bad request' */, status/* = ak.http.BAD_REQUEST */) {
       ak.BaseError.call(this, message || 'Bad request');
       this.status = status || ak.http.BAD_REQUEST;
     });
 
 
-  ak.NotFound = ak.UserError.subclass(
+  ak.NotFound = ak.Failure.subclass(
     function (message/* = 'Not found' */) {
-      ak.UserError.call(this, message || 'Not found', ak.http.NOT_FOUND);
+      ak.Failure.call(this, message || 'Not found', ak.http.NOT_FOUND);
     }
   );
 
 
-  ak.Forbidden = ak.UserError.subclass(
+  ak.Forbidden = ak.Failure.subclass(
     function (message/* = 'Forbidden' */) {
-      ak.UserError.call(this, message || 'Forbidden', ak.http.FORBIDDEN);
+      ak.Failure.call(this, message || 'Forbidden', ak.http.FORBIDDEN);
     });
 
 
