@@ -63,16 +63,13 @@
     [ak.fs, 'createDir'],
     [ak.fs, 'write'],
     [ak.fs, 'rename'],
-    [ak.db, 'rollback'],
-    [ak.db, 'getAdminedApps', ak],
-    [ak.db, 'getDevelopedApps', ak],
-    [ak.db, 'getAppsByLabel', ak]
+    [ak.db, 'rollback']
   ].forEach(
-    function (args) {
-      var owner = args[0];
-      var name = args[1];
+    function (pair) {
+      var owner = pair[0];
+      var name = pair[1];
       var func = owner['_' + name];
-      (args[2] || owner)[name] = function () {
+      owner[name] = function () {
         return func.apply(owner, arguments);
       };
     });
@@ -273,10 +270,20 @@
   };
 
 
+  ak.getAdminedApps = function (name) {
+    return ak.db._getAdminedApps(name).sort();
+  };
+
+
+  ak.getDevelopedApps = function (name) {
+    return ak.db._getDevelopedApps(name).sort();
+  };
+
+
   ak.getAppDescription = function (name) {
     var result = ak.db._getAppDescription(name);
     result.name = name;
-    result.developers.unshift(result.admin);
+    result.developers.sort();
     return result;
   };
 

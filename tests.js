@@ -413,7 +413,6 @@
       testDescribeApp: function () {
         var description = getAppDescription('ak');
         assertSame(description.name, 'ak');
-        assertSame(description.admin, description.developers[0]);
       },
 
       testRemove: function () {

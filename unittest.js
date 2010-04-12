@@ -307,7 +307,6 @@
         var app = this.apps[name];
         app.name = name;
         app.developers = app.developers || [];
-        app.developers.unshift(app.admin);
       }
       this._user = '';
     },
@@ -337,7 +336,7 @@
         this._checkUserExists(user);
         var result = [];
         for (var name in this.apps)
-          if (this.apps[name].developers.indexOf(user) > 0)
+          if (this.apps[name].developers.indexOf(user) != -1)
             result.push(name);
         return result;
       },
