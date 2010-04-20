@@ -119,7 +119,10 @@
               request.csrfToken &&
               request.post.csrfToken != request.csrfToken)
             return new ak.Response(
-              'Cross-site request forgery detected. Request aborted.',
+              ('<p>Please use the <code>{% csrfToken %}</code> ' +
+               'tag in POST forms like this:</p>' +
+               '<pre>&lt;form method="post" ...&gt;\n' +
+               '  {% csrfToken %}\n  ...\n&lt;/form&gt;</pre>'),
               ak.http.FORBIDDEN);
           ak.template.csrfToken = request.csrfToken;
           return func(request);
