@@ -335,7 +335,7 @@
     var responseString = ak._requestApp(appName,
                                         JSON.stringify(realRequest),
                                         filePathes,
-                                        request.data || '');
+                                        request.data || null);
     var head = responseString.split('\n\n', 1)[0];
     if (head.length == responseString.length)
       throw ak.AppRequestError('Response without a head');
