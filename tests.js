@@ -452,6 +452,76 @@
         ak._requestApp = oldRequestApp;
       },
 
+      testRequestHost: function () {
+        var oldRequestHost = ak._requestHost;
+
+        var server, port, data, response;
+        ak._requestHost = function (s, p, d) {
+          server = s;
+          port = p;
+          data = d;
+          return 'HTTP/1.1 200 OK\r\n\r\n';
+        };
+        requestHost('example.com:8000', {});
+        assertSame(server, 'example.com');
+        assertSame(port, '8000');
+        assertSame(
+          data,
+          ('GET / HTTP/1.1\r\n' +
+           'Connection: close\r\n' +
+           'Accept-Charset: utf-8\r\n' +
+           'Accept-Encoding: identity\r\n' +
+           'Host: example.com:8000\r\n' +
+           '\r\n'));
+        requestHost('example.com', {});
+        assertSame(port, '80');
+        requestHost('example.com', {post: 'text'});
+        assert(data.endsWith('Content-Length: 4\r\n\r\ntext'));
+        requestHost('example.com', {post: {a: [1,2,3], 'b&c': '?'}});
+        assert(
+          data.endsWith(
+            'Content-Type: application/x-www-form-urlencoded\r\n' +
+            'Content-Length: 21\r\n' +
+            '\r\n' +
+            'a=1&a=2&a=3&b%26c=%3F'));
+        requestHost('example.com', {headers: {a: 1, b: 2}});
+        assert(data.endsWith('a: 1\r\nb: 2\r\n\r\n'));
+        requestHost('example.com', {path: 'abc/def'});
+        assert(data.startsWith('GET /abc/def '));
+        requestHost('example.com', {path: '/abc', get: {a: [1, 2], b: 3}});
+        assert(data.startsWith('GET /abc?a=1&a=2&b=3 '));
+        requestHost('example.com', {path: '/abc', get: {}});
+        assert(data.startsWith('GET /abc '));
+        requestHost('example.com', {method: 'post'});
+        assert(data.startsWith('POST '));
+
+        var input;
+        ak._requestHost = function () {
+          return input;
+        };
+        function parse(i) {
+          input = i;
+          return requestHost('example.com', {});
+        }
+        assertThrow(HostRequestError, parse, '');
+        assertThrow(HostRequestError, parse, '\r\n\r\n');
+        assertSame(parse('HTTP/1.1 500\r\n\r\n').status, 500);
+        assertEqual(parse('HTTP/1.1 200\r\nillegal\r\n\r\n').headers.items(),
+                    []);
+        assertEqual(
+          parse('HTTP/1.1 200\r\n' +
+                'a: 1\r\n' +
+                'bla-bla-bla\t:  123\t  \r\n' +
+                ' yo!\r\n' +
+                'Bla-BLA-BLA:456\r\n' +
+                'illegal\r\n' +
+                '\t  hey  \t\r\n' +
+                '\r\n').headers.items(),
+          [['A', '1'], ['Bla-Bla-Bla', '123 yo!,456 hey']]);
+
+        ak._requestHost = oldRequestHost;
+      },
+
       testURI: function () {
         var request = new Request({
                                     fullPath: 'a/b',

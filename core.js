@@ -310,13 +310,17 @@
                    : ak.app.name);
 
 
+  function getPath(path) {
+    return (path
+            ? (path[0] == '/' ? path : '/' + path)
+            : '/');
+  }
+
+
   ak.requestApp = function (appName, request) {
-    var path = request.path || '/';
-    if (path[0] != '/')
-      path = '/' + path;
     var realRequest = {
       method: request.method || 'get',
-      path: path,
+      path: getPath(request.path),
       get: request.get || {},
       post: request.post || {},
       headers: request.headers || {},
@@ -352,6 +356,95 @@
           headers[name] = headerLine.substr(name.length + 2);
         });
     return new ak.Response(content, status, headers);
+  };
+
+
+  function encodeParams(params) {
+    var parts = [];
+    for (var name in params) {
+      var values = params[name];
+      if (!(values instanceof Array))
+        values = [values];
+      for (var i = 0; i < values.length; ++i)
+        parts.push(
+          encodeURIComponent(name) + '=' + encodeURIComponent(values[i]));
+    }
+    return parts.join('&');
+  }
+
+
+  ak.requestHost = function (hostName, request) {
+    var server;
+    var port;
+    var colonIndex = hostName.indexOf(':');
+    if (colonIndex == -1) {
+      server = hostName;
+      port = '80';
+    } else {
+      server = hostName.substr(0, colonIndex);
+      port = hostName.substr(colonIndex + 1);
+    }
+    var requestHeaders = {
+      'Connection': 'close',
+      'Accept-Charset': 'utf-8',
+      'Accept-Encoding': 'identity',
+      'Host': hostName
+    };
+    var post = request.post;
+    if (typeof(post) == 'object') {
+      post = encodeParams(post);
+      requestHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
+    if (post)
+      requestHeaders['Content-Length'] = post.length;
+    for (var name in request.headers || {})
+      requestHeaders[name] = request.headers[name];
+    var path = getPath(request.path);
+    var get = request.get && encodeParams(request.get);
+    if (get)
+      path += '?' + get;
+    var method = request.method ? request.method.toUpperCase() : 'GET';
+    var requestParts = [method + ' ' + path + ' HTTP/1.1'];
+    for (name in requestHeaders)
+      requestParts.push(name + ': ' + requestHeaders[name]);
+    requestParts.push('', post || '');
+
+    var data = ak._requestHost(
+      server,
+      port,
+      requestParts.join('\r\n')).toString(
+        requestHeaders['Accept-Charset'] || 'utf-8');
+
+    var endOfHeaders = data.indexOf('\r\n\r\n');
+    if (endOfHeaders == -1)
+      throw ak.HostRequestError('Unexpected end of response');
+    var content = data.substr(endOfHeaders + 4);
+    var responseParts = data.substr(0, endOfHeaders).split('\r\n');
+    var match = responseParts.shift().match(/^http\/[^ ]+ ([0-9]+).*$/i);
+    if (!match)
+      throw ak.HostRequestError('Illegal HTTP response status line');
+    var status = +match[1];
+    var responseHeaders = {};
+    var prev;
+    for (var i = 0; i < responseParts.length; ++i) {
+      var part = responseParts[i];
+      match = part.match(/^([^: \t]+)[ \t]*:[ \t]*(.*?)[ \t]*$/);
+      if (match) {
+        name = match[1];
+        name = (name[0].toUpperCase() +
+                name.substr(1).toLowerCase().replace(
+                  /-[a-z]/g,
+                  function (string) { return '-' + string[1].toUpperCase(); }));
+        if (responseHeaders.hasOwnProperty(name))
+          responseHeaders[name] += ',' + match[2];
+        else
+          responseHeaders[name] = match[2];
+        prev = name;
+      } else if (prev && (match = part.match(/^[ \t]+(.*?)[ \t]*$/))) {
+        responseHeaders[prev] += ' ' + match[1];
+      }
+    }
+    return new ak.Response(content, status, responseHeaders);
   };
 
   //////////////////////////////////////////////////////////////////////////////
