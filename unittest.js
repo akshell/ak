@@ -24,382 +24,374 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-(function ()
-{
-  ak.include('utils.js');
-  ak.include('aspect.js');
+var core = require('inner').core;
+var base = require('base');
+var utils = require('utils');
+var aspect = require('aspect');
+var template = require('template');
+var rest = require('rest');
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Classes
-  //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Classes
+////////////////////////////////////////////////////////////////////////////////
 
-  ak.TestResult = Object.subclass(
-    function () {
-      this.errors = [];
-      this.failures = [];
-      this.testsRun = 0;
+exports.TestResult = Object.subclass(
+  function () {
+    this.errors = [];
+    this.failures = [];
+    this.testsRun = 0;
+  },
+  {
+    wasSuccessful: function () {
+      return this.errors.length == 0 && this.failures.length == 0;
     },
-    {
-      wasSuccessful: function () {
-        return this.errors.length == 0 && this.failures.length == 0;
-      },
 
-      startTest: function (test) {
-        ++this.testsRun;
-      },
-
-      stopTest: function (test) {},
-
-      addError: function (test, error) {
-        this.errors.push([test, error]);
-      },
-
-      addFailure: function (test, failure) {
-        this.failures.push([test, failure]);
-      },
-
-      addSuccess: function (test) {}
-    });
-
-
-  ak.TestSuite = Object.subclass(
-    function (tests/* = [] */) {
-      this._tests = tests || [];
+    startTest: function (test) {
+      ++this.testsRun;
     },
-    {
-      run: function (result) {
-        this._tests.map(function (test) { test.run(result); });
-      },
 
-      addTest: function (test) {
-        this._tests.push(test);
-      },
+    stopTest: function (test) {},
 
-      countTestCases: function () {
-        return ak.sum(
-          this._tests.map(function (test) { return test.countTestCases(); }));
-      },
-
-      toString: function () {
-        var strings = [];
-        this._tests.forEach(
-          function (test) {
-            var string = test + '';
-            if (string)
-              strings.push(string);
-          });
-        return strings.join(', ');
-      },
-
-      __repr__: function () {
-        return '<TestSuite ' + this + '>';
-      }
-    });
-
-
-  ak.TestCase = Object.subclass(
-    function (methodName) {
-      if (typeof(this[methodName]) != 'function')
-        throw ak.UsageError(
-          'Test method ' + ak.repr(methodName) + ' not found');
-      this._methodName = methodName;
+    addError: function (test, error) {
+      this.errors.push([test, error]);
     },
-    {
-      countTestCases: function () {
-        return 1;
-      },
 
-      setUp: function () {},
-
-      tearDown: function () {},
-
-      run: function (result) {
-        result.startTest(this);
-        try {
-          try {
-            this.setUp();
-          } catch (error) {
-            result.addError(this, error);
-            return;
-          }
-          var ok = false;
-          try {
-            this[this._methodName]();
-            ok = true;
-          } catch (error) {
-            if (error instanceof ak.AssertionError)
-              result.addFailure(this, error);
-            else
-              result.addError(this, error);
-          }
-          try {
-            this.tearDown();
-          } catch (error) {
-            result.addError(this, error);
-            ok = false;
-          }
-          if (ok)
-            result.addSuccess(this);
-        } finally {
-          result.stopTest(this);
-        }
-      },
-
-      toString: function () {
-        var result = this._methodName;
-        var name = this.name || this.constructor.__name__;
-        if (name)
-          result += '(' + name + ')';
-        return result;
-      },
-
-      __repr__: function () {
-        return ('<' + (this.constructor.__name__ || 'TestCase') +
-                ' ' + this._methodName + '>');
-      }
-    });
-
-
-  ak.StreamTestResult = ak.TestResult.subclass(
-    function (stream) {
-      ak.TestResult.call(this);
-      this._stream = stream;
+    addFailure: function (test, failure) {
+      this.failures.push([test, failure]);
     },
-    {
-      startTest: function (test) {
-        ak.TestResult.prototype.startTest.call(this, test);
-        this._stream.write(test);
-      },
 
-      addError: function (test, error) {
-        ak.TestResult.prototype.addError.call(this, test, error);
-        this._stream.write(' ERROR\n');
-      },
-
-      addFailure: function (test, error) {
-        ak.TestResult.prototype.addFailure.call(this, test, error);
-        this._stream.write(' FAIL\n');
-      },
-
-      addSuccess: function (test) {
-        ak.TestResult.prototype.addSuccess.call(this, test);
-        this._stream.write(' ok\n');
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
-  // Functions
-  //////////////////////////////////////////////////////////////////////////////
-
-  function doLoadTestSuite(source) {
-    if (source instanceof ak.TestSuite)
-      return source;
-    if (source instanceof ak.TestCase)
-      return new ak.TestSuite([source]);
-    if (typeof(source) == 'function' && source.subclassOf(ak.TestCase)) {
-      var testMethodNames = [];
-      for (var name in source.prototype) {
-        if (name.startsWith('test') &&
-            typeof(source.prototype[name]) == 'function')
-          testMethodNames.push(name);
-      }
-      return new ak.TestSuite(
-        testMethodNames.map(function (name) { return new source(name); }));
-    }
-    return null;
-  }
+    addSuccess: function (test) {}
+  });
 
 
-  ak.loadTestSuite = function (source) {
-    var result = doLoadTestSuite(source);
-    if (result)
-      return result;
-    if (source instanceof ak.Module) {
-      result = new ak.TestSuite();
-      ak.keys(source).forEach(
-        function (name) {
-          var suite = doLoadTestSuite(source[name]);
-          if (suite)
-            result.addTest(suite);
+exports.TestSuite = Object.subclass(
+  function (tests/* = [] */) {
+    this._tests = tests || [];
+  },
+  {
+    run: function (result) {
+      this._tests.map(function (test) { test.run(result); });
+    },
+
+    addTest: function (test) {
+      this._tests.push(test);
+    },
+
+    countTestCases: function () {
+      return utils.sum(
+        this._tests.map(function (test) { return test.countTestCases(); }));
+    },
+
+    toString: function () {
+      var strings = [];
+      this._tests.forEach(
+        function (test) {
+          var string = test + '';
+          if (string)
+            strings.push(string);
         });
+      return strings.join(', ');
+    },
+
+    __repr__: function () {
+      return '<TestSuite ' + this + '>';
+    }
+  });
+
+
+exports.TestCase = Object.subclass(
+  function (methodName) {
+    if (typeof(this[methodName]) != 'function')
+      throw core.UsageError(
+        'Test method ' + base.repr(methodName) + ' not found');
+    this._methodName = methodName;
+  },
+  {
+    countTestCases: function () {
+      return 1;
+    },
+
+    setUp: function () {},
+
+    tearDown: function () {},
+
+    run: function (result) {
+      result.startTest(this);
+      try {
+        try {
+          this.setUp();
+        } catch (error) {
+          result.addError(this, error);
+          return;
+        }
+        var ok = false;
+        try {
+          this[this._methodName]();
+          ok = true;
+        } catch (error) {
+          if (error instanceof base.AssertionError)
+            result.addFailure(this, error);
+          else
+            result.addError(this, error);
+        }
+        try {
+          this.tearDown();
+        } catch (error) {
+          result.addError(this, error);
+          ok = false;
+        }
+        if (ok)
+          result.addSuccess(this);
+      } finally {
+        result.stopTest(this);
+      }
+    },
+
+    toString: function () {
+      var result = this._methodName;
+      if (this.name)
+        result += '(' + this.name + ')';
       return result;
+    },
+
+    __repr__: function () {
+      return '<TestCase ' + this + '>';
     }
-    if (ak.isList(source))
-      return new ak.TestSuite(Array.map(source, arguments.callee));
-    throw TypeError('Can not load TestSuite from ' + ak.repr(source));
-  };
+  });
 
 
-  function getErrorDescription(error) {
-    return (error && error.stack
-            ? error.stack
-            : error);
+exports.StreamTestResult = exports.TestResult.subclass(
+  function (stream) {
+    exports.TestResult.call(this);
+    this._stream = stream;
+  },
+  {
+    startTest: function (test) {
+      exports.TestResult.prototype.startTest.call(this, test);
+      this._stream.write(test);
+    },
+
+    addError: function (test, error) {
+      exports.TestResult.prototype.addError.call(this, test, error);
+      this._stream.write(' ERROR\n');
+    },
+
+    addFailure: function (test, error) {
+      exports.TestResult.prototype.addFailure.call(this, test, error);
+      this._stream.write(' FAIL\n');
+    },
+
+    addSuccess: function (test) {
+      exports.TestResult.prototype.addSuccess.call(this, test);
+      this._stream.write(' ok\n');
+    }
+  });
+
+////////////////////////////////////////////////////////////////////////////////
+// Functions
+////////////////////////////////////////////////////////////////////////////////
+
+function doLoadTestSuite(source) {
+  if (source instanceof exports.TestSuite)
+    return source;
+  if (source instanceof exports.TestCase)
+    return new exports.TestSuite([source]);
+  if (typeof(source) == 'function' && source.subclassOf(exports.TestCase)) {
+    var testMethodNames = [];
+    for (var name in source.prototype) {
+      if (name.startsWith('test') &&
+          typeof(source.prototype[name]) == 'function')
+        testMethodNames.push(name);
+    }
+    return new exports.TestSuite(
+      testMethodNames.map(function (name) { return new source(name); }));
   }
+  return null;
+}
 
 
-  ak.runTestViaStream = function (test, stream/* = ak.out */) {
-    stream = stream || ak.out;
-    var result = new ak.StreamTestResult(stream);
-    test.run(result);
-    result.errors.forEach(
-      function (error) {
-        stream.write('=====\nERROR: ' + error[0] + '\n' +
-                     getErrorDescription(error[1]) + '\n');
-      });
-    result.failures.forEach(
-      function (failure) {
-        stream.write('=====\nFAIL: ' + failure[0] + '\n' +
-                     getErrorDescription(failure[1]) + '\n');
-      });
-    stream.write('-----\n' + 'Ran ' + test.countTestCases() + ' tests\n');
-    if (result.wasSuccessful()) {
-      stream.write('OK');
-    } else {
-      stream.write('FAILED (');
-      if (result.failures.length)
-        stream.write('failures=' + result.failures.length);
-      if (result.errors.length) {
-        if (result.failures.length)
-          stream.write(', ');
-        stream.write('errors=' + result.errors.length);
-      }
-      stream.write(')');
-    }
+exports.loadTestSuite = function (source) {
+  var result = doLoadTestSuite(source);
+  if (result)
     return result;
+  if (typeof(source) != 'object')
+    throw TypeError('Can not load TestSuite from ' + base.repr(source));
+  if (source instanceof Array)
+    return new exports.TestSuite(Array.map(source, arguments.callee));
+  result = new exports.TestSuite();
+  for (var name in source) {
+    var suite = doLoadTestSuite(source[name]);
+    if (suite)
+      result.addTest(suite);
   };
+  return result;
+};
 
 
-  ak.test = function (source/* = ak.global */, stream/* = ak.out */) {
-    stream = stream || ak.out;
-    ak.runTestViaStream(ak.loadTestSuite(source || ak.global), stream);
-    return stream.read();
+function getErrorDescription(error) {
+  return (error && error.stack
+          ? error.stack
+          : error);
+}
+
+
+exports.runTestViaStream = function (test, stream/* = utils.out */) {
+  stream = stream || utils.out;
+  var result = new exports.StreamTestResult(stream);
+  test.run(result);
+  result.errors.forEach(
+    function (error) {
+      stream.write('=====\nERROR: ' + error[0] + '\n' +
+                   getErrorDescription(error[1]) + '\n');
+    });
+  result.failures.forEach(
+    function (failure) {
+      stream.write('=====\nFAIL: ' + failure[0] + '\n' +
+                   getErrorDescription(failure[1]) + '\n');
+    });
+  stream.write('-----\n' + 'Ran ' + test.countTestCases() + ' tests\n');
+  if (result.wasSuccessful()) {
+    stream.write('OK');
+  } else {
+    stream.write('FAILED (');
+    if (result.failures.length)
+      stream.write('failures=' + result.failures.length);
+    if (result.errors.length) {
+      if (result.failures.length)
+        stream.write(', ');
+      stream.write('errors=' + result.errors.length);
+    }
+    stream.write(')');
+  }
+  return result;
+};
+
+
+exports.test = function (source/* = require.main.exports.tests */,
+                         stream/* = utils.out */) {
+  stream = stream || utils.out;
+  exports.runTestViaStream(
+    exports.loadTestSuite(source || require.main.exports.tests),
+    stream);
+  return stream.read();
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// TestClient
+////////////////////////////////////////////////////////////////////////////////
+
+function makeRequester(method) {
+  return function (request) {
+    request = {__proto__: request};
+    request.method = method;
+    return this.request(request);
   };
-
-  //////////////////////////////////////////////////////////////////////////////
-  // TestClient
-  //////////////////////////////////////////////////////////////////////////////
-
-  function weaveAliases(aspectClass, method, advice) {
-    var holders = [ak];
-    if (ak.global[method] === ak[method])
-      holders.push(ak.global);
-    return holders.map(
-      function (holder) {
-        return ak.weave(aspectClass, holder, method, advice);
-      });
-  }
+}
 
 
-  function makeRequester(method) {
-    return function (request) {
-      request = {__proto__: request};
-      request.method = method;
-      return this.request(request);
-    };
-  }
+exports.TestClient = Object.subclass(
+  function (users/* = [] */, apps/* = {} */) {
+    this.users = users || [];
+    this.apps = apps || {};
+    for (var name in this.apps) {
+      var app = this.apps[name];
+      app.name = name;
+      app.developers = app.developers || [];
+    }
+    this._user = '';
+  },
+  {
+    _getAppDescription: function (name) {
+      var result = this.apps[name];
+      if (!result)
+        throw core.NoSuchAppError('No such test app: ' + base.repr(name));
+      return result;
+    },
 
+    _checkUserExists: function (user) {
+      if (this.users.indexOf(user) == -1)
+        throw core.NoSuchUserError('No such test user: ' + base.repr(user));
+    },
 
-  ak.TestClient = Object.subclass(
-    function (users/* = [] */, apps/* = {} */) {
-      this.users = users || [];
-      this.apps = apps || {};
-      for (var name in this.apps) {
-        var app = this.apps[name];
-        app.name = name;
-        app.developers = app.developers || [];
-      }
+    _getAdminedApps: function (user) {
+      this._checkUserExists(user);
+      var result = [];
+      for (var name in this.apps)
+        if (this.apps[name].admin == user)
+          result.push(name);
+      return result;
+    },
+
+    _getDevelopedApps: function (user) {
+      this._checkUserExists(user);
+      var result = [];
+      for (var name in this.apps)
+        if (this.apps[name].developers.indexOf(user) != -1)
+          result.push(name);
+      return result;
+    },
+
+    _substitute: function (name) {
+      return aspect.weave(
+        aspect.InsteadOf, _core.db, name, utils.bind('_' + name, this));
+    },
+
+    login: function (user) {
+      this._user = user;
+    },
+
+    logout: function () {
       this._user = '';
     },
-    {
-      _getAppDescription: function (name) {
-        var result = this.apps[name];
-        if (!result)
-          throw ak.NoSuchAppError('No such test app: ' + ak.repr(name));
-        return result;
-      },
 
-      _checkUserExists: function (user) {
-        if (this.users.indexOf(user) == -1)
-          throw ak.NoSuchUserError('No such test user: ' + ak.repr(user));
-      },
+    request: function (request) {
+      request = request ? {__proto__: request} : {};
+      base.update(
+        request,
+        {
+          user: request.user === undefined ? this._user : request.user,
+          method: request.method || 'get',
+          path: request.path || '/',
+          get: request.get || {},
+          post: request.post || {},
+          headers: request.headers || {},
+          data: (request.data instanceof core.Binary
+                 ? request.data
+                 : new core.Binary(request.data || '')),
+          files: request.files || {}
+        });
+      var contexts = {};
+      var aspects = [].concat(
+        this._substitute('getAppDescription'),
+        this._substitute('getAdminedApps'),
+        this._substitute('getDevelopedApps'),
+        aspect.weave(aspect.After, template.Template, 'render',
+                     function (result, args) {
+                       contexts[result] = args[0];
+                       return result;
+                     }),
+        aspect.weave(aspect.After, require.main.exports, 'main',
+                     function (result) {
+                       if (result && typeof(result) == 'object')
+                         result.context = contexts[result.content];
+                       return result;
+                     }),
+        aspect.weave(aspect.After, rest.Handler, 'handle',
+                     function (result) {
+                       result.handler = this.constructor;
+                       return result;
+                     }));
+      aspects.__proto__ = aspect.AspectArray.prototype;
+      try {
+        return require.main.exports.main(request);
+      } finally {
+        aspects.unweave();
+      }
+    },
 
-      _getAdminedApps: function (user) {
-        this._checkUserExists(user);
-        var result = [];
-        for (var name in this.apps)
-          if (this.apps[name].admin == user)
-            result.push(name);
-        return result;
-      },
-
-      _getDevelopedApps: function (user) {
-        this._checkUserExists(user);
-        var result = [];
-        for (var name in this.apps)
-          if (this.apps[name].developers.indexOf(user) != -1)
-            result.push(name);
-        return result;
-      },
-
-      _substitute: function (name) {
-        return weaveAliases(ak.InsteadOf, name,
-                            ak.bind('_' + name, this));
-      },
-
-      login: function (user) {
-        this._user = user;
-      },
-
-      logout: function () {
-        this._user = '';
-      },
-
-      request: function (request) {
-        request = request ? {__proto__: request} : {};
-        ak.update(
-          request,
-          {
-            user: request.user === undefined ? this._user : request.user,
-            method: request.method || 'get',
-            path: request.path || '/',
-            get: request.get || {},
-            post: request.post || {},
-            headers: request.headers || {},
-            data: request.data || null,
-            files: request.files || {}
-          });
-        var contexts = {};
-        var aspects = [].concat(
-          this._substitute('getAppDescription'),
-          this._substitute('getAdminedApps'),
-          this._substitute('getDevelopedApps'),
-          ak.weave(ak.After, ak.Template, 'render',
-                   function (result, args) {
-                     contexts[result] = args[0];
-                     return result;
-                   }),
-          weaveAliases(ak.After, 'Response',
-                       function () {
-                         this.context = contexts[this.content];
-                       }),
-          ak.weave(ak.After, ak.Handler, 'handle',
-                   function (result) {
-                     result.handler = this.constructor;
-                     return result;
-                   })
-        ).instances(ak.AspectArray);
-        try {
-          return __main__(request);
-        } finally {
-          aspects.unweave();
-        }
-      },
-
-      get: makeRequester('get'),
-      post: makeRequester('post'),
-      head: makeRequester('head'),
-      put: makeRequester('put'),
-      del: makeRequester('delete')
-    });
-
-})();
+    get: makeRequester('get'),
+    post: makeRequester('post'),
+    head: makeRequester('head'),
+    put: makeRequester('put'),
+    del: makeRequester('delete')
+  });

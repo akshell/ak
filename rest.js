@@ -24,180 +24,238 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-(function ()
-{
-  ak.include('template.js');
+var core = require('inner').core;
+var base = require('base');
+var db = require('db');
+var http = require('http');
+var url = require('url');
+var template = require('template');
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Handler
-  //////////////////////////////////////////////////////////////////////////////
 
-  ak.Handler = Object.subclass(
-    {
-      handle: function (request/*, args... */) {
-        if (['get', 'post', 'head', 'put', 'delete']
-            .indexOf(request.method) != -1) {
-          var name = request.method == 'delete' ? 'del' : request.method;
-          if (this.__proto__.hasOwnProperty(name) &&
-              typeof(this[name]) == 'function')
-            return this[name].apply(this, arguments);
-        }
-        if (this.__proto__.hasOwnProperty('perform') &&
-            typeof(this.perform) == 'function')
-          return this.perform.apply(this, arguments);
-        throw ak.Failure(
-          'Method ' + request.method + ' is not allowed',
-          ak.http.METHOD_NOT_ALLOWED);
+//////////////////////////////////////////////////////////////////////////////
+// Request, Response, redirect() and render()
+//////////////////////////////////////////////////////////////////////////////
+
+exports.Request = Object.subclass();
+
+
+exports.Response = Object.subclass(
+  function (content/* = '' */,
+            status/* = http.OK */,
+            headers/* optional */) {
+    this.content = content || '';
+    this.status = status || http.OK;
+    this.headers = headers || {'Content-Type': 'text/html; charset=utf-8'};
+  });
+
+
+exports.redirect = function (location) {
+  return new exports.Response('', http.FOUND, {Location: location});
+};
+
+
+exports.render = function (name,
+                           context/* = {} */,
+                           status/* = http.OK */,
+                           headers/* optional */) {
+  return new exports.Response(template.getTemplate(name).render(context),
+                              status,
+                              headers);
+};
+
+//////////////////////////////////////////////////////////////////////////////
+// Handler
+//////////////////////////////////////////////////////////////////////////////
+
+exports.Handler = Object.subclass(
+  {
+    handle: function (request/*, args... */) {
+      if (['get', 'post', 'head', 'put', 'delete']
+          .indexOf(request.method) != -1) {
+        var name = request.method == 'delete' ? 'del' : request.method;
+        if (this.__proto__.hasOwnProperty(name) &&
+            typeof(this[name]) == 'function')
+          return this[name].apply(this, arguments);
       }
-    });
+      if (this.__proto__.hasOwnProperty('perform') &&
+          typeof(this.perform) == 'function')
+        return this.perform.apply(this, arguments);
+      throw http.Failure(
+        'Method ' + request.method + ' is not allowed',
+        http.METHOD_NOT_ALLOWED);
+    }
+  });
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Handler decorators
-  //////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////
+// Handler decorators
+//////////////////////////////////////////////////////////////////////////////
 
-  function makeHandlerDecorator(decorator) {
-    return function (handler) {
-      if (!handler.subclassOf(ak.Handler))
-        return decorator(handler).wraps(handler);
-      var func = handler.prototype.handle;
-      handler.prototype.handle = decorator(func).wraps(func);
-      return handler;
+function makeHandlerDecorator(decorator) {
+  return function (handler) {
+    if (!handler.subclassOf(exports.Handler))
+      return decorator(handler).wraps(handler);
+    var func = handler.prototype.handle;
+    handler.prototype.handle = decorator(func).wraps(func);
+    return handler;
+  };
+}
+
+
+exports.loggingIn = makeHandlerDecorator(
+  function (func) {
+    return function (request/*, args... */) {
+      return (request.user
+              ? func.apply(this, arguments)
+              : exports.redirect(url.reverse('login', request.fullPath)));
     };
+  });
+
+
+exports.obtainingSession = makeHandlerDecorator(
+  function (func) {
+    return function (request/*, args... */) {
+      return (request.session !== ''
+              ? func.apply(this, arguments)
+              : exports.redirect(url.reverse('session', request.fullPath)));
+    };
+  });
+
+//////////////////////////////////////////////////////////////////////////////
+// main.app(), serve(), middleware, and main.main()
+//////////////////////////////////////////////////////////////////////////////
+
+require.main.exports.app = function (jsgi) {
+  var response = require.main.exports.main(
+    {
+      __proto__: exports.Request.prototype,
+      method: jsgi.method.toLowerCase(),
+      path: jsgi.pathInfo,
+      fullPath: jsgi.env.fullPath,
+      uri: 'http://' + jsgi.host + jsgi.env.fullPath,
+      get: jsgi.env.get,
+      post: jsgi.env.post,
+      headers: jsgi.headers,
+      data: jsgi.input,
+      user: jsgi.env.user,
+      issuer: jsgi.env.issuer,
+      session: jsgi.env.session,
+      csrfToken: jsgi.env.csrfToken,
+      files: jsgi.env.files
+    });
+  response.body = [response.content];
+  return response;
+};
+
+
+exports.serve = function (request) {
+  var pair = url.resolve(request.path);
+  var handler = pair[0];
+  var args = [request].concat(pair[1]);
+  if (handler.subclassOf(exports.Handler)) {
+    handler = core.construct(handler, args);
+    return handler.handle.apply(handler, args);
+  } else {
+    return handler.apply(core.global, args);
   }
+};
 
 
-  ak.loggingIn = makeHandlerDecorator(
-    function (func) {
-      return function (request/*, args... */) {
-        return (request.user
-                ? func.apply(this, arguments)
-                : ak.redirect(ak.reverse('login', request.fullPath)));
-      };
-    });
+exports.protectingFromICAR = function (func) {
+  return function (request) {
+    return (!request.issuer || request.legal
+            ? func(request)
+            : new exports.Response('Illegal cross-application request',
+                                   http.FORBIDDEN));
+  };
+};
 
 
-  ak.obtainingSession = makeHandlerDecorator(
-    function (func) {
-      return function (request/*, args... */) {
-        return (request.session !== ''
-                ? func.apply(this, arguments)
-                : ak.redirect(ak.reverse('session', request.fullPath)));
-      };
-    });
+exports.protectingFromCSRF = function (func) {
+  return function (request) {
+    if (request.method == 'post' &&
+        request.csrfToken &&
+        request.post.csrfToken != request.csrfToken)
+      return new exports.Response(
+        ('<p>Please use the <code>{% csrfToken %}</code> ' +
+         'tag in POST forms like this:</p>' +
+         '<pre>&lt;form method="post" ...&gt;\n' +
+         '  {% csrfToken %}\n  ...\n&lt;/form&gt;</pre>'),
+        http.FORBIDDEN);
+    template.csrfToken = request.csrfToken;
+    return func(request);
+  };
+};
 
-  //////////////////////////////////////////////////////////////////////////////
-  // serve(), middleware, and defaultServe()
-  //////////////////////////////////////////////////////////////////////////////
 
-  ak.serve = function (request) {
-    var pair = ak.resolve(request.path);
-    var handler = pair[0];
-    var args = [request].concat(pair[1]);
-    if (handler.subclassOf(ak.Handler)) {
-      handler = ak.construct(handler, args);
-      return handler.handle.apply(handler, args);
-    } else {
-      return handler.apply(ak.global, args);
+exports.catchingFailure = function (func) {
+  return function (request) {
+    try {
+      return func(request);
+    } catch (error) {
+      if (!(error instanceof http.Failure)) throw error;
+      var t;
+      try {
+        t = template.getTemplate('error.html');
+      } catch (_) {
+        t = new template.Template('{{ error.message }}');
+      }
+      return new exports.Response(
+        t.render({error: error, request: request}),
+        error.status);
     }
   };
+};
 
 
-  ak.serve.update(
-    {
-      protectingFromICAR: function (func) {
-        return function (request) {
-          return (!request.issuer || request.legal
-                  ? func(request)
-                  : new ak.Response('Illegal cross-application request',
-                                    ak.http.FORBIDDEN));
-        };
-      },
+exports.catchingTupleDoesNotExist = function (func) {
+  return function (request) {
+    try {
+      return func(request);
+    } catch (error) {
+      if (!(error instanceof db.TupleDoesNotExist)) throw error;
+      throw http.NotFound(error.message);
+    }
+  };
+};
 
-      protectingFromCSRF: function (func) {
-        return function (request) {
-          if (request.method == 'post' &&
-              request.csrfToken &&
-              request.post.csrfToken != request.csrfToken)
-            return new ak.Response(
-              ('<p>Please use the <code>{% csrfToken %}</code> ' +
-               'tag in POST forms like this:</p>' +
-               '<pre>&lt;form method="post" ...&gt;\n' +
-               '  {% csrfToken %}\n  ...\n&lt;/form&gt;</pre>'),
-              ak.http.FORBIDDEN);
-          ak.template.csrfToken = request.csrfToken;
-          return func(request);
-        };
-      },
 
-      catchingFailure: function (func) {
-        return function (request) {
-          try {
-            return func(request);
-          } catch (error) {
-            if (!(error instanceof ak.Failure)) throw error;
-            var template;
-            try {
-              template = ak.getTemplate('error.html');
-            } catch (_) {
-              template = new ak.Template('{{ error.message }}');
-            }
-            return new ak.Response(
-              template.render({error: error, request: request}),
-              error.status);
-          }
-        };
-      },
-
-      catchingTupleDoesNotExist: function (func) {
-        return function (request) {
-          try {
-            return func(request);
-          } catch (error) {
-            if (!(error instanceof ak.TupleDoesNotExist)) throw error;
-            throw ak.NotFound(error.message);
-          }
-        };
-      },
-
-      appendingSlash: function (func) {
-        return function (request) {
-          try {
-            return func(request);
-          } catch (error) {
-            if (!(error instanceof ak.ResolveError)) throw error;
-            try {
-              ak.resolve(request.path + '/');
-            } catch (_) {
-              throw error;
-            }
-            return new ak.Response(
-              '',
-              ak.http.MOVED_PERMANENTLY,
-              {Location: request.path + '/'});
-          }
-        };
-      },
-
-      rollbacking: function (func) {
-        return function (request) {
-          try {
-            return func(request);
-          } catch (error) {
-            ak.db.rollback();
-            throw error;
-          }
-        };
+exports.appendingSlash = function (func) {
+  return function (request) {
+    try {
+      return func(request);
+    } catch (error) {
+      if (!(error instanceof url.ResolveError)) throw error;
+      try {
+        url.resolve(request.path + '/');
+      } catch (_) {
+        throw error;
       }
-    });
+      return new exports.Response(
+        '',
+        http.MOVED_PERMANENTLY,
+        {Location: request.path + '/'});
+    }
+  };
+};
 
 
-  ak.defaultServe = ak.serve.decorated(
-    ak.serve.protectingFromICAR,
-    ak.serve.protectingFromCSRF,
-    ak.serve.catchingFailure,
-    ak.serve.catchingTupleDoesNotExist,
-    ak.serve.appendingSlash,
-    ak.serve.rollbacking
-  );
+exports.rollbacking = function (func) {
+  return function (request) {
+    try {
+      return func(request);
+    } catch (error) {
+      core.db.rollback();
+      throw error;
+    }
+  };
+};
 
-})();
+
+require.main.exports.main = exports.defaultServe = exports.serve.decorated(
+  exports.protectingFromICAR,
+  exports.protectingFromCSRF,
+  exports.catchingFailure,
+  exports.catchingTupleDoesNotExist,
+  exports.appendingSlash,
+  exports.rollbacking
+);

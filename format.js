@@ -20,309 +20,307 @@
 //
 // 3. This notice may not be removed or altered from any source distribution.
 
+var core = require('inner').core;
+var base = require('base');
 
-(function()
-{
-  // Converts a number to a string and ensures the number has at
-  // least two digits.
-  function numberPair(n) {
-    return (n < 10 ? '0' : '') + n;
+
+var culture = exports.culture = {
+  d: 'MM/dd/yyyy',
+  D: 'MMMM dd, yyyy',
+  t: 'hh:mm tt',
+  T: 'hh:mm:ss tt',
+  M: 'd MMMM',
+  Y: 'MMMM, yyyy',
+  s: 'yyyy-MM-ddTHH:mm:ss',
+  months: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
+  ],
+  days: [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday'
+  ],
+  am: 'AM',
+  pm: 'PM',
+  decimalSeparator: '.',
+  thousandsSeparator: ',',
+  currencyFormat: '$#,0.00',
+  currencyDecimalSeparator: '.',
+  currencyThousandsSeparator: ','
+};
+
+
+function makeShort(name) {
+  return name.substr(0, 3);
+}
+
+
+with (culture)
+  base.update(
+    culture,
+    {
+      f: D + ' ' + t,
+      F: D + ' ' + T,
+      g: d + ' ' + t,
+      G: d + ' ' + T,
+      shortMonths: months.map(makeShort),
+      shortDays: days.map(makeShort)
+    });
+
+
+// Handles the internal format processing of a number
+function processNumber(input, format) {
+  var digits = 0,
+  forcedDigits = -1,
+  integralDigits = -1,
+  groupCounter = 0,
+  decimals = 0,
+  forcedDecimals = -1,
+  atDecimals = false,
+  unused = true, // True until a digit has been written to the output
+  out = [], // Used as a StringBuilder
+  c, i;
+
+  // Groups a string of digits by thousands and
+  // appends them to the string writer.
+  function append(value) {
+    for (var i = 0; i < value.length; i++) {
+      // Write number
+      out.push(value.charAt(i));
+
+      // Begin a new group?
+      if (groupCounter > 1 && groupCounter-- % 3 == 1)
+        out.push(format.t);
+    }
   }
 
-
-  ak.culture = {
-    d: 'MM/dd/yyyy',
-    D: 'MMMM dd, yyyy',
-    t: 'hh:mm tt',
-    T: 'hh:mm:ss tt',
-    M: 'd MMMM',
-    Y: 'MMMM, yyyy',
-    s: 'yyyy-MM-ddTHH:mm:ss',
-    months: [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December'
-    ],
-    days: [
-      'Sunday',
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday'
-    ],
-    am: 'AM',
-    pm: 'PM',
-    decimalSeparator: '.',
-    thousandsSeparator: ',',
-    currencyFormat: '$#,0.00',
-    currencyDecimalSeparator: '.',
-    currencyThousandsSeparator: ','
-  };
-
-
-  var c = ak.culture;
-  c.f = c.D + ' ' + c.t;
-  c.F = c.D + ' ' + c.T;
-  c.g = c.d + ' ' + c.t;
-  c.G = c.d + ' ' + c.T;
-
-
-  function makeShort(name) {
-    return name.substr(0, 3);
+  // Analyse format string
+  for (i = 0; i < format.f.length; i++) {
+    c = format.f.charAt(i);
+    decimals += atDecimals;
+    if (c == '0') {
+      if (atDecimals)
+        forcedDecimals = decimals;
+      else if (forcedDigits < 0)
+      forcedDigits = digits;
+    }
+    digits += !atDecimals && (c == '0' || c == '#');
+    atDecimals = atDecimals || c == '.';
   }
+  forcedDigits = forcedDigits < 0 ? 1 : digits - forcedDigits;
 
-  c.shortMonths = c.months.map(makeShort);
-  c.shortDays = c.days.map(makeShort);
+  // Negative value? Begin string with a dash
+  if (input < 0)
+    out.push('-');
 
+  // Round the input value to a specified number of decimals
+  input = (Math.round(Math.abs(input) * Math.pow(10, decimals)) /
+           Math.pow(10, decimals)).toString();
 
-  // Handles the internal format processing of a number
-  function processNumber(input, format) {
-    var digits = 0,
-    forcedDigits = -1,
-    integralDigits = -1,
-    groupCounter = 0,
-    decimals = 0,
-    forcedDecimals = -1,
-    atDecimals = false,
-    unused = true, // True until a digit has been written to the output
-    out = [], // Used as a StringBuilder
-    c, i;
+  // Get integral length
+  integralDigits = input.indexOf('.');
+  integralDigits = integralDigits < 0 ? input.length : integralDigits;
 
-    // Groups a string of digits by thousands and
-    // appends them to the string writer.
-    function append(value) {
-      for (var i = 0; i < value.length; i++) {
-        // Write number
-        out.push(value.charAt(i));
+  // Set initial input cursor position
+  i = integralDigits - digits;
 
-        // Begin a new group?
-        if (groupCounter > 1 && groupCounter-- % 3 == 1)
-          out.push(format.t);
-      }
-    }
+  // Group thousands?
+  if (format.f.match(/^[^\.]*[0#],[0#]/))
+    groupCounter = Math.max(integralDigits, forcedDigits);
 
-    // Analyse format string
-    for (i = 0; i < format.f.length; i++) {
-      c = format.f.charAt(i);
-      decimals += atDecimals;
-      if (c == '0') {
-        if (atDecimals)
-          forcedDecimals = decimals;
-        else if (forcedDigits < 0)
-          forcedDigits = digits;
-      }
-      digits += !atDecimals && (c == '0' || c == '#');
-      atDecimals = atDecimals || c == '.';
-    }
-    forcedDigits = forcedDigits < 0 ? 1 : digits - forcedDigits;
+  for (var f = 0; f < format.f.length; f++) {
+    c = format.f.charAt(f);
 
-    // Negative value? Begin string with a dash
-    if (input < 0)
-      out.push('-');
+    // Digit placeholder
+    if (c == '#' || c == '0') {
+      if (i < integralDigits) {
+        // In the integral part
+        if (i >= 0) {
+          if (unused)
+            append(input.substr(0, i));
+          append(input.charAt(i));
 
-    // Round the input value to a specified number of decimals
-    input = (Math.round(Math.abs(input) * Math.pow(10, decimals)) /
-             Math.pow(10, decimals)).toString();
-
-    // Get integral length
-    integralDigits = input.indexOf('.');
-    integralDigits = integralDigits < 0 ? input.length : integralDigits;
-
-    // Set initial input cursor position
-    i = integralDigits - digits;
-
-    // Group thousands?
-    if (format.f.match(/^[^\.]*[0#],[0#]/))
-      groupCounter = Math.max(integralDigits, forcedDigits);
-
-    for (var f = 0; f < format.f.length; f++) {
-      c = format.f.charAt(f);
-
-      // Digit placeholder
-      if (c == '#' || c == '0') {
-        if (i < integralDigits) {
-          // In the integral part
-          if (i >= 0) {
-            if (unused)
-              append(input.substr(0, i));
-            append(input.charAt(i));
-
-            // Not yet inside the input number, force a zero?
-          } else if (i >= integralDigits - forcedDigits) {
-            append('0');
-          }
-
-          unused = false;
-
-        } else if (forcedDecimals-- > 0 || i < input.length) {
-          // In the fractional part
-          append(i >= input.length ? '0' : input.charAt(i));
+          // Not yet inside the input number, force a zero?
+        } else if (i >= integralDigits - forcedDigits) {
+          append('0');
         }
 
-        i++;
+        unused = false;
 
-        // Radix point character according to current culture.
-      } else if (c == '.') {
-        if (input.length > ++i || forcedDecimals > 0)
-          out.push(format.r);
-
-        // Other characters are written as they are, except from commas
-      } else if (c !== ',') {
-        out.push(c);
+      } else if (forcedDecimals-- > 0 || i < input.length) {
+        // In the fractional part
+        append(i >= input.length ? '0' : input.charAt(i));
       }
-    }
 
-    return out.join('');
+      i++;
+
+      // Radix point character according to current culture.
+    } else if (c == '.') {
+      if (input.length > ++i || forcedDecimals > 0)
+        out.push(format.r);
+
+      // Other characters are written as they are, except from commas
+    } else if (c !== ',') {
+      out.push(c);
+    }
   }
 
+  return out.join('');
+}
 
-  var original = Number.prototype.toString;
+
+var original = Number.prototype.toString;
 
 
-  // Number Formatting
-  Number.prototype.setHidden(
-    'toString',
-    function (format) {
-      if (!format)
-        return original.call(this);
-      if (typeof(format) == 'number' || format instanceof Number)
-        return original.call(this, format);
+// Number Formatting
+core.set(
+  Number.prototype, 'toString', core.HIDDEN,
+  function (format) {
+    if (!format)
+      return original.call(this);
+    if (typeof(format) == 'number' || format instanceof Number)
+      return original.call(this, format);
 
-      format += '';
+    format += '';
 
-      var number = Number(this);
+    var number = Number(this);
 
-      if (format == 'X') {
-        return original.call(Math.round(number), 16).toUpperCase();
-      } else if (format == 'x') {
-        return original.call(Math.round(number), 16);
+    if (format == 'X') {
+      return original.call(Math.round(number), 16).toUpperCase();
+    } else if (format == 'x') {
+      return original.call(Math.round(number), 16);
+    } else {
+      // Write number as currency formatted string
+      var formatting = {
+        t: culture.thousandsSeparator,
+        r: culture.decimalSeparator
+      };
+
+      var g = '0.################';
+      var lowerFormat = format.toLowerCase();
+
+      if (lowerFormat === null || lowerFormat == 'g') {
+        format = g;
+      } else if (lowerFormat == 'n') {
+        format = '#,' + g;
+      } else if (lowerFormat == 'c') {
+        format = culture.currencyFormat;
+        formatting.r = culture.currencyDecimalSeparator;
+        formatting.t = culture.currencyThousandsSeparator;
+      } else if (lowerFormat == 'f') {
+        format = '0.00';
+      }
+
+      // Thousands
+      if (format.indexOf(',.') !== -1)
+        number /= 1000;
+
+      // Percent
+      if (format.indexOf('%') !== -1)
+        number *= 100;
+
+      // Split groups
+      // positive; negative; zero, where the two last ones are optional
+      var groups = format.split(';');
+      if (number < 0 && groups.length > 1) {
+        number *= -1;
+        formatting.f = groups[1];
       } else {
-        // Write number as currency formatted string
-        var formatting = {
-          t: ak.culture.thousandsSeparator,
-          r: ak.culture.decimalSeparator
-        };
-
-        var g = '0.################';
-        var lowerFormat = format.toLowerCase();
-
-        if (lowerFormat === null || lowerFormat == 'g') {
-          format = g;
-        } else if (lowerFormat == 'n') {
-          format = '#,' + g;
-        } else if (lowerFormat == 'c') {
-          format = ak.culture.currencyFormat;
-          formatting.r = ak.culture.currencyDecimalSeparator;
-          formatting.t = ak.culture.currencyThousandsSeparator;
-        } else if (lowerFormat == 'f') {
-          format = '0.00';
-        }
-
-        // Thousands
-        if (format.indexOf(',.') !== -1)
-          number /= 1000;
-
-        // Percent
-        if (format.indexOf('%') !== -1)
-          number *= 100;
-
-        // Split groups
-        // positive; negative; zero, where the two last ones are optional
-        var groups = format.split(';');
-        if (number < 0 && groups.length > 1) {
-          number *= -1;
-          formatting.f = groups[1];
-        } else {
-          formatting.f = groups[!number && groups.length > 2 ? 2 : 0];
-        }
-
-        return processNumber(number, formatting);
+        formatting.f = groups[!number && groups.length > 2 ? 2 : 0];
       }
-    });
+
+      return processNumber(number, formatting);
+    }
+  });
 
 
-  // Date Formatting
-  Date.prototype.setHidden(
-    'toString',
-    function (format) {
-      format = format || 'ddd MMM dd yyyy HH:mm:ss';
-      format += '';
-      if (format.length == 1 && ak.culture.hasOwnProperty(format))
-        format = ak.culture[format];
-      var self = this;
-	  return format.replace(
-          /(d{1,4}|M{1,4}|yyyy|yy|HH|H|hh|h|mm|m|ss|s|tt)/g,
-		  function () {
-            switch (arguments[0]) {
-			case 'dddd': return ak.culture.days[self.getDay()];
-			case 'ddd': return ak.culture.shortDays[self.getDay()];
-			case 'dd': return numberPair(self.getDate());
-			case 'd': return self.getDate();
-			case 'MMMM': return ak.culture.months[self.getMonth()];
-			case 'MMM': return ak.culture.shortMonths[self.getMonth()];
-			case 'MM': return numberPair(self.getMonth() + 1);
-			case 'M': return self.getMonth() + 1;
-			case 'yyyy': return self.getFullYear();
-			case 'yy': return self.getFullYear().toString().substr(2);
-			case 'HH': return numberPair(self.getHours());
-			case 'hh': return numberPair((self.getHours() - 1) % 12 + 1);
-			case 'H': return self.getHours();
-			case 'h': return (self.getHours() - 1) % 12 + 1;
-			case 'mm': return numberPair(self.getMinutes());
-			case 'm': return self.getMinutes();
-			case 'ss': return numberPair(self.getSeconds());
-			case 's': return self.getSeconds();
-			case 'tt': return (self.getHours() < 12
-                               ? ak.culture.am
-                               : ak.culture.pm);
-			default: return '';
-			}
-		  });
-    });
+function numberPair(n) {
+  return (n < 10 ? '0' : '') + n;
+}
 
 
-  String.prototype.setHidden(
-    'format',
-    function(/* ... */) {
-      var outerArgs = arguments;
+// Date Formatting
+core.set(
+  Date.prototype, 'toString', core.HIDDEN,
+  function (format) {
+    format = format || 'ddd MMM dd yyyy HH:mm:ss';
+    format += '';
+    if (format.length == 1 && culture.hasOwnProperty(format))
+      format = culture[format];
+    var self = this;
+	return format.replace(
+        /(d{1,4}|M{1,4}|yyyy|yy|HH|H|hh|h|mm|m|ss|s|tt)/g,
+	  function () {
+        switch (arguments[0]) {
+		case 'dddd': return culture.days[self.getDay()];
+		case 'ddd': return culture.shortDays[self.getDay()];
+		case 'dd': return numberPair(self.getDate());
+		case 'd': return self.getDate();
+		case 'MMMM': return culture.months[self.getMonth()];
+		case 'MMM': return culture.shortMonths[self.getMonth()];
+		case 'MM': return numberPair(self.getMonth() + 1);
+		case 'M': return self.getMonth() + 1;
+		case 'yyyy': return self.getFullYear();
+		case 'yy': return self.getFullYear().toString().substr(2);
+		case 'HH': return numberPair(self.getHours());
+		case 'hh': return numberPair((self.getHours() - 1) % 12 + 1);
+		case 'H': return self.getHours();
+		case 'h': return (self.getHours() - 1) % 12 + 1;
+		case 'mm': return numberPair(self.getMinutes());
+		case 'm': return self.getMinutes();
+		case 'ss': return numberPair(self.getSeconds());
+		case 's': return self.getSeconds();
+		case 'tt': return self.getHours() < 12 ? culture.am : culture.pm;
+		default: return '';
+		}
+	  });
+  });
 
-      return this.replace(
+
+core.set(
+  String.prototype, 'format', core.HIDDEN,
+  function(/* ... */) {
+    var outerArgs = arguments;
+
+    return this.replace(
         /(\{*)\{((\d+)(\,(-?\d*))?(\:([^\}]*))?)\}/g,
-        function () {
-          var innerArgs = arguments;
-          if (innerArgs[1] && innerArgs[1].length % 2 == 1)
-            return innerArgs[0];
+      function () {
+        var innerArgs = arguments;
+        if (innerArgs[1] && innerArgs[1].length % 2 == 1)
+          return innerArgs[0];
 
-          var arg = outerArgs[parseInt(innerArgs[3], 10)];
-          var formatted = (arg === undefined ? 'undefined'
-                           : arg === null ? 'null'
-                           : arg.toString(innerArgs[7]));
-          var align = +innerArgs[5] || 0;
-          var paddingLength = Math.abs(align) - formatted.length;
+        var arg = outerArgs[parseInt(innerArgs[3], 10)];
+        var formatted = (arg === undefined ? 'undefined'
+                         : arg === null ? 'null'
+                         : arg.toString(innerArgs[7]));
+        var align = +innerArgs[5] || 0;
+        var paddingLength = Math.abs(align) - formatted.length;
 
-          if (paddingLength > 0) {
-            // Build padding string
-            var padding = ' ';
-            while (padding.length < paddingLength)
-              padding += ' ';
+        if (paddingLength > 0) {
+          // Build padding string
+          var padding = ' ';
+          while (padding.length < paddingLength)
+            padding += ' ';
 
-            // Add padding string at right side
-            formatted = align > 0 ? padding + formatted : formatted + padding;
-          }
+          // Add padding string at right side
+          formatted = align > 0 ? padding + formatted : formatted + padding;
+        }
 
-          return innerArgs[1] + formatted;
-        }).replace(/\{\{/g, '{').replace(/\}\}/g, '}');
-    });
-
-})();
+        return innerArgs[1] + formatted;
+      }).replace(/\{\{/g, '{').replace(/\}\}/g, '}');
+  });

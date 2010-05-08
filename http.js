@@ -24,39 +24,32 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-(function ()
-{
-  ak.include('base.js');
+var base = require('base');
 
 
-  ak.Failure = ak.BaseError.subclass(
-    function (message/* = 'Bad request' */, status/* = ak.http.BAD_REQUEST */) {
-      ak.BaseError.call(this, message || 'Bad request');
-      this.status = status || ak.http.BAD_REQUEST;
-    });
+exports.Failure = Error.subclass(
+  function (message/* = 'Bad request' */, status/* = ak.http.BAD_REQUEST */) {
+    this.message = message || 'Bad request';
+    this.status = status || exports.BAD_REQUEST;
+  });
 
 
-  ak.NotFound = ak.Failure.subclass(
-    function (message/* = 'Not found' */) {
-      ak.Failure.call(this, message || 'Not found', ak.http.NOT_FOUND);
-    }
-  );
+exports.NotFound = exports.Failure.subclass(
+  function (message/* = 'Not found' */) {
+    exports.Failure.call(this, message || 'Not found', exports.NOT_FOUND);
+  }
+);
 
 
-  ak.Forbidden = ak.Failure.subclass(
-    function (message/* = 'Forbidden' */) {
-      ak.Failure.call(this, message || 'Forbidden', ak.http.FORBIDDEN);
-    });
+exports.Forbidden = exports.Failure.subclass(
+  function (message/* = 'Forbidden' */) {
+    exports.Failure.call(this, message || 'Forbidden', exports.FORBIDDEN);
+  });
 
 
-  ak.redirect = function (location) {
-    return new ak.Response('', ak.http.FOUND, {Location: location});
-  };
-
-
-  ak.http = {
-    __proto__: ak.Module.prototype,
-
+base.update(
+  exports,
+  {
     // informational
     CONTINUE: 100,
     SWITCHING_PROTOCOLS: 101,
@@ -115,6 +108,4 @@
     HTTP_VERSION_NOT_SUPPORTED: 505,
     INSUFFICIENT_STORAGE: 507,
     NOT_EXTENDED: 510
-  };
-
-})();
+  });

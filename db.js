@@ -24,186 +24,318 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-(function ()
-{
-  ak.include('base.js');
+var inner = require('inner');
+var core = inner.core;
+var base = require('base');
 
-  //////////////////////////////////////////////////////////////////////////////
-  // Human-friendly db.create()
-  //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// RelVar
+////////////////////////////////////////////////////////////////////////////////
 
-  var typeRegExp = RegExp(
-    ('\\s*(?:' +
-     '(number)|(string)|(bool)|(date)|' +
-     '(integer)|(serial)|(unique)|' +
-     '(?:foreign\\s|->)\\s*(\\w+)\\.(\\w+)|' +
-     'check\\s+(\\(.*\\)|\\S+)|' +
-     'default\\s+(\"([^\"\\\\]|\\\\.)*\"|\'(?:[^\'\\\\]|\\\\.)*\'|\\S+)' +
-     ')\\s*'),
-    'g');
+var typeRegExp = RegExp(
+  ('\\s*(?:' +
+   '(number)|(string)|(bool)|(date)|' +
+   '(integer)|(serial)|(unique)|' +
+   '(?:foreign\\s|->)\\s*(\\w+)\\.(\\w+)|' +
+   'check\\s+(\\(.*\\)|\\S+)|' +
+   'default\\s+(\"([^\"\\\\]|\\\\.)*\"|\'(?:[^\'\\\\]|\\\\.)*\'|\\S+)' +
+   ')\\s*'),
+  'g');
 
-  function compileType(string) {
-    var re = new RegExp(typeRegExp);
-    var type;
-    var integer, serial, unique, defaulted;
-    var foreigns = [];
-    var check;
-    var default_;
-    var match;
-    while ((match = ak.nextMatch(re, string, ak.UsageError))) {
-      var i = 1;
-      while (!match[i])
-        ++i;
-      if (i < 5) {
-        if (type)
-          throw ak.UsageError(
-            'Type specified more than once in ' + ak.repr(string));
-        type = [ak.number, ak.string, ak.bool, ak.date][i - 1];
-      } else if (i == 5) {
-        integer = true;
-      } else if (i == 6) {
-        serial = true;
-      } else if (i == 7) {
-        unique = true;
-      } else if (i == 8) {
-        foreigns.push([match[8], match[9]]);
-      } else if (i == 10) {
-        check = match[10];
-      } else {
-        ak.assertSame(i, 11);
-        if (defaulted)
-          throw ak.UsageError(
-            'Default specified more than once in ' + ak.repr(string));
-        default_ = eval(match[11]);
-        defaulted = true;
-      }
+function compileType(string) {
+  var re = new RegExp(typeRegExp);
+  var type;
+  var integer, serial, unique, defaulted;
+  var foreigns = [];
+  var check;
+  var default_;
+  var match;
+  while ((match = inner.nextMatch(re, string, core.UsageError))) {
+    var i = 1;
+    while (!match[i])
+      ++i;
+    if (i < 5) {
+      if (type)
+        throw core.UsageError(
+          'Type specified more than once in ' + base.repr(string));
+      type = [
+        core.db.number,
+        core.db.string,
+        core.db.bool,
+        core.db.date
+      ][i - 1];
+    } else if (i == 5) {
+      integer = true;
+    } else if (i == 6) {
+      serial = true;
+    } else if (i == 7) {
+      unique = true;
+    } else if (i == 8) {
+      foreigns.push([match[8], match[9]]);
+    } else if (i == 10) {
+      check = match[10];
+    } else {
+      base.assertSame(i, 11);
+      if (defaulted)
+        throw core.UsageError(
+          'Default specified more than once in ' + base.repr(string));
+      default_ = eval(match[11]);
+      defaulted = true;
     }
-    if (!type) {
-      if (integer || serial)
-        type = ak.number;
-      else
-        throw ak.UsageError('Type is not specified in ' + ak.repr(string));
-    }
-    if (integer)
-      type = type.integer();
-    if (serial)
-      type = type.serial();
-    if (unique)
-      type = type.unique();
-    if (check)
-      type = type.check(check);
-    if (defaulted)
-      type = type.default_(default_);
-    foreigns.forEach(
-      function (foreign) {
-        type = type.foreign(foreign[0], foreign[1]);
-      });
-    return type;
   }
+  if (!type) {
+    if (integer || serial)
+      type = core.db.number;
+    else
+      throw core.UsageError('Type is not specified in ' + base.repr(string));
+  }
+  if (integer)
+    type = type.integer();
+  if (serial)
+    type = type.serial();
+  if (unique)
+    type = type.unique();
+  if (check)
+    type = type.check(check);
+  if (defaulted)
+    type = type.default_(default_);
+  foreigns.forEach(
+    function (foreign) {
+      type = type.foreign(foreign[0], foreign[1]);
+    });
+  return type;
+}
 
 
-  var multiAttrString = '\\[\\s*((?:\\w+\\s*,\\s*)*\\w+)\\s*\\]';
-  var constrRegExp = RegExp(
-    '^\\s*(?:' +
+var multiAttrString = '\\[\\s*((?:\\w+\\s*,\\s*)*\\w+)\\s*\\]';
+
+var constrRegExp = RegExp(
+  '^\\s*(?:' +
     'check\\s+(.*?)|' +
     'unique\\s*' + multiAttrString + '|' +
     multiAttrString + '\\s*->\\s*(\\w+)\\s*' + multiAttrString +
     ')\\s*$');
-  var sepRegExp = /\s*,\s*/;
 
-  function compileConstr(constrs, string) {
-    var match = constrRegExp.exec(string);
-    if (!match)
-      throw ak.UsageError('Invalid constraint format: ' + ak.repr(string));
-    if (match[1])
-      constrs.check.push(match[1]);
-    else if (match[2])
-      constrs.unique.push(match[2].split(sepRegExp));
-    else
-      constrs.foreign.push([
-                             match[3].split(sepRegExp),
-                             match[4],
-                             match[5].split(sepRegExp)
-                           ]);
-  }
+var sepRegExp = /\s*,\s*/;
+
+function compileConstr(constrs, string) {
+  var match = constrRegExp.exec(string);
+  if (!match)
+    throw core.UsageError('Invalid constraint format: ' + base.repr(string));
+  if (match[1])
+    constrs.check.push(match[1]);
+  else if (match[2])
+  constrs.unique.push(match[2].split(sepRegExp));
+  else
+    constrs.foreign.push([
+                           match[3].split(sepRegExp),
+                           match[4],
+                           match[5].split(sepRegExp)
+                         ]);
+}
 
 
-  var doCreate = ak.db.create;
+exports.RelVar = Object.subclass(
+  function (name) {
+    throw core.UsageError(
+      'RelVar instances should be obtained through the rv object');
+  },
+  {
+    create: function (header/*, constrs... */) {
+      var rawHeader = {};
+      for (var name in header)
+        rawHeader[name] = compileType(header[name]);
+      var constrs = {unique: [], foreign: [], check: []};
+      for (var i = 1; i < arguments.length; ++i)
+        compileConstr(constrs, arguments[i]);
+      return core.db.create(this.name, rawHeader, constrs);
+    },
 
-  ak.db.create = function (name, header/*, constrs... */) {
-    header = {__proto__: header};
-    for (var attrName in header) {
-      if (typeof(header[attrName]) == 'string')
-        header[attrName] = compileType(header[attrName]);
+    drop: function () {
+      core.db.drop([this.name]);
+    },
+
+    where: function (expr/*, params */) {
+      if (typeof(expr) != 'object')
+        return new exports.Selection(
+          this.name, expr, Array.slice(arguments, 1));
+      var index = 0;
+      var parts = [];
+      var params = [];
+      for (var attr in expr) {
+        parts.push(attr + '==$' + (++index));
+        params.push(expr[attr]);
+      }
+      return new exports.Selection(this.name, parts.join('&&'), params);
+    },
+
+    all: function () {
+      return this.where('true');
+    },
+
+    insert: function (values) {
+      return core.db.insert(this.name, values);
     }
-    var constrs;
-    if (arguments.length == 3 && typeof(arguments[2]) == 'object') {
-      constrs = arguments[2];
-    } else {
-      constrs = {unique: [], foreign: [], check: []};
-      Array.slice(arguments, 2).forEach(
-        function (string) {
-          compileConstr(constrs, string);
-        });
+  });
+
+
+[
+  'getHeader',
+  'getInteger',
+  'getSerial',
+  'getUnique',
+  'getForeign',
+  'getDefault'
+].forEach(
+  function (name) {
+    var func = core.db[name];
+    exports.RelVar.prototype[name] = function () {
+      return func(this.name);
+    };
+  });
+
+////////////////////////////////////////////////////////////////////////////////
+// rv
+////////////////////////////////////////////////////////////////////////////////
+
+exports.rv = new core.Proxy(
+  {
+    cache: {},
+
+    get: function (name) {
+      if (!this.cache.hasOwnProperty(name))
+        this.cache[name] = {__proto__: exports.RelVar.prototype, name: name};
+      return this.cache[name];
+    },
+
+    set: function (name, value) {},
+
+    del: function (name) {
+      return false;
+    },
+
+    query: function (name) {
+      return core.db.list().indexOf(name) != -1;
+    },
+
+    list: function () {
+      return core.db.list().sort();
     }
-    return doCreate(name, header, constrs);
-  };
+  });
 
-  //////////////////////////////////////////////////////////////////////////////
-  // getOne() method
-  //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// TupleDoesNotExist and MultipleTuplesReturned
+////////////////////////////////////////////////////////////////////////////////
 
-  ak.TupleDoesNotExist = ak.BaseError.subclass(
-    function (message) {
-      ak.BaseError.call(this, message || 'Tuple does not exist');
-    });
-
-
-  ak.MultipleTuplesReturned = ak.BaseError.subclass(
-    function (message) {
-      ak.BaseError.call(this, message || 'Multiple tuples returned');
-    });
+exports.TupleDoesNotExist = Error.subclass(
+  function (message) {
+    this.message = message || 'Tuple does not exist';
+  },
+  {name: 'TupleDoesNotExist'});
 
 
+exports.MultipleTuplesReturned = Error.subclass(
+  function (message) {
+    this.message = message || 'Multiple tuples returned';
+  },
+  {name: 'MultipleTuplesReturned'});
+
+
+[
   [
-    [
-      'DoesNotExist', ak.TupleDoesNotExist,
-      '', ' does not exist'
-    ],
-    [
-      'MultipleTuplesReturned', ak.MultipleTuplesReturned,
-      'Multiple ', 's returned'
-    ]
-  ].forEach(
-    function (pair) {
-      var propName = pair[0];
-      var cachedPropName = '_' + propName;
-      var baseClass = pair[1];
-      var prefix = pair[2];
-      var suffix = pair[3];
-      ak.RelVar.prototype.__defineGetter__(
-        propName,
-        function () {
-          if (!this[cachedPropName]) {
-            var name = this.name;
-            this[cachedPropName] = baseClass.subclass(
-              function () {
-                baseClass.call(this, [prefix, name, suffix].join(''));
-              });
-            this[cachedPropName].__name__ = ['ak.rv', name, propName].join('.');
-          }
-          return this[cachedPropName];;
-        });
-    });
+    'DoesNotExist', exports.TupleDoesNotExist,
+    '', ' does not exist'
+  ],
+  [
+    'MultipleTuplesReturned', exports.MultipleTuplesReturned,
+    'Multiple ', 's returned'
+  ]
+].forEach(
+  function (pair) {
+    var propName = pair[0];
+    var cachedPropName = '_' + propName;
+    var baseClass = pair[1];
+    var prefix = pair[2];
+    var suffix = pair[3];
+    exports.RelVar.prototype.__defineGetter__(
+      propName,
+      function () {
+        if (!this[cachedPropName]) {
+          var name = this.name;
+          this[cachedPropName] = baseClass.subclass(
+            function () {
+              baseClass.call(this, [prefix, name, suffix].join(''));
+            },
+            {name: ['rv', name, propName].join('.')});
+        }
+        return this[cachedPropName];;
+      });
+  });
 
+////////////////////////////////////////////////////////////////////////////////
+// Selection
+////////////////////////////////////////////////////////////////////////////////
 
-  ak.Selection.prototype.getOne = function (options) {
-    var tuples = this.get(options);
-    if (!tuples.length)
-      throw this.rv.DoesNotExist();
-    if (tuples.length > 1)
-      throw this.rv.MultipleTuplesReturned();
-    return tuples[0];
-  };
+exports.Selection = Object.subclass(
+  function (name, expr, params/* = [] */) {
+    this.name = name;
+    this.expr = expr;
+    this.params = params || [];
+  },
+  {
+    get rv() {
+      return exports.rv[this.name];
+    },
 
-})();
+    get: function (options/* = {}, byParams... */) {
+      options = options || {};
+      var attrs = '';
+      if (options.attr)
+        attrs = '.' + options.attr;
+      if (options.only)
+        attrs = '[' + options.only.join(',') + ']';
+      var tuples = core.db.query(
+        this.name + attrs + ' where ' + this.expr,
+        this.params,
+        options.by,
+        Array.slice(arguments, 1),
+        options.start,
+        options.length);
+      return (options.attr
+              ? tuples.map(function (tuple) { return tuple[options.attr]; })
+              : tuples);
+    },
+
+    getOne: function (options) {
+      var tuples = this.get(options);
+      if (!tuples.length)
+        throw this.rv.DoesNotExist();
+      if (tuples.length > 1)
+        throw this.rv.MultipleTuplesReturned();
+      return tuples[0];
+    },
+
+    count: function () {
+      return core.db.count(this.name + ' where ' + this.expr, this.params);
+    },
+
+    del: function () {
+      return core.db.del(this.name, this.expr, this.params);
+    },
+
+    update: function (exprs/*, params... */) {
+      return core.db.update(
+        this.name, this.expr, this.params, exprs, Array.slice(arguments, 1));
+    },
+
+    set: function (values) {
+      var index = 1;
+      var exprs = {};
+      var args = [exprs];
+      for (var name in values) {
+        exprs[name] = '$' + index++;
+        args.push(values[name]);
+      }
+      return this.update.apply(this, args);
+    }
+  });

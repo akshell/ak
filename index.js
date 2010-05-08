@@ -25,43 +25,36 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 
-ak.include('tests.js');
+var base = require('base');
+var http = require('http');
+var template = require('template');
 
 
-var IndexHandler = ak.Handler.subclass(
+base.update(
+  exports,
+  require('inner').core,
+  base,
+  require('db'),
+  require('utils'),
+  require('aspect'),
+  require('unittest'),
+  require('url'),
+  require('rest'),
   {
-    get: function () {
-      return ak.redirect('http://www.akshell.com/apps/ak/');
-    }
+    http: http,
+    template: template,
+    format: require('format')
   });
 
 
-var HelloHandler = ak.Handler.subclass(
-  {
-    get: function (request, name) {
-      return ak.render('hello.html', {name: name});
-    }
-  });
+['Failure', 'NotFound', 'Forbidden'].forEach(
+  function (name) { exports[name] = http[name]; });
 
 
-var TestHandler = ak.Handler.subclass(
-  {
-    perform: function (request) {
-      return ak.render('test.html', {request: request});
-    }
-  });
+['TemplateSyntaxError', 'Template', 'getTemplate', 'safe'].forEach(
+  function (name) { exports[name] = template[name]; });
 
 
-__root__ = new ak.URLMap(
-  IndexHandler, 'index',
-  ['hello/',
-   ['', HelloHandler, 'hello']
-  ],
-  ['test/', TestHandler, 'test'],
-  ['error/', function () { throw Error('Test error'); }, 'error']);
-
-
-__main__ = ak.defaultServe;
-
-
-ak.giveNames(this);
+exports.setup = function () {
+  exports.update(exports.global, exports);
+};

@@ -24,146 +24,144 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-(function ()
-{
-  ak.include('utils.js');
-  ak.include('http.js');
+var inner = require('inner');
+var core = inner.core;
+var base = require('base');
+var http = require('http');
 
 
-  ak.ResolveError = ak.NotFound.subclass();
-  ak.ReverseError = ak.BaseError.subclass();
+exports.ResolveError = http.NotFound.subclass();
+exports.ReverseError = Error.subclass();
 
 
-  var defaultPattern = /([^\/]+)\//;
+var defaultPattern = /([^\/]+)\//;
 
 
-  ak.URLMap = Object.subclass(
-    function (/* [handler, [name,]] children... */) {
-      var i;
-      if (typeof(arguments[0]) == 'function') {
-        this._handler = arguments[0];
-        if (typeof(arguments[1]) == 'string') {
-          this._name = arguments[1];
-          i = 2;
-        } else {
-          i = 1;
-        }
+exports.URLMap = Object.subclass(
+  function (/* [handler, [name,]] children... */) {
+    var i;
+    if (typeof(arguments[0]) == 'function') {
+      this._handler = arguments[0];
+      if (typeof(arguments[1]) == 'string') {
+        this._name = arguments[1];
+        i = 2;
       } else {
-        i = 0;
+        i = 1;
       }
-      this._children = [];
-      for (; i < arguments.length; ++i) {
-        var child = arguments[i];
-        if (!(child instanceof Array))
-          throw TypeError('URLMap children must be defined as Array objects');
-        if (!(typeof(child[0]) == 'string' || child[0] instanceof RegExp))
-          throw TypeError('URLMap pattern must be string or RegExp');
-        var submap = (child[1] instanceof arguments.callee
-                      ? child[1]
-                      : ak.construct(arguments.callee, child.slice(1)));
-        this._children.push([child[0] || defaultPattern, submap]);
-      }
-    },
-    {
-      _resolve: function (path) {
-        if (!path)
-          return this._handler ? [this._handler, []] : undefined;
-        for (var i = 0; i < this._children.length; ++i) {
-          var child = this._children[i];
-          var pattern = child[0];
-          var submap = child[1];
-          if (typeof(pattern) == 'string') {
-            if (path.startsWith(pattern)) {
-              var result = submap._resolve(path.substr(pattern.length));
-              if (result)
-                return result;
-            }
-          } else {
-            var match = pattern.exec(path);
-            if (match && match.index == 0) {
-              var result = submap._resolve(path.substr(match[0].length));
-              if (result) {
-                result[1].unshift(match.length == 1 ? match[0] : match[1]);
-                return result;
-              }
+    } else {
+      i = 0;
+    }
+    this._children = [];
+    for (; i < arguments.length; ++i) {
+      var child = arguments[i];
+      if (!(child instanceof Array))
+        throw TypeError('URLMap children must be defined as Array objects');
+      if (!(typeof(child[0]) == 'string' || child[0] instanceof RegExp))
+        throw TypeError('URLMap pattern must be string or RegExp');
+      var submap = (child[1] instanceof arguments.callee
+                    ? child[1]
+                    : core.construct(arguments.callee, child.slice(1)));
+      this._children.push([child[0] || defaultPattern, submap]);
+    }
+  },
+  {
+    _resolve: function (path) {
+      if (!path)
+        return this._handler ? [this._handler, []] : undefined;
+      for (var i = 0; i < this._children.length; ++i) {
+        var child = this._children[i];
+        var pattern = child[0];
+        var submap = child[1];
+        if (typeof(pattern) == 'string') {
+          if (path.startsWith(pattern)) {
+            var result = submap._resolve(path.substr(pattern.length));
+            if (result)
+              return result;
+          }
+        } else {
+          var match = pattern.exec(path);
+          if (match && match.index == 0) {
+            var result = submap._resolve(path.substr(match[0].length));
+            if (result) {
+              result[1].unshift(match.length == 1 ? match[0] : match[1]);
+              return result;
             }
           }
         }
-        return undefined;
-      },
-
-      resolve: function (path) {
-        var result = this._resolve(path);
-        if (!result)
-          throw ak.ResolveError('Can not resolve path ' + ak.repr(path));
-        return result;
-      },
-
-      _populateReverseMap: function (reverseMap, parts) {
-        if (this._name) {
-          if (reverseMap.hasOwnProperty(this._name))
-            throw ak.UsageError(
-              'Multiple URL patterns with name ' + ak.repr(this._name));
-          reverseMap[this._name] = parts;
-        }
-        this._children.forEach(
-          function (child) {
-            var childParts = parts.slice();
-            var pattern = child[0];
-            if (typeof(pattern) == 'string') {
-              childParts[childParts.length - 1] += pattern;
-            } else if (pattern === defaultPattern) {
-              childParts.push('/');
-            } else {
-              var source = pattern.source.replace(/\\(.)/g, '$1');
-              var start = source.indexOf('(');
-              var stop = source.lastIndexOf(')');
-              if (start == -1 || stop == -1 || start > stop) {
-                childParts.push('');
-              } else {
-                childParts[childParts.length - 1] += source.substr(0, start);
-                childParts.push(source.substr(stop + 1));
-              }
-            }
-            child[1]._populateReverseMap(reverseMap, childParts);
-          });
-      },
-
-      reverse: function (name/*, args... */) {
-        if (!this._reverseMap) {
-          this._reverseMap = {};
-          this._populateReverseMap(this._reverseMap, ['']);
-        }
-        if (!this._reverseMap.hasOwnProperty(name))
-          throw ak.ReverseError(
-            'URL pattern with name ' + ak.repr(name) + ' does not exist');
-        var parts = this._reverseMap[name];
-        if (parts.length != arguments.length)
-          throw ak.ReverseError(
-            'URL pattern ' + ak.repr(name) +
-            ' takes ' + (parts.length - 1) + ' arguments');
-        var resultParts = [parts[0]];
-        for (var i = 1; i < parts.length; ++i)
-          resultParts.push(arguments[i], parts[i]);
-        return encodeURI(resultParts.join(''));
       }
-    });
+      return undefined;
+    },
+
+    resolve: function (path) {
+      var result = this._resolve(path);
+      if (!result)
+        throw exports.ResolveError('Can not resolve path ' + base.repr(path));
+      return result;
+    },
+
+    _populateReverseMap: function (reverseMap, parts) {
+      if (this._name) {
+        if (reverseMap.hasOwnProperty(this._name))
+          throw core.UsageError(
+            'Multiple URL patterns with name ' + base.repr(this._name));
+        reverseMap[this._name] = parts;
+      }
+      this._children.forEach(
+        function (child) {
+          var childParts = parts.slice();
+          var pattern = child[0];
+          if (typeof(pattern) == 'string') {
+            childParts[childParts.length - 1] += pattern;
+          } else if (pattern === defaultPattern) {
+            childParts.push('/');
+          } else {
+            var source = pattern.source.replace(/\\(.)/g, '$1');
+            var start = source.indexOf('(');
+            var stop = source.lastIndexOf(')');
+            if (start == -1 || stop == -1 || start > stop) {
+              childParts.push('');
+            } else {
+              childParts[childParts.length - 1] += source.substr(0, start);
+              childParts.push(source.substr(stop + 1));
+            }
+          }
+          child[1]._populateReverseMap(reverseMap, childParts);
+        });
+    },
+
+    reverse: function (name/*, args... */) {
+      if (!this._reverseMap) {
+        this._reverseMap = {};
+        this._populateReverseMap(this._reverseMap, ['']);
+      }
+      if (!this._reverseMap.hasOwnProperty(name))
+        throw exports.ReverseError(
+          'URL pattern with name ' + base.repr(name) + ' does not exist');
+      var parts = this._reverseMap[name];
+      if (parts.length != arguments.length)
+        throw exports.ReverseError(
+          'URL pattern ' + base.repr(name) +
+            ' takes ' + (parts.length - 1) + ' arguments');
+      var resultParts = [parts[0]];
+      for (var i = 1; i < parts.length; ++i)
+        resultParts.push(arguments[i], parts[i]);
+      return encodeURI(resultParts.join(''));
+    }
+  });
 
 
-  ak.resolve = function (path) {
-    if (!path.startsWith('/'))
-      throw ak.ValueError('ak.resolve() requires absolute path');
-    return __root__.resolve(path.substr(1));
-  };
+exports.resolve = function (path) {
+  if (!path.startsWith('/'))
+    throw core.ValueError('resolve() requires absolute path');
+  return require.main.exports.root.resolve(path.substr(1));
+};
 
 
-  ak.reverse = function (name/*, args... */) {
-    return (['login', 'logout', 'signup', 'session'].indexOf(name) == -1
-            ? '/' + __root__.reverse.apply(__root__, arguments)
-            : ('http://www.akshell.com/' + name +
-               '/?domain=' + ak.app.domain +
-               '&path=' + encodeURIComponent(arguments[1] || '/')));
-
-  };
-
-})();
+exports.reverse = function (name/*, args... */) {
+  if (['login', 'logout', 'signup', 'session'].indexOf(name) != -1)
+    return ('http://www.akshell.com/' + name +
+            '/?domain=' + inner.domain +
+            '&path=' + encodeURIComponent(arguments[1] || '/'));
+  var root = require.main.exports.root;
+  return '/' + root.reverse.apply(root, arguments);
+};

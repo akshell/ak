@@ -24,20 +24,40 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-(function ()
-{
-  ak.include('aspect.js');
-  ak.include('base.js');
-  ak.include('core.js');
-  ak.include('db.js');
-  ak.include('http.js');
-  ak.include('rest.js');
-  ak.include('template.js');
-  ak.include('unittest.js');
-  ak.include('url.js');
-  ak.include('utils.js');
-  ak.include('format.js');
+var ak = require('index');
 
-  ak.giveNames(ak);
-  return ak;
-})();
+
+exports.tests = require('tests');
+
+
+var IndexHandler = ak.Handler.subclass(
+  {
+    get: function () {
+      return ak.redirect('http://www.akshell.com/apps/ak/');
+    }
+  });
+
+
+var HelloHandler = ak.Handler.subclass(
+  {
+    get: function (request, name) {
+      return ak.render('hello.html', {name: name});
+    }
+  });
+
+
+var TestHandler = ak.Handler.subclass(
+  {
+    perform: function (request) {
+      return ak.render('test.html', {request: request});
+    }
+  });
+
+
+exports.root = new ak.URLMap(
+  IndexHandler, 'index',
+  ['hello/',
+   ['', HelloHandler, 'hello']
+  ],
+  ['test/', TestHandler, 'test'],
+  ['error/', function () { throw Error('Test error'); }, 'error']);
