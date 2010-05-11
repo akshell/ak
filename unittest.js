@@ -302,10 +302,17 @@ exports.TestClient = Object.subclass(
   },
   {
     _getAppDescription: function (name) {
-      var result = this.apps[name];
-      if (!result)
+      var app = this.apps[name];
+      if (!app)
         throw core.NoSuchAppError('No such test app: ' + base.repr(name));
-      return result;
+      return {
+        admin: app.admin,
+        developers: app.developers || [],
+        summary: app.summary || '',
+        description: app.description || '',
+        labels: app.labels || [],
+        name: name
+      };
     },
 
     _checkUserExists: function (user) {
@@ -372,7 +379,9 @@ exports.TestClient = Object.subclass(
                      }),
         aspect.weave(aspect.After, require.main.exports, 'main',
                      function (result) {
-                       if (result && typeof(result) == 'object')
+                       if (result &&
+                           typeof(result) == 'object' &&
+                           contexts.hasOwnProperty(result.content))
                          result.context = contexts[result.content];
                        return result;
                      }),

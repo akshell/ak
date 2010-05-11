@@ -240,7 +240,15 @@ with (require('index')) {
         assertSame(client.post({data: 'request.method'}), 'post');
         assertSame(client.del({data: 'request.method'}), 'delete');
 
-        assertSame(request('getAppDescription("app1")'), apps.app1);
+        assertEqual(items(request('getAppDescription("app1")')),
+                    [
+                      ['admin', 'user1'],
+                      ['developers', []],
+                      ['summary', ''],
+                      ['description', ''],
+                      ['labels', []],
+                      ['name', 'app1']
+                    ]);
         assertEqual(request('getAdminedApps("user1")'), ['app1', 'app3']);
         assertEqual(request('getDevelopedApps("user1")'), ['app2', 'app4']);
         assertEqual(request('getDevelopedApps("user2")'), []);
