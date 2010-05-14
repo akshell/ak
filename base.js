@@ -297,7 +297,7 @@ exports.update(
   {
     __cmp__: function (other) {
       if (!(other instanceof Array))
-        throw CmpError(this, other);
+        throw exports.CmpError(this, other);
       var lenCmp = exports.cmp(this.length, other.length);
       var count = lenCmp == -1 ? this.length : other.length;
       for (var i = 0; i < count; ++i) {
@@ -309,9 +309,7 @@ exports.update(
     },
 
     __eq__: function (other) {
-      if (!(other instanceof Array))
-        return false;
-      if (this.length != other.length)
+      if (!(other instanceof Array && this.length == other.length))
         return false;
       for (var i = 0; i < this.length; ++i)
         if (!exports.equal(this[i], other[i]))
@@ -327,6 +325,23 @@ core.set(
     if (!(other instanceof Date))
       throw exports.CmpError(this, other);
     return exports.cmp(this.getTime(), other.getTime());
+  });
+
+
+exports.update(
+  core.Binary.prototype, core.HIDDEN,
+  {
+    __cmp__: function (other) {
+      if (!(other instanceof core.Binary))
+        throw exports.CmpError(this, other);
+      return this._compare(other);
+    },
+
+    __eq__: function (other) {
+      return (other instanceof core.Binary &&
+              this.length == other.length &&
+              this._compare(other) == 0);
+    }
   });
 
 ////////////////////////////////////////////////////////////////////////////////

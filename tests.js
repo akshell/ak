@@ -699,6 +699,7 @@ with (require('index')) {
         assertSame(cmp([1, 2], [1, 2, 3]), -1);
         assertSame(cmp([1, 2], [1]), 1);
         assertSame(cmp([1, 2, 3], [1, 2, 4]), -1);
+        assertThrow(CmpError, cmp, [], 42);
       },
 
       testArrayEq: function () {
@@ -708,6 +709,23 @@ with (require('index')) {
         assert(!equal([1, 2, 3], [1, 2, 4]));
         assert(!equal([], null));
         assert(!equal([], undefined));
+      },
+
+      testDateCmp: function () {
+        var str1 = 'Mon, 03 Aug 2009 14:49:29 GMT';
+        var str2 = 'Mon, 03 Aug 2009 14:49:30 GMT';
+        assertEqual(new Date(str1), new Date(str1));
+        assertSame(cmp(new Date(str1), new Date(str2)), -1);
+      },
+
+      testBinaryCmp: function () {
+        assertSame(cmp(new Binary(), new Binary()), 0);
+        assertThrow(CmpError, cmp, new Binary(), 42);
+      },
+
+      testBinaryEq: function () {
+        assert(equal(new Binary('abc'), new Binary('abc')));
+        assert(!equal(new Binary(), ''));
       },
 
       testStringStartsWith: function () {
@@ -722,13 +740,6 @@ with (require('index')) {
         assert(str.endsWith('ing'));
         assert(!str.endsWith('ping'));
         assert(!str.endsWith('long long string'));
-      },
-
-      testDateCmp: function () {
-        var str1 = 'Mon, 03 Aug 2009 14:49:29 GMT';
-        var str2 = 'Mon, 03 Aug 2009 14:49:30 GMT';
-        assertEqual(new Date(str1), new Date(str1));
-        assertSame(cmp(new Date(str1), new Date(str2)), -1);
       },
 
       testRegExpEscape: function () {
