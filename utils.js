@@ -144,25 +144,32 @@ exports.timeUntil = function (date, now/* = new Date() */) {
 };
 
 
-exports.Stream = Object.subclass(
+exports.MemTextStream = Object.subclass(
   function () {
     this._strings = [];
   },
   {
-    write: function (/* values... */) {
-      for (var i = 0; i < arguments.length; ++i)
-        this._strings.push(arguments[i] + '');
+    writable: true,
+    readable: false,
+    positionable: false,
+
+    write: function (value) {
+      this._strings.push(value + '');
     },
 
-    read: function () {
+    get: function () {
       var result = this._strings.join('');
-      this._strings = [];
+      this._strings = [result];
       return result;
+    },
+
+    reset: function () {
+      this._strings = [];
     }
   });
 
 
-exports.out = new exports.Stream();
+exports.out = new exports.MemTextStream();
 
 
 exports.dump = function (/* values... */) {

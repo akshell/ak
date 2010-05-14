@@ -136,13 +136,13 @@ with (require('index')) {
       },
 
       testStreamTestResult: function () {
-        var stream = new Stream();
+        var stream = new MemTextStream();
         var ttr = new StreamTestResult(stream);
         ttr.startTest('hi');
         ttr.addError();
         ttr.addFailure();
         ttr.addSuccess();
-        assertSame(stream.read(), 'hi ERROR\n FAIL\n ok\n');
+        assertSame(stream.get(), 'hi ERROR\n FAIL\n ok\n');
       },
 
       testLoadTestSuite: function () {
@@ -182,9 +182,9 @@ with (require('index')) {
             testAssertEqual: partial(assertEqual, 1, 2, 'msg2'),
             testAssertThrow: partial(assertThrow, Error, thrower(1))
           });
-        var stream = new Stream();
+        var stream = new MemTextStream();
         runTestViaStream(loadTestSuite(TC), stream);
-        assert(stream.read().startsWith(
+        assert(stream.get().startsWith(
                  'testOk(test) ok\n' +
                  'testError(test) ERROR\n' +
                  'testAssert(test) FAIL\n' +
@@ -834,12 +834,16 @@ with (require('index')) {
                    '0 minutes');
       },
 
-      testStream: function () {
-        var s = new Stream();
-        s.write('string', 42, false);
+      testMemTextStream: function () {
+        var s = new MemTextStream();
+        s.write('string');
+        s.write(42);
+        s.write(false);
         s.write({});
-        assertSame(s.read(), 'string42false[object Object]');
-        assertSame(s.read(), '');
+        assertSame(s.get(), s.get());
+        assertSame(s.get(), 'string42false[object Object]');
+        s.reset();
+        assertSame(s.get(), '');
       },
 
       testDict: function () {
