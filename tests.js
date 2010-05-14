@@ -387,6 +387,12 @@ with (require('index')) {
         assertEqual(fs.list(''), [], 'fs.remove');
       },
 
+      testRead: function () {
+        assertThrow(NoSuchEntryError, fs.read, 'no such entry');
+        fs.write('file', 'hello');
+        assertSame(fs.read('file') + '', 'hello');
+      },
+
       testRequestApp: function() {
         var oldRequestApp = _core.requestApp;
         _core.requestApp = function (appName, request, files, data) {
