@@ -393,6 +393,12 @@ with (require('index')) {
         assertSame(fs.read('file') + '', 'hello');
       },
 
+      testWrite: function () {
+        fs.write('file', 'hello');
+        fs.write('file', 'hi');
+        assertSame(fs.read('file') + '', 'hi');
+      },
+
       testRequestApp: function() {
         var oldRequestApp = _core.requestApp;
         _core.requestApp = function (appName, request, files, data) {
