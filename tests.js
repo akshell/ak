@@ -417,9 +417,9 @@ with (require('index')) {
         assertEqual(
           items(requestApp('headers', {data: '200\na: b\nc:  d'}).headers),
           [['a', 'b'], ['c', ' d']]);
-        assertThrow(AppRequestError, requestApp, '', {});
-        assertThrow(AppRequestError, requestApp, '', {data: '!\n'});
-        assertThrow(AppRequestError, requestApp,'', {data: '200\na:b'});
+        assertThrow(RequestAppError, requestApp, '', {});
+        assertThrow(RequestAppError, requestApp, '', {data: '!\n'});
+        assertThrow(RequestAppError, requestApp,'', {data: '200\na:b'});
 
         _core.requestApp = oldRequestApp;
       },
@@ -475,8 +475,8 @@ with (require('index')) {
           input = i;
           return requestHost('example.com', {});
         }
-        assertThrow(HostRequestError, parse, '');
-        assertThrow(HostRequestError, parse, '\r\n\r\n');
+        assertThrow(RequestHostError, parse, '');
+        assertThrow(RequestHostError, parse, '\r\n\r\n');
         assertSame(parse('HTTP/1.1 500\r\n\r\n').status, 500);
         assertEqual(items(parse('HTTP/1.1 200\r\nillegal\r\n\r\n').headers),
                     []);
