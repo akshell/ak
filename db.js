@@ -306,8 +306,8 @@ exports.Selection = Object.subclass(
               : tuples);
     },
 
-    getOne: function (options) {
-      var tuples = this.get(options);
+    getOne: function () {
+      var tuples = this.get.apply(this, arguments);
       if (!tuples.length)
         throw this.rv.DoesNotExist();
       if (tuples.length > 1)

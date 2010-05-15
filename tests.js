@@ -1815,6 +1815,7 @@ with (require('index')) {
         assertSame(rv.X.where('x > $', 2).getOne({attr: 'x'}), 3);
         assertSame(rv.X.all().getOne({by: 'x', length: 1}).x, 1);
         assertSame(rv.X.all().getOne({by: 'x', start: 2}).x, 3);
+        assertSame(rv.X.all().getOne({by: 'x % $', length: 1}, 2).x, 2);
         rv.X.drop();
       },
 
