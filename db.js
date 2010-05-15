@@ -234,29 +234,22 @@ exports.TupleDoesNotExist = Error.subclass(
   {name: 'TupleDoesNotExist'});
 
 
-exports.MultipleTuplesReturned = Error.subclass(
+exports.TupleIsAmbiguous = Error.subclass(
   function (message) {
-    this.message = message || 'Multiple tuples returned';
+    this.message = message || 'Tuple is ambiguous';
   },
-  {name: 'MultipleTuplesReturned'});
+  {name: 'TupleIsAmbiguous'});
 
 
 [
-  [
-    'DoesNotExist', exports.TupleDoesNotExist,
-    '', ' does not exist'
-  ],
-  [
-    'MultipleTuplesReturned', exports.MultipleTuplesReturned,
-    'Multiple ', 's returned'
-  ]
+  ['DoesNotExist', exports.TupleDoesNotExist, 'does not exist'],
+  ['IsAmbiguous', exports.TupleIsAmbiguous, 'is ambiguous']
 ].forEach(
   function (pair) {
     var propName = pair[0];
     var cachedPropName = '_' + propName;
     var baseClass = pair[1];
-    var prefix = pair[2];
-    var suffix = pair[3];
+    var suffix = ' ' + pair[2];
     exports.RelVar.prototype.__defineGetter__(
       propName,
       function () {
@@ -264,7 +257,7 @@ exports.MultipleTuplesReturned = Error.subclass(
           var name = this.name;
           this[cachedPropName] = baseClass.subclass(
             function () {
-              baseClass.call(this, [prefix, name, suffix].join(''));
+              baseClass.call(this, name + suffix);
             },
             {name: ['rv', name, propName].join('.')});
         }
@@ -311,7 +304,7 @@ exports.Selection = Object.subclass(
       if (!tuples.length)
         throw this.rv.DoesNotExist();
       if (tuples.length > 1)
-        throw this.rv.MultipleTuplesReturned();
+        throw this.rv.IsAmbiguous();
       return tuples[0];
     },
 

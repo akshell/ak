@@ -1797,17 +1797,17 @@ with (require('index')) {
         rv.X.insert({x: 1});
         rv.X.insert({x: 2});
         rv.X.insert({x: 3});
-        assert(rv.X.MultipleTuplesReturned.subclassOf(MultipleTuplesReturned));
+        assert(rv.X.IsAmbiguous.subclassOf(TupleIsAmbiguous));
         assert(rv.X.DoesNotExist.subclassOf(TupleDoesNotExist));
-        assertSame(rv.X.MultipleTuplesReturned().message,
-                   'Multiple Xs returned');
+        assertSame(rv.X.IsAmbiguous().message,
+                   'X is ambiguous');
         assertSame(rv.X.DoesNotExist().message,
                    'X does not exist');
-        assertSame(rv.X.MultipleTuplesReturned.prototype.name,
-                   'rv.X.MultipleTuplesReturned');
+        assertSame(rv.X.IsAmbiguous.prototype.name,
+                   'rv.X.IsAmbiguous');
         assertSame(rv.X.DoesNotExist.prototype.name,
                    'rv.X.DoesNotExist');
-        assertThrow(rv.X.MultipleTuplesReturned,
+        assertThrow(rv.X.IsAmbiguous,
                     function () { rv.X.where('x % 2 == 1').getOne(); });
         assertThrow(rv.X.DoesNotExist,
                     function () { rv.X.where({x: 4}).getOne(); });
