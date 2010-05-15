@@ -293,18 +293,13 @@ exports.TestClient = Object.subclass(
   function (users/* = [] */, apps/* = {} */) {
     this.users = users || [];
     this.apps = apps || {};
-    for (var name in this.apps) {
-      var app = this.apps[name];
-      app.name = name;
-      app.developers = app.developers || [];
-    }
     this._user = '';
   },
   {
     _getAppDescription: function (name) {
-      var app = this.apps[name];
-      if (!app)
+      if (!this.apps.hasOwnProperty(name))
         throw core.NoSuchAppError('No such test app: ' + base.repr(name));
+      var app = this.apps[name];
       return {
         admin: app.admin,
         developers: app.developers || [],
@@ -332,9 +327,11 @@ exports.TestClient = Object.subclass(
     _getDevelopedApps: function (user) {
       this._checkUserExists(user);
       var result = [];
-      for (var name in this.apps)
-        if (this.apps[name].developers.indexOf(user) != -1)
+      for (var name in this.apps) {
+        var developers = this.apps[name].developers;
+        if (developers && developers.indexOf(user) != -1)
           result.push(name);
+      }
       return result;
     },
 
