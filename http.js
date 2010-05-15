@@ -28,7 +28,7 @@ var base = require('base');
 
 
 exports.Failure = Error.subclass(
-  function (message/* = 'Bad request' */, status/* = ak.http.BAD_REQUEST */) {
+  function (message/* = 'Bad request' */, status/* = exports.BAD_REQUEST */) {
     this.message = message || 'Bad request';
     this.status = status || exports.BAD_REQUEST;
   });
