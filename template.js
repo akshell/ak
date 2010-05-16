@@ -548,7 +548,7 @@ var defaultFilters = {
 
   first: new Filter(
     function (value) {
-      return value ? value[0] : value;
+      return value && value[0];
     },
     {safety: 'value'}),
 
@@ -616,7 +616,7 @@ var defaultFilters = {
 
   last: new Filter(
     function (value) {
-      return value ? value[value.length - 1] : value;
+      return value && value[value.length - 1];
     },
     {safety: 'value'}),
 
