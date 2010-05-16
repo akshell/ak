@@ -280,7 +280,7 @@ exports.Selection = Object.subclass(
     this.params = params || [];
   },
   {
-    get rv() {
+    get relVar() {
       return exports.rv[this.name];
     },
 
@@ -306,9 +306,9 @@ exports.Selection = Object.subclass(
     getOne: function () {
       var tuples = this.get.apply(this, arguments);
       if (!tuples.length)
-        throw this.rv.DoesNotExist();
+        throw this.relVar.DoesNotExist();
       if (tuples.length > 1)
-        throw this.rv.IsAmbiguous();
+        throw this.relVar.IsAmbiguous();
       return tuples[0];
     },
 

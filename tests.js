@@ -1829,7 +1829,7 @@ with (require('index')) {
         rv.X.insert({n: 0, b: false, s: 'zero'});
         rv.X.insert({n: 1, b: false, s: 'one'});
         rv.X.insert({n: 42, b: true, s: 'the answer'});
-        assertSame(rv.X.where('b').rv, rv.X);
+        assertSame(rv.X.where('b').relVar, rv.X);
         assertEqual(rv.X.where({b: false, n: 1}).get({attr: 's'}), ['one']);
         assertEqual(
           rv.X.where('b').get().map(items),
