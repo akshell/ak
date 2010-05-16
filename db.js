@@ -141,6 +141,10 @@ exports.RelVar = Object.subclass(
       'RelVar instances should be obtained through the rv object');
   },
   {
+    exists: function () {
+      return core.db.list().indexOf(this.name) != -1;
+    },
+
     create: function (header/*, constrs... */) {
       var rawHeader = {};
       for (var name in header)

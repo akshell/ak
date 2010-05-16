@@ -323,6 +323,11 @@ with (require('index')) {
         assertSame(db.count('X.b where n > $1 && s != $2', [0, 'one']), 1);
       },
 
+      testExists: function () {
+        assert(rv.X.exists());
+        assert(!rv.Y.exists());
+      },
+
       testCreate: function () {
         db.create('Y', {});
         assertEqual(items(db.getHeader('Y')), []);
