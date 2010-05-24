@@ -739,6 +739,20 @@ with (require('index')) {
         assert(!equal(new Binary(), ''));
       },
 
+      testMd5: function () {
+        assertSame(new Binary('Hello world').md5(),
+                   '3e25960a79dbc69b674cd4ec67a72c62');
+        assertSame(new Binary().md5(),
+                   'd41d8cd98f00b204e9800998ecf8427e');
+      },
+
+      testSha1: function () {
+        assertSame(new Binary('Hello world').sha1(),
+                   '7b502c3a1f48c8609ae212cdfb639dee39673f5e');
+        assertSame(new Binary().sha1(),
+                   'da39a3ee5e6b4b0d3255bfef95601890afd80709');
+      },
+
       testStringStartsWith: function () {
         var str = 'string';
         assert(str.startsWith('str'));
