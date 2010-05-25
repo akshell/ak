@@ -1256,30 +1256,40 @@ defaultTags.csrfToken = function (parser) {
 
 
 var StaticNode = Object.subclass(
-  function (name, tsFunc, pathExpr, tsFlag) {
+  function (name, tsFunc, appExpr, pathExpr, tsFlag) {
     var parts = ['http://static.akshell.com', name];
-    var main = require.main;
-    if (main.spot)
-      parts.push('spots',
-                 main.app,
-                 main.owner.replace(/ /g, '-'),
-                 main.spot);
-    else
-      parts.push('release', main.app);
+    if (appExpr) {
+      parts.push('release');
+    } else {
+      var main = require.main;
+      if (main.spot)
+        parts.push('spots',
+                   main.app,
+                   main.owner.replace(/ /g, '-'),
+                   main.spot);
+      else
+        parts.push('release', main.app);
+    }
     this._prefix = parts.join('/') + '/';
     this._tsFunc = tsFunc;
+    this._appExpr = appExpr;
     this._pathExpr = pathExpr;
     this._tsFlag = tsFlag;
   },
   {
     render: function (context) {
+      var app = this._appExpr && this._appExpr.resolve(context) + '';
       var path = this._pathExpr.resolve(context) + '';
-      var url = this._prefix + path;
+      var url = this._prefix;
+      if (app)
+        url += app + '/';
+      url += path.split('/').map(encodeURIComponent).join('/');
       if (this._tsFlag ||
           (this._tsFlag === undefined &&
            (path.endsWith('.css') || path.endsWith('.js')))) {
         try {
-          return url + '?' + (this._tsFunc(path) / 1000);
+          var ts = app ? this._tsFunc(app, path) : this._tsFunc(path);
+          url += '?' + ts / 1000;
         } catch (_) {}
       }
       return url;
@@ -1293,22 +1303,41 @@ var StaticNode = Object.subclass(
   function (pair) {
     defaultTags[pair[0]] = function (parser) {
       var args = smartSplit(parser.content);
+      var appExprString, pathExprString;
       var tsFlag;
-      if (args.length == 3) {
-        if (args[2] == 'timestamp')
-          tsFlag = true;
-        else if (args[2] == 'no-timestamp')
-        tsFlag = false;
-        else
-          throw TemplateSyntaxError(
-            'Unknow option of ' + base.repr(args[0]) +
-              ' tag: ' + base.repr(args[2]));
-      } else if (args.length != 2) {
+      switch (args.length) {
+      case 1:
         throw TemplateSyntaxError(
-          base.repr(args[0]) + ' tag takes one or two arguments');
+          base.repr(args[0]) + ' tag takes at least one argument');
+      case 2:
+        pathExprString = args[1];
+        break;
+      case 3:
+        if (['timestamp', 'no-timestamp'].indexOf(args[2]) == -1) {
+          appExprString = args[1];
+          pathExprString = args[2];
+        } else {
+          pathExprString = args[1];
+          tsFlag = args[2] == 'timestamp';
+        }
+        break;
+      case 4:
+        if (['timestamp', 'no-timestamp'].indexOf(args[3]) == -1)
+          throw TemplateSyntaxError('Unknown option: ' + args[3]);
+        appExprString = args[1];
+        pathExprString = args[2];
+        tsFlag = args[3] == 'timestamp';
+        break;
+      default:
+        throw TemplateSyntaxError(
+          base.repr(args[0]) + ' tag take no more than 3 arguments');
       }
       return new StaticNode(
-        pair[0], pair[1], parser.makeExpr(args[1]), tsFlag);
+        pair[0],
+        pair[1],
+        appExprString && parser.makeExpr(appExprString),
+        parser.makeExpr(pathExprString),
+        tsFlag);
     };
   });
 

@@ -1305,7 +1305,13 @@ with (require('index')) {
      {object: safe({a: '', b: '<>'})},
      '<>'],
     ['{% now "<mmm yy>" %}', {}, new Date().toString('<mmm yy>')],
-    ['{% now f %}', {f: '<mmm yy>'}, new Date().toString('&lt;mmm yy&gt;')]
+    ['{% now f %}', {f: '<mmm yy>'}, new Date().toString('&lt;mmm yy&gt;')],
+    ['{% code "ak" "some/file" %}',
+     {},
+     'http://static.akshell.com/code/release/ak/some/file'],
+    ['{% media "ak" "no such file" timestamp %}',
+     {},
+     'http://static.akshell.com/media/release/ak/no%20such%20file']
   ];
 
 
@@ -1361,8 +1367,8 @@ with (require('index')) {
     '{% url %}',
     '{% csrfToken 1 %}',
     '{% code %}',
-    '{% media "file" bad-option %}',
-    '{% media 1 2 3 %}',
+    '{% code 1 2 3 4 %}',
+    '{% media "app" "file" bad-option %}',
     '{% for a in b %}',
     '{% for a in b %}{% empty %}',
     '{% for %}{% endfor %}',
