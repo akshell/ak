@@ -179,6 +179,33 @@ exports.RelVar = Object.subclass(
 
     insert: function (values) {
       return core.db.insert(this.name, values);
+    },
+
+    addAttrs: function (attrs) {
+      var rawAttrs = {};
+      for (var name in attrs) {
+        var string = attrs[name];
+        var index = string.indexOf(' ');
+        if (index == 0)
+          throw core.UsageError(
+            'Attribute description must have format "type value"');
+        var typeString = string.substr(0, index);
+        var type = {
+          'number': core.db.number,
+          'string': core.db.string,
+          'bool': core.db.bool,
+          'date': core.db.date,
+          'integer': core.db.number.integer()
+        }[typeString];
+        if (!type)
+          throw core.UsageError('Unknown type: ' + typeString);
+        rawAttrs[name] = [type, eval(string.substr(index + 1))];
+      }
+      core.db.addAttrs(this.name, rawAttrs);
+    },
+
+    dropAttrs: function (/* names... */) {
+      core.db.dropAttrs(this.name, Array.slice(arguments));
     }
   });
 

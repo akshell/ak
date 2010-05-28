@@ -1904,6 +1904,36 @@ with (require('index')) {
         rv.X.create({});
         assertSame('X' in rv, true);
         assertEqual(keys(rv), ['X', 'Y']);
+      },
+
+      testAddAttrs: function () {
+        rv.X.create({});
+        assertThrow(UsageError, function () { rv.X.addAttrs({x: ''}); });
+        assertThrow(UsageError,
+                    function () { rv.X.addAttrs({x: 'unknown-type 42'}); });
+        rv.X.addAttrs(
+          {
+            n: 'number 42',
+            s: 'string ""',
+            b: 'bool false',
+            d: 'date new Date()',
+            i: 'integer 0'
+          });
+        assertEqual(
+          items(rv.X.getHeader()),
+          [
+            ['n', 'number'],
+            ['s', 'string'],
+            ['b', 'bool'],
+            ['d', 'date'],
+            ['i', 'integer']
+          ]);
+      },
+
+      testDropAttrs: function () {
+        rv.X.create({n: 'number', s: 'string', b: 'bool'});
+        rv.X.dropAttrs('n', 'b');
+        assertEqual(items(rv.X.getHeader()), [['s', 'string']]);
       }
     });
 
