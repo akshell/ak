@@ -1934,6 +1934,40 @@ with (require('index')) {
         rv.X.create({n: 'number', s: 'string', b: 'bool'});
         rv.X.dropAttrs('n', 'b');
         assertEqual(items(rv.X.getHeader()), [['s', 'string']]);
+      },
+
+      testAddDefault: function () {
+        rv.X.create({n: 'number'});
+        rv.X.addDefault({n: 42});
+        assertEqual(items(rv.X.getDefault()), [['n', 42]]);
+      },
+
+      testDropDefault: function () {
+        rv.X.create({n: 'number default 42', s: 'string default ""'});
+        rv.X.dropDefault('n', 's');
+        assertEqual(items(rv.X.getDefault()), []);
+      },
+
+      testAddConstrs: function () {
+        rv.X.create({n: 'unique number'});
+        rv.X.insert({n: 0});
+        rv.Y.create({n: 'number', s: 'string', b: 'bool'});
+        rv.Y.addConstrs('unique [n]');
+        rv.Y.addConstrs('[n] -> X[n]', 'check !b');
+        assertEqual(rv.Y.getUnique(), [['n', 's', 'b'], ['n']]);
+        assertEqual(rv.Y.getForeign(), [[['n'], 'X', ['n']]]);
+        assertThrow(ConstraintError,
+                    function () { rv.Y.insert({n: 0, s: '', b: true}); });
+      },
+
+      testDropAllConstrs: function () {
+        rv.X.create({n: 'unique number'});
+        rv.Y.create(
+          {n: 'number -> X.n', s: 'unique string', b: 'bool check (!b)'});
+        rv.Y.dropAllConstrs();
+        assertEqual(rv.Y.getUnique(), [['n', 's', 'b']]);
+        assertEqual(rv.Y.getForeign(), []);
+        rv.Y.insert({n: 0, s: '', b: true});
       }
     });
 

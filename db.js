@@ -206,6 +206,25 @@ exports.RelVar = Object.subclass(
 
     dropAttrs: function (/* names... */) {
       core.db.dropAttrs(this.name, Array.slice(arguments));
+    },
+
+    addDefault: function (values) {
+      core.db.addDefault(this.name, values);
+    },
+
+    dropDefault: function (/* names... */) {
+      core.db.dropDefault(this.name, Array.slice(arguments));
+    },
+
+    addConstrs: function (/* constrs... */) {
+      var constrs = {unique: [], foreign: [], check: []};
+      for (var i = 0; i < arguments.length; ++i)
+        compileConstr(constrs, arguments[i]);
+      core.db.addConstrs(this.name, constrs);
+    },
+
+    dropAllConstrs: function () {
+      core.db.dropAllConstrs(this.name);
     }
   });
 
