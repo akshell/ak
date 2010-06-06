@@ -1771,20 +1771,16 @@ with (require('index')) {
         assertThrow(UsageError,
                     function () { rv.X.create({x: 'number string'}); });
         assertThrow(UsageError,
-                    function () { rv.X.create({x: 'unique default 1'}); });
-        assertThrow(UsageError,
-                    function () {
-                      rv.X.create({x: 'number default 1 default 2'});
-                    });
+                    function () { rv.X.create({x: ['unique', 1]}); });
         rv.Check.create({n: 'number check (n != 42)'});
-        rv.X.create({i: 'integer default "15" number unique'});
+        rv.X.create({i: ['integer number unique', '15']});
         rv.Y.create(
           {
-            i: 'unique default -1  integer',
+            i: ['unique integer', -1],
             s: ' \t\nserial\t foreign Y.i ->X.i ',
-            n: 'number->Check.n default \'42\'',
+            n: ['number->Check.n ', '42'],
             d: 'date',
-            j: 'json'
+            j: ['json', [1, 2, 3]]
           });
         assertSame(rv.Y.getHeader().i, 'integer');
         assertSame(rv.Y.getHeader().s, 'serial');
@@ -1798,7 +1794,7 @@ with (require('index')) {
                     ]);
         assertEqual(items(rv.X.getDefault()), [['i', 15]]);
         assertEqual(items(rv.Y.getDefault()).sort(),
-                    [['i', -1], ['n', 42]]);
+                    [['i', -1], ['j', [1, 2, 3]], ['n', 42]]);
         assertThrow(ConstraintError,
                     function () { rv.Check.insert({n: 42}); });
         assertEqual(rv.Y.getInteger(), ['i', 's']);
@@ -1883,7 +1879,7 @@ with (require('index')) {
       },
 
       testRelVar: function () {
-        rv.Y.create({d: 'number default 42', s: 'serial'});
+        rv.Y.create({d: ['number', 42], s: 'serial'});
         assertEqual(items(rv.Y.insert({d: 1, s:1})).sort(),
                     [['d', 1], ['s', 1]]);
         assertEqual(items(rv.Y.insert({d: 1})).sort(),
@@ -1917,11 +1913,11 @@ with (require('index')) {
                     function () { rv.X.addAttrs({x: 'unknown-type 42'}); });
         rv.X.addAttrs(
           {
-            n: 'number 42',
-            s: 'string ""',
-            b: 'bool false',
-            d: 'date new Date()',
-            i: 'integer 0'
+            n: ['number', 42],
+            s: ['string', ''],
+            b: ['bool', false],
+            d: ['date', new Date()],
+            i: ['integer', 0]
           });
         assertEqual(
           items(rv.X.getHeader()),
@@ -1947,7 +1943,7 @@ with (require('index')) {
       },
 
       testDropDefault: function () {
-        rv.X.create({n: 'number default 42', s: 'string default ""'});
+        rv.X.create({n: ['number', 42], s: ['string', '']});
         rv.X.dropDefault('n', 's');
         assertEqual(items(rv.X.getDefault()), []);
       },

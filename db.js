@@ -37,18 +37,16 @@ var typeRegExp = RegExp(
    '(number)|(string)|(bool)|(date)|(json)|' +
    '(integer)|(serial)|(unique)|' +
    '(?:foreign\\s|->)\\s*(\\w+)\\.(\\w+)|' +
-   'check\\s+(\\(.*\\)|\\S+)|' +
-   'default\\s+(\"([^\"\\\\]|\\\\.)*\"|\'(?:[^\'\\\\]|\\\\.)*\'|\\S+)' +
+   'check\\s+(\\(.*\\)|\\S+)' +
    ')\\s*'),
   'g');
 
 function compileType(string) {
   var re = new RegExp(typeRegExp);
   var type;
-  var integer, serial, unique, defaulted;
+  var integer, serial, unique;
   var foreigns = [];
   var check;
-  var default_;
   var match;
   while ((match = inner.nextMatch(re, string, core.UsageError))) {
     var i = 1;
@@ -73,15 +71,9 @@ function compileType(string) {
       unique = true;
     } else if (i == 9) {
       foreigns.push([match[9], match[10]]);
-    } else if (i == 11) {
-      check = match[11];
     } else {
-      base.assertSame(i, 12);
-      if (defaulted)
-        throw core.UsageError(
-          'Default specified more than once in ' + base.repr(string));
-      default_ = eval(match[12]);
-      defaulted = true;
+      base.assertSame(i, 11);
+      check = match[11];
     }
   }
   if (!type) {
@@ -98,8 +90,6 @@ function compileType(string) {
     type = type.unique();
   if (check)
     type = type.check(check);
-  if (defaulted)
-    type = type.default_(default_);
   foreigns.forEach(
     function (foreign) {
       type = type.foreign(foreign[0], foreign[1]);
@@ -148,8 +138,12 @@ exports.RelVar = Object.subclass(
 
     create: function (header/*, constrs... */) {
       var rawHeader = {};
-      for (var name in header)
-        rawHeader[name] = compileType(header[name]);
+      for (var name in header) {
+        var descr = header[name];
+        rawHeader[name] = (descr instanceof Array
+                           ? compileType(descr[0]).default_(descr[1])
+                           : compileType(descr));
+      }
       var constrs = {unique: [], foreign: [], check: []};
       for (var i = 1; i < arguments.length; ++i)
         compileConstr(constrs, arguments[i]);
@@ -185,22 +179,17 @@ exports.RelVar = Object.subclass(
     addAttrs: function (attrs) {
       var rawAttrs = {};
       for (var name in attrs) {
-        var string = attrs[name];
-        var index = string.indexOf(' ');
-        if (index == 0)
-          throw core.UsageError(
-            'Attribute description must have format "type value"');
-        var typeString = string.substr(0, index);
+        var descr = attrs[name];
         var type = {
           'number': core.db.number,
           'string': core.db.string,
           'bool': core.db.bool,
           'date': core.db.date,
           'integer': core.db.number.integer()
-        }[typeString];
+        }[descr[0]];
         if (!type)
-          throw core.UsageError('Unknown type: ' + typeString);
-        rawAttrs[name] = [type, eval(string.substr(index + 1))];
+          throw core.UsageError('Unknown type: ' + descr[0]);
+        rawAttrs[name] = [type, descr[1]];
       }
       core.db.addAttrs(this.name, rawAttrs);
     },
