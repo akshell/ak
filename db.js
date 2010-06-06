@@ -34,7 +34,7 @@ var base = require('base');
 
 var typeRegExp = RegExp(
   ('\\s*(?:' +
-   '(number)|(string)|(bool)|(date)|' +
+   '(number)|(string)|(bool)|(date)|(json)|' +
    '(integer)|(serial)|(unique)|' +
    '(?:foreign\\s|->)\\s*(\\w+)\\.(\\w+)|' +
    'check\\s+(\\(.*\\)|\\S+)|' +
@@ -54,7 +54,7 @@ function compileType(string) {
     var i = 1;
     while (!match[i])
       ++i;
-    if (i < 5) {
+    if (i < 6) {
       if (type)
         throw core.UsageError(
           'Type specified more than once in ' + base.repr(string));
@@ -62,24 +62,25 @@ function compileType(string) {
         core.db.number,
         core.db.string,
         core.db.bool,
-        core.db.date
+        core.db.date,
+        core.db.json
       ][i - 1];
-    } else if (i == 5) {
-      integer = true;
     } else if (i == 6) {
-      serial = true;
+      integer = true;
     } else if (i == 7) {
-      unique = true;
+      serial = true;
     } else if (i == 8) {
-      foreigns.push([match[8], match[9]]);
-    } else if (i == 10) {
-      check = match[10];
+      unique = true;
+    } else if (i == 9) {
+      foreigns.push([match[9], match[10]]);
+    } else if (i == 11) {
+      check = match[11];
     } else {
-      base.assertSame(i, 11);
+      base.assertSame(i, 12);
       if (defaulted)
         throw core.UsageError(
           'Default specified more than once in ' + base.repr(string));
-      default_ = eval(match[11]);
+      default_ = eval(match[12]);
       defaulted = true;
     }
   }

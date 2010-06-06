@@ -1782,10 +1782,14 @@ with (require('index')) {
           {
             i: 'unique default -1  integer',
             s: ' \t\nserial\t foreign Y.i ->X.i ',
-            n: 'number->Check.n default \'42\''
+            n: 'number->Check.n default \'42\'',
+            d: 'date',
+            j: 'json'
           });
         assertSame(rv.Y.getHeader().i, 'integer');
         assertSame(rv.Y.getHeader().s, 'serial');
+        assertSame(rv.Y.getHeader().d, 'date');
+        assertSame(rv.Y.getHeader().j, 'json');
         assertEqual(rv.Y.getForeign().sort(),
                     [
                       [['n'], 'Check', ['n']],
