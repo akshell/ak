@@ -185,6 +185,7 @@ exports.RelVar = Object.subclass(
           'string': core.db.string,
           'bool': core.db.bool,
           'date': core.db.date,
+          'json': core.db.json,
           'integer': core.db.number.integer()
         }[descr[0]];
         if (!type)

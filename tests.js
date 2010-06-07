@@ -1929,6 +1929,7 @@ with (require('index')) {
             s: ['string', ''],
             b: ['bool', false],
             d: ['date', new Date()],
+            j: ['json', {}],
             i: ['integer', 0]
           });
         assertEqual(
@@ -1938,6 +1939,7 @@ with (require('index')) {
             ['s', 'string'],
             ['b', 'bool'],
             ['d', 'date'],
+            ['j', 'json'],
             ['i', 'integer']
           ]);
       },
