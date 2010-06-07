@@ -1708,9 +1708,20 @@ with (require('index')) {
                                   method: 'post',
                                   path: '/abc/method',
                                   post: {},
-                                  csrfToken: 'x'
+                                  csrfToken: 'x',
+                                  headers: {}
                                 }).status,
                    http.FORBIDDEN);
+        assertSame(defaultServe({
+                                  method: 'post',
+                                  path: '/abc/method',
+                                  post: {},
+                                  csrfToken: 'x',
+                                  headers: {
+                                    'x-requested-with': 'XMLHttpRequest'
+                                  }
+                                }).status,
+                   http.OK);
         assertSame(defaultServe({
                                   method: 'post',
                                   path: '/abc/method',
@@ -1722,8 +1733,9 @@ with (require('index')) {
           defaultServe(
             {
               method: 'post',
+              post: {csrfToken: 'b'},
               csrfToken: 'a',
-              post: {csrfToken: 'b'}
+              headers: {}
             }).status,
           http.FORBIDDEN);
         assert(

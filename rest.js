@@ -174,7 +174,8 @@ exports.protectingFromCSRF = function (func) {
   return function (request) {
     if (request.method == 'post' &&
         request.csrfToken &&
-        request.post.csrfToken != request.csrfToken)
+        request.post.csrfToken != request.csrfToken &&
+        request.headers['x-requested-with'] != 'XMLHttpRequest')
       return new exports.Response(
         ('<p>Please use the <code>{% csrfToken %}</code> ' +
          'tag in POST forms like this:</p>' +
