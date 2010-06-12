@@ -1627,8 +1627,7 @@ with (require('index')) {
           return new Response();
         }.decorated(obtainingSession);
         assertSame(f({session: 42}).status, http.OK);
-        assertSame(f({}).status, http.OK);
-        var response = f({fullPath: '/x?y&z', session: ''});
+        var response = f({fullPath: '/x?y&z'});
         assertSame(response.status, http.FOUND);
         assertSame(response.headers.Location,
                    ('http://www.akshell.com/session/?domain=' + inner.domain +

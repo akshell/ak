@@ -114,7 +114,7 @@ exports.loggingIn = makeHandlerDecorator(
 exports.obtainingSession = makeHandlerDecorator(
   function (func) {
     return function (request/*, args... */) {
-      return (request.session !== ''
+      return (request.session
               ? func.apply(this, arguments)
               : exports.redirect(url.reverse('session', request.fullPath)));
     };
