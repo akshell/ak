@@ -26,7 +26,7 @@
 
 // Inspired by jQuery AOP http://jquery-aop.googlecode.com/
 
-var core = require('inner').core;
+var core = require('core');
 var base = require('base');
 
 

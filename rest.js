@@ -24,13 +24,13 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-var core = require('inner').core;
-var base = require('base');
+var core = require('core');
 var db = require('db');
+var base = require('base');
+var rv = require('rv');
 var http = require('http');
 var url = require('url');
 var template = require('template');
-
 
 //////////////////////////////////////////////////////////////////////////////
 // Request, Response, redirect() and render()
@@ -87,40 +87,6 @@ exports.Handler = Object.subclass(
   });
 
 //////////////////////////////////////////////////////////////////////////////
-// Handler decorators
-//////////////////////////////////////////////////////////////////////////////
-
-function makeHandlerDecorator(decorator) {
-  return function (handler) {
-    if (!handler.subclassOf(exports.Handler))
-      return decorator(handler).wraps(handler);
-    var func = handler.prototype.handle;
-    handler.prototype.handle = decorator(func).wraps(func);
-    return handler;
-  };
-}
-
-
-exports.loggingIn = makeHandlerDecorator(
-  function (func) {
-    return function (request/*, args... */) {
-      return (request.user
-              ? func.apply(this, arguments)
-              : exports.redirect(url.reverse('login', request.fullPath)));
-    };
-  });
-
-
-exports.obtainingSession = makeHandlerDecorator(
-  function (func) {
-    return function (request/*, args... */) {
-      return (request.session
-              ? func.apply(this, arguments)
-              : exports.redirect(url.reverse('session', request.fullPath)));
-    };
-  });
-
-//////////////////////////////////////////////////////////////////////////////
 // main.app(), serve(), middleware, and main.main()
 //////////////////////////////////////////////////////////////////////////////
 
@@ -155,7 +121,7 @@ exports.serve = function (request) {
     handler = core.construct(handler, args);
     return handler.handle.apply(handler, args);
   } else {
-    return handler.apply(core.global, args);
+    return handler.apply(base.global, args);
   }
 };
 
@@ -213,7 +179,7 @@ exports.catchingTupleDoesNotExist = function (func) {
     try {
       return func(request);
     } catch (error) {
-      if (!(error instanceof db.TupleDoesNotExist)) throw error;
+      if (!(error instanceof rv.TupleDoesNotExist)) throw error;
       throw http.NotFound(error.message);
     }
   };
@@ -245,7 +211,7 @@ exports.rollbacking = function (func) {
     try {
       return func(request);
     } catch (error) {
-      core.db.rollback();
+      db.rollback();
       throw error;
     }
   };

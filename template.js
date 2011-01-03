@@ -27,13 +27,15 @@
 // Django template engine port
 // http://docs.djangoproject.com/en/dev/topics/templates/
 
-var inner = require('inner');
-var core = inner.core;
+var core = require('core');
 var base = require('base');
 var url = require('url');
 var utils = require('utils');
 require('format');
 
+////////////////////////////////////////////////////////////////////////////////
+// TemplateSyntaxError
+////////////////////////////////////////////////////////////////////////////////
 
 var TemplateSyntaxError = exports.TemplateSyntaxError = Error.subclass();
 
@@ -224,7 +226,7 @@ function makeExpr(string, filters) {
 
   var re = new RegExp(filterRegExp);
   re.lastIndex = match[0].length;
-  while ((match = inner.nextMatch(re, string, TemplateSyntaxError))) {
+  while ((match = utils.nextMatch(re, string, TemplateSyntaxError))) {
     var filter = filters[match[1]];
     if (!filter)
       throw TemplateSyntaxError('Invalid filter: ' + base.repr(match[1]));
@@ -1296,51 +1298,6 @@ var StaticNode = Object.subclass(
     }
   });
 
-[
-  ['code', core.getCodeModDate],
-  ['media', core.fs.getModDate]
-].forEach(
-  function (pair) {
-    defaultTags[pair[0]] = function (parser) {
-      var args = smartSplit(parser.content);
-      var appExprString, pathExprString;
-      var tsFlag;
-      switch (args.length) {
-      case 1:
-        throw TemplateSyntaxError(
-          base.repr(args[0]) + ' tag takes at least one argument');
-      case 2:
-        pathExprString = args[1];
-        break;
-      case 3:
-        if (['timestamp', 'no-timestamp'].indexOf(args[2]) == -1) {
-          appExprString = args[1];
-          pathExprString = args[2];
-        } else {
-          pathExprString = args[1];
-          tsFlag = args[2] == 'timestamp';
-        }
-        break;
-      case 4:
-        if (['timestamp', 'no-timestamp'].indexOf(args[3]) == -1)
-          throw TemplateSyntaxError('Unknown option: ' + args[3]);
-        appExprString = args[1];
-        pathExprString = args[2];
-        tsFlag = args[3] == 'timestamp';
-        break;
-      default:
-        throw TemplateSyntaxError(
-          base.repr(args[0]) + ' tag take no more than 3 arguments');
-      }
-      return new StaticNode(
-        pair[0],
-        pair[1],
-        appExprString && parser.makeExpr(appExprString),
-        parser.makeExpr(pathExprString),
-        tsFlag);
-    };
-  });
-
 
 var NowNode = Object.subclass(
   function (expr) {
@@ -1405,7 +1362,7 @@ function tokenizeExpr(string) {
   var re = new RegExp(exprTokenRegExp);
   var result = [];
   var match;
-  while ((match = inner.nextMatch(re, string, TemplateSyntaxError))) {
+  while ((match = utils.nextMatch(re, string, TemplateSyntaxError))) {
     var kind;
     var expr = undefined;
     if (match[2]) {

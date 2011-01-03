@@ -24,8 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-var inner = require('inner');
-var core = inner.core;
+var core = require('core');
 var base = require('base');
 var http = require('http');
 
@@ -102,7 +101,7 @@ exports.URLMap = Object.subclass(
     _populateReverseMap: function (reverseMap, parts) {
       if (this._name) {
         if (reverseMap.hasOwnProperty(this._name))
-          throw core.UsageError(
+          throw core.ValueError(
             'Multiple URL patterns with name ' + base.repr(this._name));
         reverseMap[this._name] = parts;
       }
@@ -158,10 +157,6 @@ exports.resolve = function (path) {
 
 
 exports.reverse = function (name/*, args... */) {
-  if (['login', 'logout', 'signup', 'session'].indexOf(name) != -1)
-    return ('http://www.akshell.com/' + name +
-            '/?domain=' + inner.domain +
-            '&path=' + encodeURIComponent(arguments[1] || '/'));
   var root = require.main.exports.root;
   return '/' + root.reverse.apply(root, arguments);
 };

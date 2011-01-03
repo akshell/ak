@@ -26,7 +26,16 @@
 
 // This code is based on MochiKit.Base by Bob Ippolito http://mochikit.com/
 
-var core = require('inner').core;
+var core = require('core');
+var db = require('db');
+var fs = require('fs');
+var Binary = require('binary').Binary;
+
+////////////////////////////////////////////////////////////////////////////////
+// The global object
+////////////////////////////////////////////////////////////////////////////////
+
+exports.global = this;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Object functions and methods
@@ -132,7 +141,7 @@ var ErrorMeta = Function.subclass(
       var constructor = Function.prototype.subclass.apply(this, arguments);
       return function () {
         if (!(this instanceof arguments.callee))
-          return core.construct(arguments.callee, arguments);
+          return core.construct(arguments.callee, Array.slice(arguments));
         Error.captureStackTrace(this);
         constructor.apply(this, arguments);
         if (arguments.length && !this.message)
@@ -151,9 +160,12 @@ var ErrorMeta = Function.subclass(
   SyntaxError,
   TypeError,
   URIError,
+  core.RequireError,
   core.ValueError,
-  core.UsageError,
-  core.NotImplementedError
+  core.NotImplementedError,
+  core.QuotaError,
+  db.DBError,
+  fs.FSError
 ].forEach(
   function (constructor) {
     constructor.__proto__ = ErrorMeta.prototype;
@@ -329,18 +341,18 @@ core.set(
 
 
 exports.update(
-  core.Binary.prototype, core.HIDDEN,
+  Binary.prototype, core.HIDDEN,
   {
     __cmp__: function (other) {
-      if (!(other instanceof core.Binary))
+      if (!(other instanceof Binary))
         throw exports.CmpError(this, other);
-      return this._compare(other);
+      return this.compare(other);
     },
 
     __eq__: function (other) {
-      return (other instanceof core.Binary &&
+      return (other instanceof Binary &&
               this.length == other.length &&
-              this._compare(other) == 0);
+              this.compare(other) == 0);
     }
   });
 
@@ -379,7 +391,7 @@ exports.assertSame = function (lhs, rhs, /* optional */message) {
 
 exports.assertThrow = function (errorClass, func/* args... */) {
   try {
-    func.apply(core.global, Array.slice(arguments, 2));
+    func.apply(exports.global, Array.slice(arguments, 2));
   } catch (error) {
     if (typeof(error) != 'object')
       error = Object(error);

@@ -24,7 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-var core = require('inner').core;
+var core = require('core');
 var base = require('base');
 var utils = require('utils');
 var aspect = require('aspect');
@@ -102,7 +102,7 @@ exports.TestSuite = Object.subclass(
 exports.TestCase = Object.subclass(
   function (methodName) {
     if (typeof(this[methodName]) != 'function')
-      throw core.UsageError(
+      throw core.ValueError(
         'Test method ' + base.repr(methodName) + ' not found');
     this._methodName = methodName;
   },
@@ -275,129 +275,3 @@ exports.test = function (source/* = require.main.exports.tests */,
     stream);
   return stream.get();
 };
-
-////////////////////////////////////////////////////////////////////////////////
-// TestClient
-////////////////////////////////////////////////////////////////////////////////
-
-function makeRequester(method) {
-  return function (request) {
-    request = {__proto__: request};
-    request.method = method;
-    return this.request(request);
-  };
-}
-
-
-exports.TestClient = Object.subclass(
-  function (users/* = [] */, apps/* = {} */) {
-    this.users = users || [];
-    this.apps = apps || {};
-    this._user = '';
-  },
-  {
-    _getAppDescription: function (name) {
-      if (!this.apps.hasOwnProperty(name))
-        throw core.NoSuchAppError('No such test app: ' + base.repr(name));
-      var app = this.apps[name];
-      return {
-        admin: app.admin,
-        developers: app.developers || [],
-        summary: app.summary || '',
-        description: app.description || '',
-        labels: app.labels || [],
-        name: name
-      };
-    },
-
-    _checkUserExists: function (user) {
-      if (this.users.indexOf(user) == -1)
-        throw core.NoSuchUserError('No such test user: ' + base.repr(user));
-    },
-
-    _getAdminedApps: function (user) {
-      this._checkUserExists(user);
-      var result = [];
-      for (var name in this.apps)
-        if (this.apps[name].admin == user)
-          result.push(name);
-      return result;
-    },
-
-    _getDevelopedApps: function (user) {
-      this._checkUserExists(user);
-      var result = [];
-      for (var name in this.apps) {
-        var developers = this.apps[name].developers;
-        if (developers && developers.indexOf(user) != -1)
-          result.push(name);
-      }
-      return result;
-    },
-
-    _substitute: function (name) {
-      return aspect.weave(
-        aspect.InsteadOf, _core.db, name, utils.bind('_' + name, this));
-    },
-
-    login: function (user) {
-      this._user = user;
-    },
-
-    logout: function () {
-      this._user = '';
-    },
-
-    request: function (request) {
-      request = request ? {__proto__: request} : {};
-      base.update(
-        request,
-        {
-          user: request.user === undefined ? this._user : request.user,
-          method: request.method || 'get',
-          path: request.path || '/',
-          get: request.get || {},
-          post: request.post || {},
-          headers: request.headers || {},
-          data: (request.data instanceof core.Binary
-                 ? request.data
-                 : new core.Binary(request.data || '')),
-          files: request.files || {}
-        });
-      var contexts = {};
-      var aspects = [].concat(
-        this._substitute('getAppDescription'),
-        this._substitute('getAdminedApps'),
-        this._substitute('getDevelopedApps'),
-        aspect.weave(aspect.After, template.Template, 'render',
-                     function (result, args) {
-                       contexts[result] = args[0];
-                       return result;
-                     }),
-        aspect.weave(aspect.After, require.main.exports, 'main',
-                     function (result) {
-                       if (result &&
-                           typeof(result) == 'object' &&
-                           contexts.hasOwnProperty(result.content))
-                         result.context = contexts[result.content];
-                       return result;
-                     }),
-        aspect.weave(aspect.After, rest.Handler, 'handle',
-                     function (result) {
-                       result.handler = this.constructor;
-                       return result;
-                     }));
-      aspects.__proto__ = aspect.AspectArray.prototype;
-      try {
-        return require.main.exports.main(request);
-      } finally {
-        aspects.unweave();
-      }
-    },
-
-    get: makeRequester('get'),
-    post: makeRequester('post'),
-    head: makeRequester('head'),
-    put: makeRequester('put'),
-    del: makeRequester('delete')
-  });

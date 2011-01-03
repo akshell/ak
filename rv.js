@@ -24,76 +24,47 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-var inner = require('inner');
-var core = inner.core;
+var core = require('core');
+var db = require('db');
+var Proxy = require('proxy').Proxy;
 var base = require('base');
+var utils = require('utils');
 
 ////////////////////////////////////////////////////////////////////////////////
 // RelVar
 ////////////////////////////////////////////////////////////////////////////////
 
-var typeRegExp = RegExp(
+var attrRegExp = RegExp(
   ('\\s*(?:' +
-   '(number)|(string)|(bool)|(date)|(json)|' +
-   '(integer)|(serial)|(unique)|' +
-   '(?:foreign\\s|->)\\s*(\\w+)\\.(\\w+)|' +
-   'check\\s+(\\(.*\\)|\\S+)' +
+   '(number)|(string)|(boolean)|(date)|(integer)|(serial)|(json)|(binary)|' +
+   '(unique)|->\\s*(\\w+)\\.(\\w+)|check\\s+(\\(.*\\)|\\S+)' +
    ')\\s*'),
   'g');
 
-function compileType(string) {
-  var re = new RegExp(typeRegExp);
+function compileAttr(name, descr, constrs) {
+  var re = new RegExp(attrRegExp);
   var type;
-  var integer, serial, unique;
-  var foreigns = [];
-  var check;
   var match;
-  while ((match = inner.nextMatch(re, string, core.UsageError))) {
+  while ((match = utils.nextMatch(re, descr, core.ValueError))) {
     var i = 1;
     while (!match[i])
       ++i;
-    if (i < 6) {
+    if (i < 9) {
       if (type)
-        throw core.UsageError(
-          'Type specified more than once in ' + base.repr(string));
-      type = [
-        core.db.number,
-        core.db.string,
-        core.db.bool,
-        core.db.date,
-        core.db.json
-      ][i - 1];
-    } else if (i == 6) {
-      integer = true;
-    } else if (i == 7) {
-      serial = true;
-    } else if (i == 8) {
-      unique = true;
+        throw core.ValueError(
+          'Type specified more than once in ' + base.repr(descr));
+      type = match[i];
     } else if (i == 9) {
-      foreigns.push([match[9], match[10]]);
+      constrs.unique.push([name]);
+    } else if (i == 10) {
+      constrs.foreign.push([[name], match[i], [match[i + 1]]]);
     } else {
-      base.assertSame(i, 11);
-      check = match[11];
+      base.assertSame(i, 12);
+      constrs.check.push(match[i])
     }
   }
-  if (!type) {
-    if (integer || serial)
-      type = core.db.number;
-    else
-      throw core.UsageError('Type is not specified in ' + base.repr(string));
-  }
-  if (integer)
-    type = type.integer();
-  if (serial)
-    type = type.serial();
-  if (unique)
-    type = type.unique();
-  if (check)
-    type = type.check(check);
-  foreigns.forEach(
-    function (foreign) {
-      type = type.foreign(foreign[0], foreign[1]);
-    });
+  if (!type)
+      throw core.ValueError('Type is not specified in ' + base.repr(descr));
   return type;
 }
 
@@ -102,56 +73,53 @@ var multiAttrString = '\\[\\s*((?:\\w+\\s*,\\s*)*\\w+)\\s*\\]';
 
 var constrRegExp = RegExp(
   '^\\s*(?:' +
-    'check\\s+(.*?)|' +
-    'unique\\s*' + multiAttrString + '|' +
-    multiAttrString + '\\s*->\\s*(\\w+)\\s*' + multiAttrString +
-    ')\\s*$');
+  'check\\s+(.*?)|' +
+  'unique\\s*' + multiAttrString + '|' +
+  multiAttrString + '\\s*->\\s*(\\w+)\\s*' + multiAttrString +
+  ')\\s*$');
 
 var sepRegExp = /\s*,\s*/;
 
-function compileConstr(constrs, string) {
-  var match = constrRegExp.exec(string);
+function compileConstr(descr, constrs) {
+  var match = constrRegExp.exec(descr);
   if (!match)
-    throw core.UsageError('Invalid constraint format: ' + base.repr(string));
+    throw core.ValueError('Invalid constraint format: ' + base.repr(descr));
   if (match[1])
     constrs.check.push(match[1]);
   else if (match[2])
-  constrs.unique.push(match[2].split(sepRegExp));
+    constrs.unique.push(match[2].split(sepRegExp));
   else
-    constrs.foreign.push([
-                           match[3].split(sepRegExp),
-                           match[4],
-                           match[5].split(sepRegExp)
-                         ]);
+    constrs.foreign.push(
+      [match[3].split(sepRegExp), match[4], match[5].split(sepRegExp)]);
 }
 
 
 exports.RelVar = Object.subclass(
-  function (name) {
-    throw core.UsageError(
-      'RelVar instances should be obtained through the rv object');
+  function () {
+    throw Error('RelVar instances should be obtained through the rv object');
   },
   {
     exists: function () {
-      return core.db.list().indexOf(this.name) != -1;
+      return db.list().indexOf(this.name) != -1;
     },
 
     create: function (header/*, constrs... */) {
       var rawHeader = {};
+      var constrs = {unique: [], foreign: [], check: []};
       for (var name in header) {
         var descr = header[name];
-        rawHeader[name] = (descr instanceof Array
-                           ? compileType(descr[0]).default_(descr[1])
-                           : compileType(descr));
+        rawHeader[name] = (descr instanceof Array 
+                           ? [compileAttr(name, descr[0], constrs), descr[1]] 
+                           : compileAttr(name, descr, constrs));
       }
-      var constrs = {unique: [], foreign: [], check: []};
       for (var i = 1; i < arguments.length; ++i)
-        compileConstr(constrs, arguments[i]);
-      return core.db.create(this.name, rawHeader, constrs);
+        compileConstr(arguments[i], constrs);
+      return db.create(
+        this.name, rawHeader, constrs.unique, constrs.foreign, constrs.check);
     },
 
     drop: function () {
-      core.db.drop([this.name]);
+      db.drop([this.name]);
     },
 
     where: function (expr/*, params */) {
@@ -173,63 +141,47 @@ exports.RelVar = Object.subclass(
     },
 
     insert: function (values) {
-      return core.db.insert(this.name, values);
+      return db.insert(this.name, values);
     },
 
     addAttrs: function (attrs) {
-      var rawAttrs = {};
-      for (var name in attrs) {
-        var descr = attrs[name];
-        var type = {
-          'number': core.db.number,
-          'string': core.db.string,
-          'bool': core.db.bool,
-          'date': core.db.date,
-          'json': core.db.json,
-          'integer': core.db.number.integer()
-        }[descr[0]];
-        if (!type)
-          throw core.UsageError('Unknown type: ' + descr[0]);
-        rawAttrs[name] = [type, descr[1]];
-      }
-      core.db.addAttrs(this.name, rawAttrs);
+      db.addAttrs(this.name, attrs);
     },
 
     dropAttrs: function (/* names... */) {
-      core.db.dropAttrs(this.name, Array.slice(arguments));
+      db.dropAttrs(this.name, Array.slice(arguments));
     },
 
     addDefault: function (values) {
-      core.db.addDefault(this.name, values);
+      db.addDefault(this.name, values);
     },
 
     dropDefault: function (/* names... */) {
-      core.db.dropDefault(this.name, Array.slice(arguments));
+      db.dropDefault(this.name, Array.slice(arguments));
     },
 
     addConstrs: function (/* constrs... */) {
       var constrs = {unique: [], foreign: [], check: []};
       for (var i = 0; i < arguments.length; ++i)
-        compileConstr(constrs, arguments[i]);
-      core.db.addConstrs(this.name, constrs);
+        compileConstr(arguments[i], constrs);
+      db.addConstrs(
+        this.name, constrs.unique, constrs.foreign, constrs.check);
     },
 
     dropAllConstrs: function () {
-      core.db.dropAllConstrs(this.name);
+      db.dropAllConstrs(this.name);
     }
   });
 
 
 [
   'getHeader',
-  'getInteger',
-  'getSerial',
   'getUnique',
   'getForeign',
   'getDefault'
 ].forEach(
   function (name) {
-    var func = core.db[name];
+    var func = db[name];
     exports.RelVar.prototype[name] = function () {
       return func(this.name);
     };
@@ -239,7 +191,7 @@ exports.RelVar = Object.subclass(
 // rv
 ////////////////////////////////////////////////////////////////////////////////
 
-exports.rv = new core.Proxy(
+exports.rv = new Proxy(
   {
     cache: {},
 
@@ -256,16 +208,16 @@ exports.rv = new core.Proxy(
     },
 
     query: function (name) {
-      return core.db.list().indexOf(name) != -1;
+      return db.list().indexOf(name) != -1;
     },
 
     list: function () {
-      return core.db.list().sort();
+      return db.list();
     }
   });
 
 ////////////////////////////////////////////////////////////////////////////////
-// TupleDoesNotExist and MultipleTuplesReturned
+// TupleDoesNotExist and TupleIsAmbiguous
 ////////////////////////////////////////////////////////////////////////////////
 
 exports.TupleDoesNotExist = Error.subclass(
@@ -328,7 +280,7 @@ exports.Selection = Object.subclass(
         attrs = '.' + options.attr;
       if (options.only)
         attrs = '[' + options.only.join(',') + ']';
-      var tuples = core.db.query(
+      var tuples = db.query(
         this.name + attrs + ' where ' + this.expr,
         this.params,
         options.by,
@@ -350,15 +302,15 @@ exports.Selection = Object.subclass(
     },
 
     count: function () {
-      return core.db.count(this.name + ' where ' + this.expr, this.params);
+      return db.count(this.name + ' where ' + this.expr, this.params);
     },
 
     del: function () {
-      return core.db.del(this.name, this.expr, this.params);
+      return db.del(this.name, this.expr, this.params);
     },
 
     update: function (exprs/*, params... */) {
-      return core.db.update(
+      return db.update(
         this.name, this.expr, this.params, exprs, Array.slice(arguments, 1));
     },
 

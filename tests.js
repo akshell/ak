@@ -24,12 +24,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+var core = require('core');
+
 // 'with' is used here in order to ensure that namespaces are used correctly
 with (require('index')) {
-
-  var inner = require('inner');
-  var core = inner.core;
-
 
   // May be this function should be in utils.
   function thrower (error) {
@@ -192,323 +190,6 @@ with (require('index')) {
                  'testAssertThrow(test) FAIL\n' +
                  '=====\n'),
                'TextTestRunner');
-      },
-
-      testTestClient: function () {
-        var users = ['user1', 'user2'];
-        var apps = {
-          app1: {
-            admin: 'user1'
-          },
-          app2: {
-            admin: 'user2',
-            developers: ['user1']
-          },
-          app3: {
-            admin: 'user1'
-          },
-          app4: {
-            admin: 'user2',
-            developers: ['user1']
-          }
-        };
-        var client = new TestClient(users, apps);
-        var aspect = weave(
-          InsteadOf, require.main.exports, 'main',
-          function (request) { return eval(request.data + ''); });
-        function request(data) {
-          return client.request({data: data});
-        }
-
-        client.login('no such user');
-        client.login('user1');
-        assertSame(client.get(), undefined);
-        assertSame(request('request.user'), 'user1');
-        assertSame(client.request({user: 'user2', data: 'request.user'}),
-                   'user2');
-        client.logout();
-        assertSame(request('request.user'), '');
-        assertSame(request('request.method'), 'get');
-        assertSame(request('request.path'), '/');
-        assertSame(request('typeof(request.get)'), 'object');
-        assertSame(request('typeof(request.post)'), 'object');
-        assertSame(request('typeof(request.headers)'), 'object');
-        assertSame(request('typeof(request.files)'), 'object');
-
-        assertSame(client.get({data: 'request.method'}), 'get');
-        assertSame(client.put({data: 'request.method'}), 'put');
-        assertSame(client.post({data: 'request.method'}), 'post');
-        assertSame(client.del({data: 'request.method'}), 'delete');
-
-        assertEqual(items(request('getAppDescription("app1")')),
-                    [
-                      ['admin', 'user1'],
-                      ['developers', []],
-                      ['summary', ''],
-                      ['description', ''],
-                      ['labels', []],
-                      ['name', 'app1']
-                    ]);
-        assertEqual(request('getAdminedApps("user1")'), ['app1', 'app3']);
-        assertEqual(request('getDevelopedApps("user1")'), ['app2', 'app4']);
-        assertEqual(request('getDevelopedApps("user2")'), []);
-        assertThrow(
-          NoSuchUserError, request, 'getAdminedApps("no such user")');
-        assertThrow(
-          NoSuchUserError, request, 'getDevelopedApps("no such user")');
-
-        var context = {};
-        assertSame(
-          request(
-            'new Response(new Template("").render(context))').context,
-          context);
-
-        var H = Handler.subclass(
-          {
-            get: function () { return {}; }
-          });
-        assertSame(request('new H().handle({method: "get"})').handler, H);
-
-        aspect.unweave();
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
-  // core tests
-  //////////////////////////////////////////////////////////////////////////////
-
-  exports.CoreTestCase = TestCase.subclass(
-    {
-      name: 'core',
-
-      setUp: function () {
-        this._clean();
-        db.create('X', {n: db.number, b: db.bool, s: db.string});
-        db.insert('X', {n: 0, b: false, s: 'zero'});
-        db.insert('X', {n: 1, b: false, s: 'one'});
-        db.insert('X', {n: 42, b: true, s: 'the answer'});
-      },
-
-      tearDown: function () {
-        this._clean();
-      },
-
-      _clean: function () {
-        fs.list('').forEach(fs.remove);
-        db.drop(db.list());
-      },
-
-      testQuery: function () {
-        assert(db.query('X') instanceof Array);
-        assertEqual(db.query('X where !b').length, 2);
-        assertEqual(db.query('X.n where !b', [], 'n').map(items),
-                    [[['n', 0]], [['n', 1]]]);
-        assertEqual(
-          db.query('X[b, n]', [], ['b', 'n * $'], [-1]).map(items),
-          [
-            [['b', false], ['n', 1]],
-            [['b', false], ['n', 0]],
-            [['b', true], ['n', 42]]
-          ]);
-        assertEqual(
-          db.query('X.b where n > $1 && s != $2', [0, 'one']).map(items),
-          [[['b', true]]]);
-        assertEqual(
-          db.query('X.n', [], 'n', [], 1, 1).map(items),
-          [[['n', 1]]]);
-      },
-
-      testCount: function () {
-        assertSame(db.count('X'), 3);
-        assertSame(db.count('X.b where n > $1 && s != $2', [0, 'one']), 1);
-      },
-
-      testExists: function () {
-        assert(rv.X.exists());
-        assert(!rv.Y.exists());
-      },
-
-      testCreate: function () {
-        db.create('Y', {});
-        assertEqual(items(db.getHeader('Y')), []);
-        assertEqual(items(db.getHeader('X')).sort(),
-                    [['b', 'bool'], ['n', 'number'], ['s', 'string']]);
-        db.drop(['Y']);
-        db.create('Y',
-                  {
-                    s: db.number.serial(),
-                    i: db.number.integer(),
-                    u: db.string.unique(),
-                    f: db.string.foreign('Y', 'u'),
-                    c: db.number.check('c % 2 == 0'),
-                    s1: db.number.integer(),
-                    i1: db.number.integer(),
-                    d: db.number.default_('15')
-                  },
-                  {
-                    unique: [['s', 'i']],
-                    foreign: [[['s1', 'i1'], 'Y', ['s', 'i']]],
-                    check: ['s != i']
-                  });
-        assertEqual(
-          db.getForeign('Y').sort(),
-          [[['f'], 'Y', ['u']], [['s1', 'i1'], 'Y', ['s', 'i']]]);
-        assertEqual(db.getUnique('Y').sort(), [['s', 'i'], ['u']]);
-        assertEqual(db.getSerial('Y'), ['s']);
-        assertEqual(db.getInteger('Y').sort(), ['i', 'i1', 's', 's1']);
-        assertEqual(items(db.getDefault('Y')), [['d', 15]]);
-        assertEqual(db.list(), ['X', 'Y']);
-        db.drop(['Y']);
-        assertEqual(db.list(), ['X']);
-      },
-
-      testDrop: function () {
-        db.create('Y', {u: db.number.unique()});
-        db.create('Z', {f: db.number.foreign('Y', 'u')});
-        assertThrow(RelVarDependencyError, db.drop, ['Y']);
-        db.drop(['Y', 'Z']);
-      },
-
-      testConstruct: function () {
-        function C() {
-          this.args = Array.slice(arguments);
-        }
-        assertEqual(construct(C, [1, 2]).args, [1, 2]);
-        assertEqual(construct(C, {0: 1, 1: 2, length: 2}).args, [1, 2]);
-      },
-
-      testDescribeApp: function () {
-        var description = getAppDescription('ak');
-        assertSame(description.name, 'ak');
-      },
-
-      testRemove: function () {
-        fs.createDir('dir');
-        fs.createDir('dir/subdir');
-        fs.write('file', 'hello');
-        fs.write('dir/subdir/f', 'hi');
-        fs.remove('dir');
-        fs.remove('file');
-        assertEqual(fs.list(''), [], 'fs.remove');
-      },
-
-      testRead: function () {
-        assertThrow(NoSuchEntryError, fs.read, 'no such entry');
-        fs.write('file', 'hello');
-        assertSame(fs.read('file') + '', 'hello');
-      },
-
-      testWrite: function () {
-        fs.write('file', 'hello');
-        fs.write('file', 'hi');
-        assertSame(fs.read('file') + '', 'hi');
-      },
-
-      testRequestApp: function() {
-        var oldRequestApp = _core.requestApp;
-        _core.requestApp = function (appName, request, files, data) {
-          return new Binary(
-            [
-              data,
-              '',
-              repr(JSON.parse(request)[appName])
-            ].concat(files).join('\n'));
-        };
-
-        var response = requestApp('method', {data: '201'});
-        assertSame(response.status, 201);
-        assertSame(response.content + '', '"get"');
-        assertEqual(items(response.headers), []);
-        assertSame(requestApp('path', {data: '200'}).content + '', '"/"');
-        assertSame(requestApp('path', {data: '200', path: 'a/b'}).content + '',
-                   '"/a/b"');
-        assertSame(requestApp('post', {data: '200', post: 'hi'}).content + '',
-                   '"hi"');
-        assertSame(requestApp('get', {data: '200'}).content + '', '{}');
-        assertSame(requestApp('fileNames',
-                              {
-                                data: '200',
-                                files: {f1: 'file1', f2: 'file2'}
-                              }).content + '',
-                   '["f1", "f2"]\nfile1\nfile2');
-        assertEqual(
-          items(requestApp('headers', {data: '200\na: b\nc:  d'}).headers),
-          [['a', 'b'], ['c', ' d']]);
-        assertThrow(RequestAppError, requestApp, '', {});
-        assertThrow(RequestAppError, requestApp, '', {data: '!\n'});
-        assertThrow(RequestAppError, requestApp,'', {data: '200\na:b'});
-
-        _core.requestApp = oldRequestApp;
-      },
-
-      testRequestHost: function () {
-        var oldRequestHost = _core.requestHost;
-
-        var server, port, data;
-        _core.requestHost = function (s, p, d) {
-          server = s;
-          port = p;
-          data = d + '';
-          return new Binary('HTTP/1.1 200 OK\r\n\r\n');
-        };
-        requestHost('example.com:8000', {});
-        assertSame(server, 'example.com');
-        assertSame(port, '8000');
-        assertSame(
-          data,
-          ('GET / HTTP/1.1\r\n' +
-           'Connection: close\r\n' +
-           'Accept-Charset: utf-8\r\n' +
-           'Accept-Encoding: identity\r\n' +
-           'Host: example.com:8000\r\n' +
-           '\r\n'));
-        requestHost('example.com', {});
-        assertSame(port, '80');
-        requestHost('example.com', {data: 'text'});
-        assert(data.endsWith('Content-Length: 4\r\n\r\ntext'));
-        requestHost('example.com', {post: {a: [1,2,3], 'b&c': '?'}});
-        assert(
-          data.endsWith(
-            'Content-Type: application/x-www-form-urlencoded\r\n' +
-            'Content-Length: 21\r\n' +
-            '\r\n' +
-            'a=1&a=2&a=3&b%26c=%3F'));
-        requestHost('example.com', {headers: {a: 1, b: 2}});
-        assert(data.endsWith('a: 1\r\nb: 2\r\n\r\n'));
-        requestHost('example.com', {path: 'abc/def'});
-        assert(data.startsWith('GET /abc/def '));
-        requestHost('example.com', {path: '/abc', get: {a: [1, 2], b: 3}});
-        assert(data.startsWith('GET /abc?a=1&a=2&b=3 '));
-        requestHost('example.com', {path: '/abc', get: {}});
-        assert(data.startsWith('GET /abc '));
-        requestHost('example.com', {method: 'post'});
-        assert(data.startsWith('POST '));
-
-        var input;
-        _core.requestHost = function () {
-          return new Binary(input);
-        };
-        function parse(i) {
-          input = i;
-          return requestHost('example.com', {});
-        }
-        assertThrow(RequestHostError, parse, '');
-        assertThrow(RequestHostError, parse, '\r\n\r\n');
-        assertSame(parse('HTTP/1.1 500\r\n\r\n').status, 500);
-        assertEqual(items(parse('HTTP/1.1 200\r\nillegal\r\n\r\n').headers),
-                    []);
-        assertEqual(
-          items(parse('HTTP/1.1 200\r\n' +
-                      'a: 1\r\n' +
-                      'bla-bla-bla\t:  123\t  \r\n' +
-                      ' yo!\r\n' +
-                      'Bla-BLA-BLA:456\r\n' +
-                      'illegal\r\n' +
-                      '\t  hey  \t\r\n' +
-                      '\r\n').headers),
-          [['A', '1'], ['Bla-Bla-Bla', '123 yo!,456 hey']]);
-
-        _core.requestHost = oldRequestHost;
       }
     });
 
@@ -969,7 +650,16 @@ with (require('index')) {
 
       testEscapeHTML: function () {
         assertSame(escapeHTML('&<>"\''), '&amp;&lt;&gt;&quot;&#39;');
-      }
+      },
+      
+      testNextMatch: function () {
+        var re = new RegExp(/x/g);
+        var string = 'x';
+        assertSame(nextMatch(re, string)[0], 'x');
+        assertSame(nextMatch(re, string), null);
+        assertThrow(SyntaxError, nextMatch, new RegExp(/a/g), 'b');
+        assertThrow(SyntaxError, nextMatch, new RegExp(/a/g), 'ba');
+      }    
     });
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1305,13 +995,7 @@ with (require('index')) {
      {object: safe({a: '', b: '<>'})},
      '<>'],
     ['{% now "<MM yy>" %}', {}, new Date().toString('<MM yy>')],
-    ['{% now f %}', {f: '<MM yy>'}, new Date().toString('&lt;MM yy&gt;')],
-    ['{% code "ak" "some/file" %}',
-     {},
-     'http://static.akshell.com/code/release/ak/some/file'],
-    ['{% media "ak" "no such file" timestamp %}',
-     {},
-     'http://static.akshell.com/media/release/ak/no%20such%20file']
+    ['{% now f %}', {f: '<MM yy>'}, new Date().toString('&lt;MM yy&gt;')]
   ];
 
 
@@ -1366,9 +1050,6 @@ with (require('index')) {
     '{% with 1 1 1 %}{% endwith %}',
     '{% url %}',
     '{% csrfToken 1 %}',
-    '{% code %}',
-    '{% code 1 2 3 4 %}',
-    '{% media "app" "file" bad-option %}',
     '{% for a in b %}',
     '{% for a in b %}{% empty %}',
     '{% for %}{% endfor %}',
@@ -1399,47 +1080,6 @@ with (require('index')) {
                        'Rendering ' + repr(test[0]));
           });
         require.main.exports.root = oldRoot;
-      },
-
-      testStatic: function () {
-        var main = require.main;
-        var old = {app: main.app, owner: main.owner, spot: main.spot};
-        update(main, {app: 'ak', owner: 'Anton Korenyushkin', spot: 'debug'});
-        assertSame(
-          new Template('{% code "some/path" %}').render(),
-          ('http://static.akshell.com/code/spots/' +
-           'ak/Anton-Korenyushkin/debug/some/path'));
-        delete main.owner;
-        delete main.spot;
-        assertSame(
-          new Template('{% code "some/path" %}').render(),
-          'http://static.akshell.com/code/release/ak/some/path');
-        var ts = getCodeModDate('main.js') / 1000;
-        assertSame(
-          new Template('{% code "main.js" %}').render(),
-          'http://static.akshell.com/code/release/ak/main.js?' + ts);
-        ts = getCodeModDate('templates/test.html') / 1000;
-        assertSame(
-          new Template('{% code "templates/test.html" timestamp %}').render(),
-          ('http://static.akshell.com/code/release/ak/templates/test.html?' +
-           ts));
-        assertSame(
-          new Template('{% code "main.js" no-timestamp %}').render(),
-          'http://static.akshell.com/code/release/ak/main.js');
-        assertSame(
-          new Template('{% code "no_such_file.js" %}').render(),
-          'http://static.akshell.com/code/release/ak/no_such_file.js');
-        fs.write('test.css', '');
-        ts = fs.getModDate('test.css') / 1000;
-        assertSame(
-          new Template('{% media "test.css" %}').render(),
-          'http://static.akshell.com/media/release/ak/test.css?' + ts);
-        fs.remove('test.css');
-        main.app = old.app;
-        if (old.spot) {
-          main.owner = old.owner;
-          main.spot = old.spot;
-        }
       },
 
       testNow: function () {
@@ -1535,7 +1175,7 @@ with (require('index')) {
         assertThrow(ReverseError, function () { root.reverse('no-such'); });
         assertThrow(TypeError, function () { new URLMap(42); });
         assertThrow(TypeError, function () { new URLMap([f]); });
-        assertThrow(UsageError, function () {
+        assertThrow(ValueError, function () {
                       var map = new URLMap(['x', f, 'name'], ['y', g, 'name']);
                       map.reverse('other-name');
                     });
@@ -1598,40 +1238,6 @@ with (require('index')) {
             assertThrow(
               Failure, function () { h1.handle({method: method}); });
           });
-      },
-
-      testLoggingIn: function () {
-        var H = Handler.subclass(
-          {
-            get: function () {
-              return new Response();
-            }
-          });
-        assertSame(H.decorated(loggingIn), H);
-        var response = new H().handle({fullPath: '/some/path/?with&params'});
-        assertSame(response.status, http.FOUND);
-        assertSame(response.headers.Location,
-                   ('http://www.akshell.com/login/' +
-                    '?domain=' + inner.domain +
-                    '&path=%2Fsome%2Fpath%2F%3Fwith%26params'));
-        assertSame(new H().handle({user: 'some user', method: 'get'}).status,
-                   http.OK);
-        function f() {}
-        var g = f.decorated(loggingIn);
-        assert(f !== g);
-        assertSame(g({fullPath: '/'}).status, http.FOUND);
-      },
-
-      testObtainingSession: function () {
-        var f = function () {
-          return new Response();
-        }.decorated(obtainingSession);
-        assertSame(f({session: 42}).status, http.OK);
-        var response = f({fullPath: '/x?y&z'});
-        assertSame(response.status, http.FOUND);
-        assertSame(response.headers.Location,
-                   ('http://www.akshell.com/session/?domain=' + inner.domain +
-                    '&path=%2Fx%3Fy%26z'));
       },
 
       testServe: function () {
@@ -1758,12 +1364,12 @@ with (require('index')) {
     });
 
   //////////////////////////////////////////////////////////////////////////////
-  // db tests
+  // rv tests
   //////////////////////////////////////////////////////////////////////////////
 
-  exports.DbTestCase = TestCase.subclass(
+  exports.RvTestCase = TestCase.subclass(
     {
-      name: 'db',
+      name: 'rv',
 
       setUp: function () {
         db.drop(db.list());
@@ -1773,25 +1379,26 @@ with (require('index')) {
         db.drop(db.list());
       },
 
-      testType: function () {
+      testAttr: function () {
         assert(rv.X instanceof RelVar);
-        assertThrow(UsageError,
+        assertThrow(ValueError,
                     function () { rv.X.create({x: 'unparseble'}); });
-        assertThrow(UsageError,
+        assertThrow(ValueError,
                     function () { rv.X.create({x: 'number string'}); });
-        assertThrow(UsageError,
+        assertThrow(ValueError,
                     function () { rv.X.create({x: 'number string'}); });
-        assertThrow(UsageError,
+        assertThrow(ValueError,
                     function () { rv.X.create({x: ['unique', 1]}); });
         rv.Check.create({n: 'number check (n != 42)'});
-        rv.X.create({i: ['integer number unique', '15']});
+        rv.X.create({i: ['integer unique', '15']});
         rv.Y.create(
           {
             i: ['unique integer', -1],
-            s: ' \t\nserial\t foreign Y.i ->X.i ',
+            s: ' \t\nserial\t -> Y.i ->X.i ',
             n: ['number->Check.n ', '42'],
             d: 'date',
-            j: ['json', [1, 2, 3]]
+            j: ['json', [1, 2, 3]],
+            b: 'binary'
           });
         assertSame(rv.Y.getHeader().i, 'integer');
         assertSame(rv.Y.getHeader().s, 'serial');
@@ -1806,14 +1413,12 @@ with (require('index')) {
         assertEqual(items(rv.X.getDefault()), [['i', 15]]);
         assertEqual(items(rv.Y.getDefault()).sort(),
                     [['i', -1], ['j', [1, 2, 3]], ['n', 42]]);
-        assertThrow(ConstraintError,
+        assertThrow(db.ConstraintError,
                     function () { rv.Check.insert({n: 42}); });
-        assertEqual(rv.Y.getInteger(), ['i', 's']);
-        assertEqual(rv.Y.getSerial(), ['s']);
       },
 
       testConstr: function () {
-        assertThrow(UsageError, function () { rv.X.create({}, 'invalid'); });
+        assertThrow(ValueError, function () { rv.X.create({}, 'invalid'); });
         rv.X.create({i: 'integer', n: 'number', s: 'string'},
                     'unique [ i , n]',
                     ' \tunique[n,s  ]\t',
@@ -1821,7 +1426,7 @@ with (require('index')) {
         rv.Y.create({ii: 'integer', nn: 'number', ss: 'string'},
                     ' [ ii , nn ]-> X[i,n]',
                     '[ss,nn]   ->X  [s  ,n ] ');
-        assertThrow(ConstraintError,
+        assertThrow(db.ConstraintError,
                     function () { rv.X.insert({i: 42, n: 0, s: ''}); });
         assertEqual(
           rv.Y.getForeign().sort(),
@@ -1856,7 +1461,7 @@ with (require('index')) {
       },
 
       testSelection: function () {
-        rv.X.create({n: 'number', b: 'bool', s: 'string'});
+        rv.X.create({n: 'number', b: 'boolean', s: 'string'});
         rv.X.insert({n: 0, b: false, s: 'zero'});
         rv.X.insert({n: 1, b: false, s: 'one'});
         rv.X.insert({n: 42, b: true, s: 'the answer'});
@@ -1895,7 +1500,7 @@ with (require('index')) {
                     [['d', 1], ['s', 1]]);
         assertEqual(items(rv.Y.insert({d: 1})).sort(),
                     [['d', 1], ['s', 0]]);
-        assertThrow(ConstraintError, function () { rv.Y.insert({d: 1}); });
+        assertThrow(db.ConstraintError, function () { rv.Y.insert({d: 1}); });
         assertEqual(items(rv.Y.insert({d: 1})).sort(),
                     [['d', 1], ['s', 2]]);
         assertEqual(items(rv.Y.insert({})).sort(),
@@ -1919,14 +1524,14 @@ with (require('index')) {
 
       testAddAttrs: function () {
         rv.X.create({});
-        assertThrow(UsageError, function () { rv.X.addAttrs({x: ''}); });
-        assertThrow(UsageError,
-                    function () { rv.X.addAttrs({x: 'unknown-type 42'}); });
+        assertThrow(ValueError, function () { rv.X.addAttrs({x: ['', 42]}); });
+        assertThrow(ValueError,
+                    function () { rv.X.addAttrs({x: ['unknown-type', 42]}); });
         rv.X.addAttrs(
           {
             n: ['number', 42],
             s: ['string', ''],
-            b: ['bool', false],
+            b: ['boolean', false],
             d: ['date', new Date()],
             j: ['json', {}],
             i: ['integer', 0]
@@ -1936,7 +1541,7 @@ with (require('index')) {
           [
             ['n', 'number'],
             ['s', 'string'],
-            ['b', 'bool'],
+            ['b', 'boolean'],
             ['d', 'date'],
             ['j', 'json'],
             ['i', 'integer']
@@ -1944,7 +1549,7 @@ with (require('index')) {
       },
 
       testDropAttrs: function () {
-        rv.X.create({n: 'number', s: 'string', b: 'bool'});
+        rv.X.create({n: 'number', s: 'string', b: 'boolean'});
         rv.X.dropAttrs('n', 'b');
         assertEqual(items(rv.X.getHeader()), [['s', 'string']]);
       },
@@ -1964,19 +1569,19 @@ with (require('index')) {
       testAddConstrs: function () {
         rv.X.create({n: 'unique number'});
         rv.X.insert({n: 0});
-        rv.Y.create({n: 'number', s: 'string', b: 'bool'});
+        rv.Y.create({n: 'number', s: 'string', b: 'boolean'});
         rv.Y.addConstrs('unique [n]');
         rv.Y.addConstrs('[n] -> X[n]', 'check !b');
         assertEqual(rv.Y.getUnique(), [['n', 's', 'b'], ['n']]);
         assertEqual(rv.Y.getForeign(), [[['n'], 'X', ['n']]]);
-        assertThrow(ConstraintError,
+        assertThrow(db.ConstraintError,
                     function () { rv.Y.insert({n: 0, s: '', b: true}); });
       },
 
       testDropAllConstrs: function () {
         rv.X.create({n: 'unique number'});
         rv.Y.create(
-          {n: 'number -> X.n', s: 'unique string', b: 'bool check (!b)'});
+          {n: 'number -> X.n', s: 'unique string', b: 'boolean check (!b)'});
         rv.Y.dropAllConstrs();
         assertEqual(rv.Y.getUnique(), [['n', 's', 'b']]);
         assertEqual(rv.Y.getForeign(), []);
@@ -2181,24 +1786,6 @@ with (require('index')) {
           ' March 2010');
         assertSame('{0}'.format(null), 'null');
         assertSame('{{}}'.format(), '{}');
-      }
-    });
-
-  //////////////////////////////////////////////////////////////////////////////
-  // inner tests
-  //////////////////////////////////////////////////////////////////////////////
-
-  exports.InnerTestCase = TestCase.subclass(
-    {
-      name: 'inner',
-
-      testNextMatch: function () {
-        var re = new RegExp(/x/g);
-        var string = 'x';
-        assertSame(inner.nextMatch(re, string)[0], 'x');
-        assertSame(inner.nextMatch(re, string), null);
-        assertThrow(SyntaxError, inner.nextMatch, new RegExp(/a/g), 'b');
-        assertThrow(SyntaxError, inner.nextMatch, new RegExp(/a/g), 'ba');
       }
     });
 }

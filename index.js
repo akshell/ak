@@ -32,15 +32,18 @@ var template = require('template');
 
 base.update(
   exports,
-  require('inner').core,
+  require('core'),
+  require('binary'),
   base,
-  require('db'),
   require('utils'),
+  require('rv'),
   require('aspect'),
   require('unittest'),
   require('url'),
   require('rest'),
   {
+    db: require('db'),
+    fs: require('fs'),
     http: http,
     template: template,
     format: require('format')

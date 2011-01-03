@@ -26,7 +26,7 @@
 
 // This code is based on MochiKit.Base by Bob Ippolito http://mochikit.com/
 
-var core = require('inner').core;
+var core = require('core');
 var base = require('base');
 
 
@@ -256,8 +256,8 @@ exports.Dict = Object.subclass(
       return result;
     },
 
-    map: function (func, self/* = core.global */) {
-      self = self || core.global;
+    map: function (func, self/* = base.global */) {
+      self = self || base.global;
       var result = [];
       for (var hash in this._table) {
         var array = this._table[hash];
@@ -322,4 +322,26 @@ exports.escapeHTML = function (string) {
           .replace(/>/g, '&gt;')
           .replace(/\"/g, '&quot;')
           .replace(/\'/g, '&#39;'));
+};
+
+
+exports.nextMatch = function (re, string, errorClass/* = SyntaxError */) {
+  errorClass = errorClass || SyntaxError;
+  var doneIndex = re.lastIndex;
+  if (doneIndex == string.length)
+    return null;
+  var match = re.exec(string);
+  if (!match)
+    throw errorClass(
+      'Could not parse the remainder: ' +
+        base.repr(string.substring(0, doneIndex) + '((' +
+                  string.substring(doneIndex) + '))'));
+  var startIndex = re.lastIndex - match[0].length;
+  if (doneIndex != startIndex)
+    throw errorClass(
+      'Could not parse some characters: ' +
+        base.repr(string.substring(0, doneIndex) + '((' +
+                  string.substring(doneIndex, startIndex) + '))' +
+                  string.substring(startIndex)));
+  return match;
 };
