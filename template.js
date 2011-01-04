@@ -27,7 +27,7 @@
 // Django template engine port
 // http://docs.djangoproject.com/en/dev/topics/templates/
 
-var core = require('core');
+var fs = require('fs');
 var base = require('base');
 var url = require('url');
 var utils = require('utils');
@@ -1205,7 +1205,7 @@ var URLNode = Object.subclass(
       var path;
       try {
         path = url.reverse.apply(
-          core.global,
+          base.global,
           this._exprs.map(function (expr) {
                             return expr.resolve(context).raw;
                           }));
@@ -1590,9 +1590,9 @@ exports.env = {
   load: function (name) {
     var i = name.indexOf(':');
     return (i == -1
-            ? core.readCode('templates/' + name)
+            ? fs.code.read('templates/' + name)
             : i == 0
-            ? core.readCode(name)
-            : core.readCode(name.substr(0, i), name.substr(i + 1)));
+            ? fs.code.read(name)
+            : fs.code.read(name.substr(0, i), name.substr(i + 1))) + '';
   }
 };
