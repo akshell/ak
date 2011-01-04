@@ -1072,7 +1072,7 @@ with (require('index')) {
             ]
            ]
           ]);
-        template.csrfToken = '42';
+        template.getCsrfToken = function () { return '42'; };
         renderingTests.forEach(
           function (test) {
             assertSame(new Template(test[0], testEnv).render(test[1]),
@@ -1360,25 +1360,26 @@ with (require('index')) {
                                   method: 'post',
                                   path: '/abc/method',
                                   post: {},
-                                  csrfToken: 'x',
-                                  headers: {}
+                                  headers: {},
+                                  cookies: {csrfToken: 'x'}
                                 }).status,
                    http.FORBIDDEN);
         assertSame(defaultServe({
                                   method: 'post',
                                   path: '/abc/method',
                                   post: {},
-                                  csrfToken: 'x',
                                   headers: {
                                     'x-requested-with': 'XMLHttpRequest'
-                                  }
+                                  },
+                                  cookies: {csrfToken: 'x'}
                                 }).status,
                    http.OK);
         assertSame(defaultServe({
                                   method: 'post',
                                   path: '/abc/method',
                                   post: {csrfToken: 'x'},
-                                  csrfToken: 'x'
+                                  headers: {},
+                                  cookies: {csrfToken: 'x'}
                                 }).status,
                    http.OK);
         assertSame(
@@ -1386,16 +1387,19 @@ with (require('index')) {
             {
               method: 'post',
               post: {csrfToken: 'b'},
-              csrfToken: 'a',
-              headers: {}
+              headers: {},
+              cookies: {csrfToken: 'a'}
             }).status,
           http.FORBIDDEN);
         assert(
           defaultServe(
             {
-              csrfToken: '42',
-              path: '/csrf-token'
+              path: '/csrf-token',
+              cookies: {csrfToken: '42'}
             }).content.indexOf('42') != -1);
+        assert(
+          defaultServe(
+            {path: '/csrf-token', cookies: {}}).headers['Set-Cookie']);
         response = defaultServe({path: '/http-error'});
         assertSame(response.status, http.BAD_REQUEST);
         assertSame(response.content, 'hi');

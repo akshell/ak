@@ -27,6 +27,7 @@
 require('jsgi');
 var core = require('core');
 var db = require('db');
+var Binary = require('binary').Binary;
 var base = require('base');
 var rv = require('rv');
 var http = require('http');
@@ -198,17 +199,27 @@ exports.serve = function (request) {
 exports.protectingFromCSRF = function (func) {
   return function (request) {
     if (request.method == 'post' &&
-        request.csrfToken &&
-        request.post.csrfToken != request.csrfToken &&
-        request.headers['x-requested-with'] != 'XMLHttpRequest')
+        request.headers['x-requested-with'] != 'XMLHttpRequest' &&
+        request.post.csrfToken != request.cookies.csrfToken)
       return new exports.Response(
         ('<p>Please use the <code>{% csrfToken %}</code> ' +
          'tag in POST forms like this:</p>' +
          '<pre>&lt;form method="post" ...&gt;\n' +
          '  {% csrfToken %}\n  ...\n&lt;/form&gt;</pre>'),
         http.FORBIDDEN);
-    template.csrfToken = request.csrfToken;
-    return func(request);
+    var csrfToken;
+    template.getCsrfToken = function () {
+      if (request.cookies.csrfToken)
+        return request.cookies.csrfToken;
+      if (!csrfToken)
+        csrfToken = new Binary(Math.random() + '').md5();
+      return csrfToken;
+    };
+    var response = func(request);
+    if (csrfToken)
+      response.setCookie(
+        'csrfToken', csrfToken, {expires: new Date(2e12)});
+    return response;
   };
 };
 

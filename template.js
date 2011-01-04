@@ -1245,7 +1245,7 @@ var CSRFTokenNode = Object.subclass(
     render: function (context) {
       return ('<div style="display:none;">' +
               '<input type="hidden" name="csrfToken" value="' +
-              (exports.csrfToken || '') +
+              exports.getCsrfToken() +
               '"></div>');
     }
   });
