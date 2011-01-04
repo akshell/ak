@@ -24,6 +24,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+require('jsgi');
 var core = require('core');
 var db = require('db');
 var base = require('base');
@@ -90,30 +91,50 @@ exports.Handler = Object.subclass(
 // main.app(), serve(), middleware, and main.main()
 //////////////////////////////////////////////////////////////////////////////
 
+function parseURLEncodedData(data) {
+  var result = {};
+  data.split(/[&;]/).forEach(
+    function (part) {
+      var nv = part.split('=');
+      if (nv.length != 2)
+        return;
+      var name = decodeURIComponent(nv[0]);
+      var value = decodeURIComponent(nv[1]);
+      if (!result.hasOwnProperty(name))
+        result[name] = value;
+      else if (typeof(result[name]) == 'string')
+        result[name] = [result[name], value];
+      else
+        result[name].push(value);
+    });
+  return result;
+}
+
+
 require.main.exports.app = function (jsgi) {
+  var fullPath = 
+    jsgi.queryString ? jsgi.pathInfo + '?' + jsgi.queryString : jsgi.pathInfo;
   var response = require.main.exports.main(
     {
       __proto__: exports.Request.prototype,
       method: jsgi.method.toLowerCase(),
       path: jsgi.pathInfo,
-      fullPath: jsgi.env.fullPath,
-      uri: 'http://' + jsgi.host + jsgi.env.fullPath,
-      get: jsgi.env.get,
-      post: jsgi.env.post,
+      fullPath: fullPath,
+      uri: 'http://' + jsgi.host + fullPath,
+      get: parseURLEncodedData(jsgi.queryString),
+      post:
+        jsgi.headers['content-type'] == 'application/x-www-form-urlencoded'
+        ? parseURLEncodedData(jsgi.input + '')
+        : {},
       headers: jsgi.headers,
       data: jsgi.input,
-      user: jsgi.env.user,
-      issuer: jsgi.env.issuer,
-      session: jsgi.env.session,
-      csrfToken: jsgi.env.csrfToken,
-      files: jsgi.env.files
     });
   response.body = [response.content];
   return response;
 };
 
 
-exports.serve = function (request) {
+require.main.exports.main = exports.serve = function (request) {
   var pair = url.resolve(request.path);
   var handler = pair[0];
   var args = [request].concat(pair[1]);
@@ -123,16 +144,6 @@ exports.serve = function (request) {
   } else {
     return handler.apply(base.global, args);
   }
-};
-
-
-exports.protectingFromICAR = function (func) {
-  return function (request) {
-    return (!request.issuer || request.legal
-            ? func(request)
-            : new exports.Response('Illegal cross-application request',
-                                   http.FORBIDDEN));
-  };
 };
 
 
@@ -219,7 +230,6 @@ exports.rollbacking = function (func) {
 
 
 require.main.exports.main = exports.defaultServe = exports.serve.decorated(
-  exports.protectingFromICAR,
   exports.protectingFromCSRF,
   exports.catchingFailure,
   exports.catchingTupleDoesNotExist,
