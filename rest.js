@@ -37,7 +37,25 @@ var template = require('template');
 // Request, Response, redirect() and render()
 //////////////////////////////////////////////////////////////////////////////
 
-exports.Request = Object.subclass();
+exports.Request = Object.subclass(
+  {
+    get cookies() {
+      if (!this._cookies) {
+        this._cookies = {};
+        if (this.headers.cookie) {
+          this.headers.cookie.split(/[;,] */).forEach(
+            function (part) {
+              var nv = part.split('=');
+              if (nv.length == 2)
+                this._cookies[decodeURIComponent(nv[0])] =
+                  decodeURIComponent(nv[1]);
+            },
+            this);
+        }
+      }
+      return this._cookies;
+    }
+  });
 
 
 function addProp(object, name, value) {
@@ -138,27 +156,33 @@ function parseURLEncodedData(data) {
 require.main.exports.app = function (jsgi) {
   var fullPath = 
     jsgi.queryString ? jsgi.pathInfo + '?' + jsgi.queryString : jsgi.pathInfo;
-  var response = require.main.exports.main(
-    {
-      __proto__: exports.Request.prototype,
-      method: jsgi.method.toLowerCase(),
-      path: jsgi.pathInfo,
-      fullPath: fullPath,
-      uri: 'http://' + jsgi.host + fullPath,
-      get: parseURLEncodedData(jsgi.queryString),
-      post:
-        jsgi.headers['content-type'] == 'application/x-www-form-urlencoded'
-        ? parseURLEncodedData(jsgi.input + '')
-        : {},
-      headers: jsgi.headers,
-      data: jsgi.input,
-    });
+  var request = {
+    __proto__: exports.Request.prototype,
+    method: jsgi.method.toLowerCase(),
+    path: jsgi.pathInfo,
+    fullPath: fullPath,
+    uri: 'http://' + jsgi.host + fullPath,
+    get: jsgi.queryString ? parseURLEncodedData(jsgi.queryString) : {},
+    post:
+      jsgi.headers['content-type'] == 'application/x-www-form-urlencoded'
+      ? parseURLEncodedData(jsgi.input + '')
+      : {},
+    headers: jsgi.headers,
+    data: jsgi.input,
+  };
+  var response = require.main.exports.main(request);
   response.body = [response.content];
+  if (request._cookies) {
+    if (!response.headers.Vary)
+      response.headers.Vary = 'Cookie';
+    else if (response.headers.Vary.indexOf('Cookie') == -1)
+      response.headers.Vary += ', Cookie';
+  }
   return response;
 };
 
 
-require.main.exports.main = exports.serve = function (request) {
+exports.serve = function (request) {
   var pair = url.resolve(request.path);
   var handler = pair[0];
   var args = [request].concat(pair[1]);

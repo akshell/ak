@@ -1194,6 +1194,15 @@ with (require('index')) {
     {
       name: 'rest',
       
+      testRequest: function () {
+        var request = {
+          __proto__: Request.prototype,
+          headers: {cookie: 'a%20b=c%3Bd; y=; x=42'}
+        };
+        assertEqual(
+          items(request.cookies), [['a b', 'c;d'], ['y', ''], ['x', '42']]);
+      },
+      
       testResponse: function () {
         var response = new Response();
         response.setCookie(
@@ -1255,6 +1264,27 @@ with (require('index')) {
             assertThrow(
               Failure, function () { h1.handle({method: method}); });
           });
+      },
+      
+      testApp: function () {
+        var oldMain = require.main.exports.main;
+        require.main.exports.main = function (request) {
+          request.cookies;
+          return new Response();
+        };
+        assertSame(
+          require.main.exports.app(
+            {method: 'GET', headers: {}}).headers.Vary,
+          'Cookie');
+        require.main.exports.main = function (request) {
+          request.cookies;
+          return new Response('', http.OK, {Vary: 'Accept-Language'});
+        };
+        assertSame(
+          require.main.exports.app(
+            {method: 'GET', headers: {}}).headers.Vary,
+          'Accept-Language, Cookie');
+        require.main.exports.main = oldMain;
       },
 
       testServe: function () {
