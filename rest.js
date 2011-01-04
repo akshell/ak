@@ -40,6 +40,16 @@ var template = require('template');
 exports.Request = Object.subclass();
 
 
+function addProp(object, name, value) {
+  if (!object.hasOwnProperty(name))
+    object[name] = value;
+  else if (object[name] instanceof Array)
+    object[name].push(value);
+  else
+    object[name] = [object[name], value];
+}
+
+
 exports.Response = Object.subclass(
   function (content/* = '' */,
             status/* = http.OK */,
@@ -47,6 +57,28 @@ exports.Response = Object.subclass(
     this.content = content || '';
     this.status = status || http.OK;
     this.headers = headers || {'Content-Type': 'text/html; charset=utf-8'};
+  },
+  {
+    setCookie: function (name, value/* = '' */, options/* = {} */) {
+      var cookie = encodeURIComponent(name) + '=';
+      if (value)
+        cookie += encodeURIComponent(value);
+      if (options) {
+        if (options.domain)
+          cookie += '; domain=' + options.domain;
+        if (options.path)
+          cookie += '; path=' + options.path;
+        if (options.expires)
+          cookie += 
+            '; expires=' +
+            options.expires.toString('ddd, dd-MMM-yyyy HH:mm:ss') + ' GMT';
+        if (options.secure)
+          cookie += '; secure';
+        if (options.httpOnly)
+          cookie += '; HttpOnly';
+      }
+      addProp(this.headers, 'Set-Cookie', cookie);
+    }
   });
 
 
@@ -96,16 +128,8 @@ function parseURLEncodedData(data) {
   data.split(/[&;]/).forEach(
     function (part) {
       var nv = part.split('=');
-      if (nv.length != 2)
-        return;
-      var name = decodeURIComponent(nv[0]);
-      var value = decodeURIComponent(nv[1]);
-      if (!result.hasOwnProperty(name))
-        result[name] = value;
-      else if (typeof(result[name]) == 'string')
-        result[name] = [result[name], value];
-      else
-        result[name].push(value);
+      if (nv.length == 2)
+        addProp(result, decodeURIComponent(nv[0]), decodeURIComponent(nv[1]));
     });
   return result;
 }

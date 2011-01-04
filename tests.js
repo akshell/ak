@@ -1193,6 +1193,23 @@ with (require('index')) {
   exports.RestTestCase = TestCase.subclass(
     {
       name: 'rest',
+      
+      testResponse: function () {
+        var response = new Response();
+        response.setCookie(
+          'a b', 'c+d', {path: '/some/path', secure: true, httpOnly: true});
+        response.setCookie(
+          'x', 42,
+          {domain: '.x.com', expires: new Date('Tue Jan 04 2011 14:33:37')});
+        response.setCookie('y');
+        assertEqual(
+          response.headers['Set-Cookie'],
+          [
+            'a%20b=c%2Bd; path=/some/path; secure; HttpOnly',
+            'x=42; domain=.x.com; expires=Tue, 04-Jan-2011 14:33:37 GMT',
+            'y='
+          ]);
+      },
 
       testRedirect: function () {
         var response = redirect('xyz');
