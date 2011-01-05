@@ -1257,46 +1257,29 @@ defaultTags.csrfToken = function (parser) {
 };
 
 
+exports.staticURLPrefix = '/static/';
+exports.staticPathPrefix = 'static/';
+
 var StaticNode = Object.subclass(
-  function (name, tsFunc, appExpr, pathExpr, tsFlag) {
-    var parts = ['http://static.akshell.com', name];
-    if (appExpr) {
-      parts.push('release');
-    } else {
-      var main = require.main;
-      if (main.spot)
-        parts.push('spots',
-                   main.app,
-                   main.owner.replace(/ /g, '-'),
-                   main.spot);
-      else
-        parts.push('release', main.app);
-    }
-    this._prefix = parts.join('/') + '/';
-    this._tsFunc = tsFunc;
-    this._appExpr = appExpr;
-    this._pathExpr = pathExpr;
-    this._tsFlag = tsFlag;
+  function (expr) {
+    this._expr = expr;
   },
   {
     render: function (context) {
-      var app = this._appExpr && this._appExpr.resolve(context) + '';
-      var path = this._pathExpr.resolve(context) + '';
-      var url = this._prefix;
-      if (app)
-        url += app + '/';
-      url += path.split('/').map(encodeURIComponent).join('/');
-      if (this._tsFlag ||
-          (this._tsFlag === undefined &&
-           (path.endsWith('.css') || path.endsWith('.js')))) {
-        try {
-          var ts = app ? this._tsFunc(app, path) : this._tsFunc(path);
-          url += '?' + ts / 1000;
-        } catch (_) {}
-      }
-      return url;
+      var prefix = exports.staticURLPrefix;
+      if (require.main.storage.commit)
+        // TODO: Set the commit component smarter
+        prefix += require.main.storage.commit + '/';
+      return prefix + encodeURI(this._expr.resolve(context).raw);
     }
   });
+
+defaultTags.static = function (parser) {
+  var args = smartSplit(parser.content);
+  if (args.length != 2)
+    throw TemplateSyntaxError('"static" tag takes one argument');
+  return new StaticNode(parser.makeExpr(args[1]));
+};
 
 
 var NowNode = Object.subclass(
@@ -1312,7 +1295,6 @@ var NowNode = Object.subclass(
       return wrap.safe ? string : utils.escapeHTML(string);
     }
   });
-
 
 defaultTags.now = function (parser) {
   var args = smartSplit(parser.content);

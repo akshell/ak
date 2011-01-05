@@ -1117,6 +1117,18 @@ with (require('index')) {
           });
         require.main.exports.root = oldRoot;
       },
+      
+      testStatic: function () {
+        var storage = require.main.storage;
+        var oldCommit = storage.commit;
+        delete storage.commit;
+        assertSame(
+          new Template('{% static "a b" %}').render(), '/static/a%20b');
+        storage.commit = '123';
+        assertSame(
+          new Template('{% static "a b" %}').render(), '/static/123/a%20b');
+        storage.commit = oldCommit;
+      },
 
       testNow: function () {
         new Template('{% now %}').render();
@@ -1422,6 +1434,7 @@ with (require('index')) {
           defaultServe(
             {
               method: 'post',
+              path: '/',
               post: {csrfToken: 'b'},
               headers: {},
               cookies: {csrfToken: 'a'}
@@ -1445,6 +1458,42 @@ with (require('index')) {
         response = defaultServe({path: '/path-with-slash'});
         assertSame(response.status, http.MOVED_PERMANENTLY);
         assertSame(response.headers.Location, '/path-with-slash/');
+
+        var oldStorage = require.main.storage;
+        require.main.storage = {
+          read: function (path) { assertSame(path, 'static/main.css'); }
+        };
+        assertEqual(
+          items(defaultServe({path: '/static/main.css'}).headers),
+          [['Cache-Control', 'no-cache'], ['Content-Type', 'text/css']]);
+        assertSame(
+          defaultServe({path: '/static/no-such'}).status, http.NOT_FOUND);
+        require.main.storage = {
+          repo: {
+            getStorage: function (commit) {
+              assertSame(commit, '123');
+              return {
+                read: function (path) {
+                  assertSame(path, 'static/icon.png');
+                }
+              }
+            }
+          }
+        };
+        assertSame(defaultServe({path: '/static/bad'}).status, http.NOT_FOUND);
+        assertSame(
+          defaultServe({path: '/static/no-such/icon.png'}).status,
+          http.NOT_FOUND);
+        assertSame(
+          defaultServe({path: '/static/123/no-such'}).status,
+          http.NOT_FOUND);
+        assertEqual(
+          items(defaultServe({path: '/static/123/icon.png'}).headers),
+          [
+            ['Cache-Control', 'max-age=315360000'],
+            ['Content-Type', 'image/png']
+          ]);
+        require.main.storage = oldStorage;
 
         require.main.exports.root = oldRoot;
       }
