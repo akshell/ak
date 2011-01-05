@@ -274,7 +274,9 @@ exports.test = function (source/* = require.main.exports.tests */,
   exports.runTestViaStream(
     exports.loadTestSuite(source || require.main.exports.tests),
     stream);
-  return stream.get();
+  var result = stream.get();
+  stream.reset();
+  return result;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
