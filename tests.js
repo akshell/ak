@@ -190,6 +190,42 @@ with (require('index')) {
                  'testAssertThrow(test) FAIL\n' +
                  '=====\n'),
                'TextTestRunner');
+      },
+      
+      testTestClient: function () {
+        var client = new TestClient();
+        var aspect = weave(
+          InsteadOf, require.main.exports, 'main',
+          function (request) { return eval(request.data + ''); });
+        function request(data) {
+          return client.request({data: data});
+        }
+        
+        assertSame(client.get(), undefined);
+        assertSame(request('request.method'), 'get');
+        assertSame(request('request.path'), '/');
+        assertSame(request('typeof(request.get)'), 'object');
+        assertSame(request('typeof(request.post)'), 'object');
+        assertSame(request('typeof(request.headers)'), 'object');
+        
+        assertSame(client.get({data: 'request.method'}), 'get');
+        assertSame(client.put({data: 'request.method'}), 'put');
+        assertSame(client.post({data: 'request.method'}), 'post');
+        assertSame(client.del({data: 'request.method'}), 'delete');
+
+        var context = {};
+        assertSame(
+          request(
+            'new Response(new Template("").render(context))').context,
+          context);
+          
+        var H = Handler.subclass(
+          {
+            get: function () { return {}; }
+          });
+        assertSame(request('new H().handle({method: "get"})').handler, H);
+
+        aspect.unweave();
       }
     });
 

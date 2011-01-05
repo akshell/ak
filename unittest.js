@@ -25,6 +25,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 var core = require('core');
+var Binary = require('binary').Binary;
 var base = require('base');
 var utils = require('utils');
 var aspect = require('aspect');
@@ -275,3 +276,71 @@ exports.test = function (source/* = require.main.exports.tests */,
     stream);
   return stream.get();
 };
+
+////////////////////////////////////////////////////////////////////////////////
+// TestClient
+////////////////////////////////////////////////////////////////////////////////
+
+function makeRequester(method) {
+  return function (request) {
+    request = {__proto__: request};
+    request.method = method;
+    return this.request(request);
+  };
+}
+
+
+exports.TestClient = Object.subclass(
+  {
+    request: function (request/* = {} */) {
+      request = request ? {__proto__: request} : {};
+      base.update(
+        request,
+        {
+          method: request.method || 'get',
+          path: request.path || '/',
+          get: request.get || {},
+          post: request.post || {},
+          headers: request.headers || {},
+          data: 
+            request.data instanceof Binary
+            ? request.data
+            : new Binary(request.data || '')
+        });
+      var contexts = {};
+      var aspects = new aspect.AspectArray();
+      aspects.push(
+        aspect.weave(
+          aspect.After, template.Template, 'render',
+          function (result, args) {
+            contexts[result] = args[0];
+            return result;
+          }),
+        aspect.weave(
+          aspect.After, require.main.exports, 'main',
+          function (result) {
+            if (result &&
+                typeof(result) == 'object' &&
+                contexts.hasOwnProperty(result.content))
+              result.context = contexts[result.content];
+            return result;
+          }),
+        aspect.weave(
+          aspect.After, rest.Handler, 'handle',
+          function (result) {
+            result.handler = this.constructor;
+            return result;
+          }));
+      try {
+        return require.main.exports.main(request);
+      } finally {
+        aspects.unweave();
+      }
+    },
+    
+    get: makeRequester('get'),
+    post: makeRequester('post'),
+    head: makeRequester('head'),
+    put: makeRequester('put'),
+    del: makeRequester('delete')
+  });
