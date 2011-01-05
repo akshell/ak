@@ -27,7 +27,9 @@
 require('jsgi');
 var core = require('core');
 var db = require('db');
+var socket = require('socket');
 var Binary = require('binary').Binary;
+var HttpParser = require('http-parser').HttpParser;
 var base = require('base');
 var rv = require('rv');
 var http = require('http');
@@ -466,3 +468,122 @@ require.main.exports.main = exports.defaultServe = exports.serve.decorated(
   exports.appendingSlash,
   exports.rollbacking
 );
+
+//////////////////////////////////////////////////////////////////////////////
+// requestHost
+//////////////////////////////////////////////////////////////////////////////
+
+function encodeParams(params) {
+  var parts = [];
+  for (var name in params) {
+    var values = params[name];
+    if (!(values instanceof Array))
+      values = [values];
+    values.forEach(
+      function (value) {
+        parts.push(
+          encodeURIComponent(name) + '=' + encodeURIComponent(value));
+      });
+  }
+  return parts.join('&');
+}
+
+exports.requestHost = function (host, request) {
+  if (request.data && request.post)
+    throw core.ValueError('data and post cannot be specified together');
+  var sock = socket.connect(host, 80);
+
+  var requestHeaders = {
+    'Connection': 'close',
+    'Accept-Charset': 'utf-8',
+    'Accept-Encoding': 'identity',
+    'Host': host
+  };
+  var data;
+  if (request.data) {
+    data =
+      request.data instanceof Binary
+      ? request.data
+      : new Binary(request.data);
+  } else if (request.post) {
+    data = new Binary(encodeParams(request.post));
+    requestHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+  }
+  if (data)
+    requestHeaders['Content-Length'] = data.length;
+  if (request.headers)
+    for (var name in request.headers)
+      requestHeaders[name] = request.headers[name];
+  var path = request.path || '/';
+  if (request.get)
+    path += '?' + encodeParams(request.get);
+  var method = request.method ? request.method.toUpperCase() : 'GET';
+  var parts = [method + ' ' + path + ' HTTP/1.1'];
+  for (var name in requestHeaders) {
+    var values = requestHeaders[name];
+    if (!(values instanceof Array))
+      values = [values];
+    values.forEach(function (value) { parts.push(name + ': ' + value); });
+  }
+  parts.push('\r\n');
+
+  sock.write(parts.join('\r\n'));
+  if (data)
+    sock.write(data);
+
+  var name = '';
+  var value;
+  var status;
+  var responseHeaders = {};
+  var contentParts = [];
+  var complete = false;
+
+  function addHeader() {
+    name = name.toLowerCase();
+    if (responseHeaders.hasOwnProperty(name))
+      responseHeaders[name] += ',' + value;
+    else
+      responseHeaders[name] = value;
+  }
+
+  var parser = new HttpParser(
+    'response',
+    {
+      onHeaderField: function (part) {
+        if (value === undefined) {
+          name += part;
+        } else {
+          addHeader();
+          name = part + '';
+          value = undefined;
+        }
+      },
+
+      onHeaderValue: function (part) {
+        value = (value || '') + part;
+      },
+
+      onHeadersComplete: function (info) {
+        if (value !== undefined)
+          addHeader();
+        status = info.status;
+      },
+      
+      onBody: function (part) {
+        contentParts.push(part);
+      },
+      
+      onMessageComplete: function () {
+        complete = true;
+      }
+    });
+    
+  do {
+    parser.exec(sock.receive(8192));
+  } while (!complete);
+  
+  return new exports.Response(
+    core.construct(Binary, contentParts),
+    status,
+    responseHeaders);
+};

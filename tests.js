@@ -1496,6 +1496,13 @@ with (require('index')) {
         require.main.storage = oldStorage;
 
         require.main.exports.root = oldRoot;
+      },
+      
+      testRequestHost: function () {
+        var response = requestHost('example.com', {get: {x: 42}});
+        assertSame(response.status, http.OK);
+        assertEqual(response.headers.server, 'Apache');
+        assert((response.content + '').startsWith('<!DOCTYPE HTML '));
       }
     });
 
