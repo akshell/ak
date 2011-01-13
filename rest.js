@@ -175,7 +175,8 @@ require.main.exports.app = function (jsgi) {
   };
   var response = require.main.exports.main(request);
   response.body = [response.content];
-  if (request._cookies) {
+  if (request._cookies &&
+      (request.method == 'get' || request.method == 'head')) {
     if (!response.headers.Vary)
       response.headers.Vary = 'Cookie';
     else if (response.headers.Vary.indexOf('Cookie') == -1)
