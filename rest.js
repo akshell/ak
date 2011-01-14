@@ -144,13 +144,18 @@ exports.Handler = Object.subclass(
 // main.app(), serve(), middleware, and main.main()
 //////////////////////////////////////////////////////////////////////////////
 
+function decodeURIPlus(string) {
+  return decodeURIComponent(string.replace(/\+/g, ' '));
+}
+
+
 function parseURLEncodedData(data) {
   var result = {};
   data.split(/[&;]/).forEach(
     function (part) {
       var nv = part.split('=');
       if (nv.length == 2)
-        addProp(result, decodeURIComponent(nv[0]), decodeURIComponent(nv[1]));
+        addProp(result, decodeURIPlus(nv[0]), decodeURIPlus(nv[1]));
     });
   return result;
 }
