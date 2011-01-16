@@ -84,11 +84,10 @@ exports.Response = Object.subclass(
       var cookie = encodeURIComponent(name) + '=';
       if (value)
         cookie += encodeURIComponent(value);
+      cookie += '; path=' + (options && options.path || '/');
       if (options) {
         if (options.domain)
           cookie += '; domain=' + options.domain;
-        if (options.path)
-          cookie += '; path=' + options.path;
         if (options.expires)
           cookie += 
             '; expires=' +

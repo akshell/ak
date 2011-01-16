@@ -1263,8 +1263,8 @@ with (require('index')) {
           response.headers['Set-Cookie'],
           [
             'a%20b=c%2Bd; path=/some/path; secure; HttpOnly',
-            'x=42; domain=.x.com; expires=Tue, 04-Jan-2011 14:33:37 GMT',
-            'y='
+            'x=42; path=/; domain=.x.com; expires=Tue, 04-Jan-2011 14:33:37 GMT',
+            'y=; path=/'
           ]);
       },
 
