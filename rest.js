@@ -248,12 +248,12 @@ exports.catchingFailure = function (func) {
       if (!(error instanceof http.Failure)) throw error;
       var t;
       try {
-        t = template.getTemplate('error.html');
+        t = template.getTemplate('failure.html');
       } catch (_) {
-        t = new template.Template('{{ error.message }}');
+        t = new template.Template('{{ failure.message }}');
       }
       return new exports.Response(
-        t.render({error: error, request: request}),
+        t.render({failure: error, request: request}),
         error.status);
     }
   };
