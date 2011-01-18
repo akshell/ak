@@ -1332,6 +1332,14 @@ with (require('index')) {
           require.main.exports.app(
             {method: 'GET', headers: {}}).headers.Vary,
           'Accept-Language, Cookie');
+        require.main.exports.main = function (request) {
+          throw Error('Test');
+        };
+        var response =
+          require.main.exports.app({method: 'GET', headers: {}});
+        assertSame(response.status, http.INTERNAL_SERVER_ERROR);
+        assert(response.content.startsWith(
+          '<h1>Internal Application Error</h1><pre>Error: Test\n'));
         require.main.exports.main = oldMain;
       },
 

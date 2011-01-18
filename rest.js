@@ -160,6 +160,10 @@ function parseURLEncodedData(data) {
 }
 
 
+var errorTemplate = new template.Template(
+  '<h1>Internal Application Error</h1><pre>{{ error.stack }}</pre>');
+
+
 require.main.exports.app = function (jsgi) {
   var fullPath = 
     jsgi.queryString ? jsgi.pathInfo + '?' + jsgi.queryString : jsgi.pathInfo;
@@ -177,7 +181,12 @@ require.main.exports.app = function (jsgi) {
     headers: jsgi.headers,
     data: jsgi.input,
   };
-  var response = require.main.exports.main(request);
+  try {
+    var response = require.main.exports.main(request);
+  } catch (error) {
+    response = new exports.Response(
+      errorTemplate.render({error: error}), http.INTERNAL_SERVER_ERROR);
+  }
   response.body = [response.content];
   if (request._cookies &&
       (request.method == 'get' || request.method == 'head')) {
