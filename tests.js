@@ -1507,10 +1507,10 @@ with (require('index')) {
       },
       
       testRequestHost: function () {
-        var response = requestHost('example.com', {get: {x: 42}});
+        var response = requestHost('www.google.com', {});
         assertSame(response.status, http.OK);
-        assertEqual(response.headers.server, 'Apache');
-        assert((response.content + '').startsWith('<!DOCTYPE HTML '));
+        assertEqual(response.headers.server, 'gws');
+        assert((response.content + '').startsWith('<!doctype html>'));
       }
     });
 
