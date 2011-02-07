@@ -202,16 +202,16 @@ with (require('index')) {
         }
         
         assertSame(client.get(), undefined);
-        assertSame(request('request.method'), 'get');
+        assertSame(request('request.method'), 'GET');
         assertSame(request('request.path'), '/');
         assertSame(request('typeof(request.get)'), 'object');
         assertSame(request('typeof(request.post)'), 'object');
         assertSame(request('typeof(request.headers)'), 'object');
         
-        assertSame(client.get({data: 'request.method'}), 'get');
-        assertSame(client.put({data: 'request.method'}), 'put');
-        assertSame(client.post({data: 'request.method'}), 'post');
-        assertSame(client.del({data: 'request.method'}), 'delete');
+        assertSame(client.get({data: 'request.method'}), 'GET');
+        assertSame(client.put({data: 'request.method'}), 'PUT');
+        assertSame(client.post({data: 'request.method'}), 'POST');
+        assertSame(client.del({data: 'request.method'}), 'DELETE');
 
         var context = {};
         assertSame(
@@ -223,7 +223,7 @@ with (require('index')) {
           {
             get: function () { return {}; }
           });
-        assertSame(request('new H().handle({method: "get"})').handler, H);
+        assertSame(request('new H().handle({method: "GET"})').handler, H);
 
         aspect.unweave();
       }
@@ -1296,9 +1296,9 @@ with (require('index')) {
             perform: function () { return 'perform'; }
           });
         var h = new H();
-        assertSame(h.handle({method: 'delete'}), 'del');
-        assertSame(h.handle({method: 'del'}), 'perform');
-        assertSame(h.handle({method: 'func'}), 'perform');
+        assertSame(h.handle({method: 'DELETE'}), 'del');
+        assertSame(h.handle({method: 'DEL'}), 'perform');
+        assertSame(h.handle({method: 'FUNC'}), 'perform');
         var H1 = H.subclass(
           {
             get: function () {},
@@ -1307,7 +1307,7 @@ with (require('index')) {
           });
         h1 = new H1();
         h1.get = 42;
-        ['get', 'post', 'put', 'delete'].forEach(
+        ['GET', 'POST', 'PUT', 'DELETE'].forEach(
           function (method) {
             assertThrow(
               Failure, function () { h1.handle({method: method}); });
@@ -1400,20 +1400,20 @@ with (require('index')) {
         assertSame(response.status, http.MOVED_PERMANENTLY);
         assertSame(response.headers.Location, '/abc/');
         assertThrow(ResolveError, serve, {path: '/abc'});
-        assertSame(serve({path: '/abc/', method: 'get'}).content, 'abc');
-        assertSame(defaultServe({path: '/abc/', method: 'put'}).status,
+        assertSame(serve({path: '/abc/', method: 'GET'}).content, 'abc');
+        assertSame(defaultServe({path: '/abc/', method: 'PUT'}).status,
                    http.METHOD_NOT_ALLOWED);
         assertThrow(E, defaultServe, {path: '/abc/error'});
         assertSame(serve({path: '/abc/method', method: 'PUT'}).content,
                    'PUT');
-        assertSame(serve({path: '/abc/upper', method: 'get'}).content,
+        assertSame(serve({path: '/abc/upper', method: 'GET'}).content,
                    'ABC');
-        assertSame(serve({path: '/abc/length', method: 'put'}).content,
+        assertSame(serve({path: '/abc/length', method: 'PUT'}).content,
                    3);
-        assertSame(defaultServe({path: '/a/length', method: 'get'}).status,
+        assertSame(defaultServe({path: '/a/length', method: 'GET'}).status,
                    http.METHOD_NOT_ALLOWED);
         assertSame(defaultServe({
-                                  method: 'post',
+                                  method: 'POST',
                                   path: '/abc/method',
                                   post: {},
                                   headers: {},
@@ -1421,7 +1421,7 @@ with (require('index')) {
                                 }).status,
                    http.FORBIDDEN);
         assertSame(defaultServe({
-                                  method: 'post',
+                                  method: 'POST',
                                   path: '/abc/method',
                                   post: {},
                                   headers: {
@@ -1431,7 +1431,7 @@ with (require('index')) {
                                 }).status,
                    http.OK);
         assertSame(defaultServe({
-                                  method: 'post',
+                                  method: 'POST',
                                   path: '/abc/method',
                                   post: {csrfToken: 'x'},
                                   headers: {},
@@ -1441,7 +1441,7 @@ with (require('index')) {
         assertSame(
           defaultServe(
             {
-              method: 'post',
+              method: 'POST',
               path: '/',
               post: {csrfToken: 'b'},
               headers: {},

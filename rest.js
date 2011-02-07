@@ -123,9 +123,10 @@ exports.render = function (name,
 exports.Handler = Object.subclass(
   {
     handle: function (request/*, args... */) {
-      if (['get', 'post', 'head', 'put', 'delete']
+      if (['GET', 'POST', 'HEAD', 'PUT', 'DELETE']
           .indexOf(request.method) != -1) {
-        var name = request.method == 'delete' ? 'del' : request.method;
+        var name =
+          request.method == 'DELETE' ? 'del' : request.method.toLowerCase();
         if (this.__proto__.hasOwnProperty(name) &&
             typeof(this[name]) == 'function')
           return this[name].apply(this, arguments);
@@ -169,7 +170,7 @@ require.main.exports.app = function (jsgi) {
     jsgi.queryString ? jsgi.pathInfo + '?' + jsgi.queryString : jsgi.pathInfo;
   var request = {
     __proto__: exports.Request.prototype,
-    method: jsgi.method.toLowerCase(),
+    method: jsgi.method,
     path: jsgi.pathInfo,
     fullPath: fullPath,
     uri: 'http://' + jsgi.host + fullPath,
@@ -189,7 +190,7 @@ require.main.exports.app = function (jsgi) {
   }
   response.body = [response.content];
   if (request._cookies &&
-      (request.method == 'get' || request.method == 'head')) {
+      (request.method == 'GET' || request.method == 'HEAD')) {
     if (!response.headers.Vary)
       response.headers.Vary = 'Cookie';
     else if (response.headers.Vary.indexOf('Cookie') == -1)
@@ -214,7 +215,7 @@ exports.serve = function (request) {
 
 exports.protectingFromCSRF = function (func) {
   return function (request) {
-    if (request.method == 'post' &&
+    if (request.method == 'POST' &&
         request.headers['x-requested-with'] != 'XMLHttpRequest' &&
         request.post.csrfToken != request.cookies.csrfToken)
       return new exports.Response(

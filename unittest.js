@@ -299,7 +299,7 @@ exports.TestClient = Object.subclass(
       base.update(
         request,
         {
-          method: request.method || 'get',
+          method: request.method || 'GET',
           path: request.path || '/',
           get: request.get || {},
           post: request.post || {},
@@ -340,9 +340,9 @@ exports.TestClient = Object.subclass(
       }
     },
     
-    get: makeRequester('get'),
-    post: makeRequester('post'),
-    head: makeRequester('head'),
-    put: makeRequester('put'),
-    del: makeRequester('delete')
+    get: makeRequester('GET'),
+    post: makeRequester('POST'),
+    head: makeRequester('HEAD'),
+    put: makeRequester('PUT'),
+    del: makeRequester('DELETE')
   });
