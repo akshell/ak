@@ -296,6 +296,10 @@ exports.TestClient = Object.subclass(
   {
     request: function (request/* = {} */) {
       request = request ? {__proto__: request} : {};
+      var headers = {};
+      if (request.headers)
+        for (var name in request.headers)
+          headers[name.toLowerCase()] = request.headers[name];
       base.update(
         request,
         {
@@ -303,7 +307,7 @@ exports.TestClient = Object.subclass(
           path: request.path || '/',
           get: request.get || {},
           post: request.post || {},
-          headers: request.headers || {},
+          headers: headers,
           data: 
             request.data instanceof Binary
             ? request.data
