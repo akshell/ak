@@ -168,6 +168,7 @@ var errorTemplate = new template.Template(
 require.main.exports.app = function (jsgi) {
   var fullPath = 
     jsgi.queryString ? jsgi.pathInfo + '?' + jsgi.queryString : jsgi.pathInfo;
+  var contentType = jsgi.headers['content-type'];
   var request = {
     __proto__: exports.Request.prototype,
     method: jsgi.method,
@@ -176,7 +177,8 @@ require.main.exports.app = function (jsgi) {
     uri: 'http://' + jsgi.host + fullPath,
     get: jsgi.queryString ? parseURLEncodedData(jsgi.queryString) : {},
     post:
-      jsgi.headers['content-type'] == 'application/x-www-form-urlencoded'
+      contentType && 
+      contentType.toLowerCase().startsWith('application/x-www-form-urlencoded')
       ? parseURLEncodedData(jsgi.input + '')
       : {},
     headers: jsgi.headers,
