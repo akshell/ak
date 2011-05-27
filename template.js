@@ -1570,11 +1570,12 @@ exports.env = {
   tags: defaultTags,
   filters: defaultFilters,
   load: function (name) {
+    var storage = require.main.storage;
     var i = name.indexOf(':');
     return (i == -1
-            ? fs.code.read('templates/' + name)
+            ? storage.read('templates/' + name)
             : i == 0
-            ? fs.code.read(name)
-            : fs.code.read(name.substr(0, i), name.substr(i + 1))) + '';
+            ? storage.read(name)
+            : storage.read(name.substr(0, i), name.substr(i + 1))) + '';
   }
 };
