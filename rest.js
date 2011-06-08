@@ -508,7 +508,11 @@ function encodeParams(params) {
 exports.requestHost = function (host, request) {
   if (request.data && request.post)
     throw core.ValueError('data and post cannot be specified together');
-  var sock = socket.connect(host, 80);
+  
+  var colonIndex = host.indexOf(':');
+  var sock = socket.connect(
+    colonIndex == -1 ? host : host.substring(0, colonIndex),
+    colonIndex == -1 ? 80 : host.substring(colonIndex + 1));
 
   var requestHeaders = {
     'Connection': 'close',
