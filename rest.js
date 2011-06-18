@@ -603,6 +603,8 @@ exports.requestHost = function (host, request) {
     parser.exec(sock.receive(8192));
   } while (!complete);
   
+  sock.close();
+  
   return new exports.Response(
     core.construct(Binary, contentParts),
     status,
