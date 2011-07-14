@@ -1133,6 +1133,12 @@ with (require('index')) {
       testNow: function () {
         new Template('{% now %}').render();
       },
+      
+      testCycle: function () {
+        var t = new Template('{% for i in "abc" %}{% cycle 1 2 %}{% endfor %}');
+        assertSame(t.render(), '121');
+        assertSame(t.render(), '121');
+      },
 
       testErrors: function () {
         errorTests.forEach(

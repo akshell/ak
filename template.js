@@ -332,12 +332,13 @@ function tokenize(string) {
 ////////////////////////////////////////////////////////////////////////////////
 
 exports.Parser = Object.subclass(
-  function (string, store, env) {
+  function (string, store, initializers, env) {
     this._tokens = tokenize(string);
     this.store = store;
     this.env = env;
     this._token = undefined;
     this.parsedNonText = false;
+    this.initializers = initializers;
   },
   {
     get content() {
@@ -398,12 +399,15 @@ exports.Parser = Object.subclass(
 exports.Template = Object.subclass(
   function (string, env/* = exports.env */) {
     this.store = {};
+    this._initializers = [];
     this._root = new exports.Parser(string,
                                     this.store,
+                                    this._initializers,
                                     env || exports.env).parse();
   },
   {
     render: function (context/* = {} */) {
+      this._initializers.forEach(function (initializer) { initializer(); });
       return this._root.render(context || {});
     }
   });
@@ -947,9 +951,12 @@ defaultTags.block = function (parser) {
 var CycleNode = Object.subclass(
   function (exprs) {
     this._exprs = exprs;
-    this._index = 0;
   },
   {
+    init: function () {
+      this._index = 0;
+    },
+    
     render: function (context) {
       var value = this._exprs[this._index].resolve(context);
       this._index = (this._index + 1) % this._exprs.length;
@@ -982,6 +989,7 @@ defaultTags.cycle = function (parser) {
     exprStrings = args.slice(1);
   }
   var result = new CycleNode(parser.makeExprs(exprStrings));
+  parser.initializers.push(function () { result.init(); });
   if (name) {
     parser.store.cycles = parser.store.cycles || {};
     parser.store.cycles[name] = result;
